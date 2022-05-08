@@ -84,3 +84,8 @@ nb-configuration.xml
 .DS_Store
 # Ignore Gradle build output directory
 build
+
+##############################
+## LOCAL-ONLY FILES
+##############################
+.env
