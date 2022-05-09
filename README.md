@@ -1,5 +1,4 @@
 # ProgPhil Bot
-[![Java CI with Gradle](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/gradle.yml/badge.svg?branch=main)](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/gradle.yml)
 > :construction: PROJECT IS UNDERGOING A REVIVAL PHASE :construction:
 
 Custom Discord bot for Programming Philippines community.
