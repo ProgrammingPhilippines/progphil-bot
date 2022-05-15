@@ -1,11 +1,35 @@
-apply plugin: "groovy"
+plugins {
+    id 'groovy'
+    id 'org.owasp.dependencycheck' version '7.1.0.1'
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
     implementation 'org.codehaus.groovy:groovy:3.0.10'
-    testImplementation platform("org.spockframework:spock-bom:2.1-groovy-3.0")
+    implementation 'org.javacord:javacord:3.4.0'
+    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
+    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.17.2'
+
+    testImplementation platform('org.spockframework:spock-bom:2.1-groovy-3.0')
     testImplementation "org.spockframework:spock-core"
+
+    // Transitive Dependencies Version Overrides
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.9.8'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.4.32'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0'
+
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7     // High to Critical
+    cveValidForHours = 24   // Daily check
 }
