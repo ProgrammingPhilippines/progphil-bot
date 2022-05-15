@@ -1,6 +1,5 @@
 plugins {
     id 'groovy'
-    id 'org.owasp.dependencycheck' version '7.1.0.1'
 }
 
 repositories {
@@ -20,16 +19,4 @@ dependencies {
     testImplementation platform('org.spockframework:spock-bom:2.1-groovy-3.0')
     testImplementation "org.spockframework:spock-core"
 
-    // Transitive Dependencies Version Overrides
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.9.8'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
-    implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.4.32'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0'
-
-}
-
-dependencyCheck {
-    failBuildOnCVSS = 7     // High to Critical
-    cveValidForHours = 24   // Daily check
 }
