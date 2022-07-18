@@ -20,7 +20,6 @@ class ConfiguratorImpl(file: File) : Configurator {
                 reader.lines()
                     .filter { line: String -> line.contains("=") && !line.startsWith("#") }
                     .map { line: String -> line.split("=", ignoreCase = true, limit = 2) }
-
                     .forEach { pair ->
                         if (pair.size < 2) {
                             environments[pair[0].lowercase()] = ""
