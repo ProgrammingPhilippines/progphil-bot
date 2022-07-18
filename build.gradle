@@ -18,6 +18,11 @@ kotlin {
     }
 }
 
+task downloadDependencies(type: Copy) {
+    from sourceSets.test.runtimeClasspath
+    into 'runtime/'
+}
+
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
