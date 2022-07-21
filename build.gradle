@@ -1,9 +1,31 @@
 plugins {
     id 'groovy'
+    id 'java'
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version "1.7.10"
+}
+
+group 'org.progphil.bot'
+version '1.0.0'
+
+application {
+    mainClass.set("org.progphil.bot.ProgPhilBotKt")
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+task downloadDependencies(type: Copy) {
+    from sourceSets.test.runtimeClasspath
+    into 'runtime/'
 }
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -11,10 +33,12 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
 
     implementation 'org.codehaus.groovy:groovy:3.0.10'
-    implementation 'org.javacord:javacord:3.4.0'
-    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+    implementation 'org.javacord:javacord:3.5.0'
+    implementation 'pw.mihou:Nexus:v1.0.0-alpha5'
 
-    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'ch.qos.logback:logback-classic:1.2.11'
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.apache.logging.log4j:log4j-to-slf4j:2.17.2'
 
     testImplementation platform('org.spockframework:spock-bom:2.1-groovy-3.0')
     testImplementation "org.spockframework:spock-core"
