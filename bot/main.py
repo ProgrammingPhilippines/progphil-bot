@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv('.env')  # Loads .env file
 token = os.getenv('token')
+print(token)
 intents = Intents().all()
 intents.dm_messages = False
 
