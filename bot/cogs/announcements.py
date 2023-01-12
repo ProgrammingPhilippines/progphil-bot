@@ -11,8 +11,8 @@ class Announcements(commands.Cog):
 
     # Add announcement commands here
     @app_commands.command(
-        name="Media Announce",
-        description="Send A announcement with media",
+        name="media_announce",
+        description="Send a announcement with media",
     )
     @app_commands.describe(
         photo_link="The Link to the Photo",
