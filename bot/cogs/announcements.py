@@ -58,7 +58,7 @@ class Announcements(Cog):
 
         with io.BytesIO(request_file.content) as file:  # converts to file-like object
             channel = self.bot.get_channel(interaction.channel_id)
-            await channel.send(to_announce, file=discord.File(file, "image gihapon.png"))
+            await channel.send(to_announce, file=discord.File(file, f"image_gihapon.{seperated_photo_link[-1]}"))
 
 
 async def setup(bot: Bot):
