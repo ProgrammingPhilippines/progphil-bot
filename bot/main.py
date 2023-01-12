@@ -33,6 +33,7 @@ class ProgPhil(Bot):
         for cog in os.listdir("bot/cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f'cogs.{cog[:-3]}')
+        await self.tree.sync()
 
 
 bot = ProgPhil()
