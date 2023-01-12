@@ -34,8 +34,18 @@ class Announcements(Cog):
             photo: discord.Attachment,
             to_announce: str,
     ) -> None:
+        if photo.filename.split(".")[-1] not in ALLOWED_EXT:
+            return await interaction.response.send_message(
+                f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
+                ephemeral=True
+            )
+
         channel = self.bot.get_channel(interaction.channel_id)
         await channel.send(to_announce, file=await photo.to_file())
+        await interaction.response.send_message(
+            f"Announcement Has been sent",
+            ephemeral=True
+        )
 
     @command(
         name="announce",
@@ -47,7 +57,10 @@ class Announcements(Cog):
     )
     async def announce(self, interactions: discord.Interaction, message: str):
         channel = interactions.channel  # get the channel the command was called on
-        await interactions.response.send_message(f"Announcement has been made", ephemeral=True)
+        await interactions.response.send_message(
+            f"Announcement has been made",
+            ephemeral=True
+        )
         await channel.send(message)
 
 
