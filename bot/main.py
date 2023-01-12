@@ -19,7 +19,8 @@ class ProgPhil(Bot):
             intents=intents
             )
     
-    async def on_ready(self) -> None:
+    async def on_ready(self) -> None: 
+        print("hello world")
         """Invoked when the bot finish setting up
         
         This can get invoked multiple times, use :meth:`setup_hook()` instead
@@ -33,3 +34,7 @@ class ProgPhil(Bot):
         for cog in os.listdir("bot/cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
+
+
+bot=ProgPhil()
+bot.run(token)
