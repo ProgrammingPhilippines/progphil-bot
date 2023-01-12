@@ -36,9 +36,9 @@ class Announcements(commands.Cog):
          and a single ine you want to send
         """
         seperated_photo_link = photo_link.split(".")
-        if len(seperated_photo_link) == 0:
+        if len(seperated_photo_link) == 0:  # errors when no dots in the given argument
             return await interaction.response.send_message("Provided link is Invalid")
-        elif seperated_photo_link[-1] not in ALLOWED_EXT:
+        elif seperated_photo_link[-1] not in ALLOWED_EXT:   # errors when the ext is not allowed
             return await interaction.response.send_message(
                 f"Provided link is not allowed, must be a file that ends with {ALLOWED_EXT}"
             )
