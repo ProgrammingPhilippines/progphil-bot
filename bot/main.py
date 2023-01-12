@@ -5,7 +5,7 @@ from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 
-load_dotenv(".env")  # Loads token.env file
+load_dotenv(".env")  # Loads .env file
 token = os.getenv("token")
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
