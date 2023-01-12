@@ -1,6 +1,4 @@
-import io
 import discord
-import requests
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
 
@@ -38,6 +36,19 @@ class Announcements(Cog):
     ) -> None:
         channel = self.bot.get_channel(interaction.channel_id)
         await channel.send(to_announce, file=await photo.to_file())
+
+    @command(
+        name="announce",
+        description="Make Single Line Announcements on the Channel it was called on"
+    )
+    @describe(message="The Announcement Message to send")
+    @checks.has_any_role(
+        *REQUIRED_ROLES
+    )
+    async def announce(self, interactions: discord.Interaction, message: str):
+        channel = interactions.channel  # get the channel the command was called on
+        await interactions.response.send_message(f"Announcement has been made", ephemeral=True)
+        await channel.send(message)
 
 
 async def setup(bot: Bot):
