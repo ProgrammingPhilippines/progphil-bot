@@ -33,7 +33,7 @@ class Announcements(Cog):
         """
          Announcement method that needs a link to a photo as an Argument,
          To use the command you must provide a link to the photo you want to send,
-         and a single ine you want to send
+         and a single line you want to send
         """
         seperated_photo_link = photo_link.split(".")
         if len(seperated_photo_link) == 0:  # errors when no dots in the given argument
