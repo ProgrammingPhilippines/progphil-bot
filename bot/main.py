@@ -5,10 +5,10 @@ from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 
-load_dotenv("token.env") # Loads token.env file
+load_dotenv("token.env")  # Loads token.env file
 token = os.getenv("token")
 intents = Intents().all()
-intents.dm_messages = False
+intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
 
 
 class ProgPhil(Bot):
@@ -17,8 +17,8 @@ class ProgPhil(Bot):
             **kwargs,
             command_prefix="?",
             intents=intents
-            )
-    
+        )
+
     async def on_ready(self) -> None:
         """Invoked when the bot finish setting up
         
@@ -30,6 +30,11 @@ class ProgPhil(Bot):
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
         # Load every cog inside cogs folder.
-        for cog in os.listdir("bot/cogs"):
+        for cog in os.listdir("cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
+
+
+if __name__ == '__main__':
+    bot = ProgPhil()
+    bot.run(token)
