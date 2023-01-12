@@ -34,6 +34,10 @@ class Announcements(Cog):
             photo: discord.Attachment,
             to_announce: str,
     ) -> None:
+        """
+        Announcement Command that needs a Photo as an Argument and a one line message,
+        you need to have the right perms inorder to run this command
+        """
         if photo.filename.split(".")[-1] not in ALLOWED_EXT:
             return await interaction.response.send_message(
                 f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
