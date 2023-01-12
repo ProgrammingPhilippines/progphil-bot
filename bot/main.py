@@ -30,7 +30,7 @@ class ProgPhil(Bot):
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
         # Load every cog inside cogs folder.
-        for cog in os.listdir("cogs"):
+        for cog in os.listdir("bot/cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
 
