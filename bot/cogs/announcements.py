@@ -5,6 +5,13 @@ from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
+REQUIRED_ROLES = [
+    "Admin",
+    "Moderator",
+    "Helper",
+    "baby, ako na lang kasi"
+]
+# might be exploited
 
 
 class Announcements(Cog):
@@ -21,10 +28,7 @@ class Announcements(Cog):
         to_announce="Message to announce"
     )
     @checks.has_any_role(
-        "Admin",
-        "Moderator",
-        "Helper",
-        "baby, ako na lang kasi"
+        *REQUIRED_ROLES
     )
     async def announce_with_media(
             self,
