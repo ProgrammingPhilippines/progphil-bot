@@ -1,24 +1,24 @@
 import discord
-from discord import app_commands
-from discord.ext import commands
+from discord.ext.commands import Bot, Cog
+from discord.app_commands import command, describe, checks
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
 
 
-class Announcements(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+class Announcements(Cog):
+    def __init__(self, bot: Bot):
         self.bot = bot
 
     # Add announcement commands here
-    @app_commands.command(
+    @command(
         name="media_announce",
         description="Send a announcement with media",
     )
-    @app_commands.describe(
+    @describe(
         photo_link="The Link to the Photo",
         to_announce="Message to announce"
     )
-    @app_commands.checks.has_any_role(
+    @checks.has_any_role(
         "Admin",
         "Moderator",
         "Helper",
@@ -49,5 +49,5 @@ class Announcements(commands.Cog):
         await channel.send(photo_link)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: Bot):
     await bot.add_cog(Announcements(bot))
