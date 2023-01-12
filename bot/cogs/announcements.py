@@ -8,4 +8,4 @@ class Announcements(Cog):
 
 
 async def setup(bot: Bot):
-    bot.add_cog(Announcements(bot))
+    await bot.add_cog(Announcements(bot))
