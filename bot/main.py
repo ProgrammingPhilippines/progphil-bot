@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv('.env')  # Loads .env file
 token = os.getenv('token')
-print(token)
 intents = Intents().all()
 intents.dm_messages = False
 
@@ -21,7 +20,6 @@ class ProgPhil(Bot):
             )
     
     async def on_ready(self) -> None: 
-        print("hello world")
         """Invoked when the bot finish setting up
         
         This can get invoked multiple times, use :meth:`setup_hook()` instead
