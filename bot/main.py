@@ -5,7 +5,7 @@ from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 
-load_dotenv("token.env")  # Loads token.env file
+load_dotenv("../token.env")  # Loads token.env file
 token = os.getenv("token")
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
@@ -33,6 +33,8 @@ class ProgPhil(Bot):
         for cog in os.listdir("cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
+
+        await self.tree.sync()
 
 
 if __name__ == '__main__':
