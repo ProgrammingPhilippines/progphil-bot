@@ -5,8 +5,8 @@ from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 
-load_dotenv("token.env") # Loads token.env file
-token = os.getenv("token")
+load_dotenv('.env')  # Loads .env file
+token = os.getenv('token')
 intents = Intents().all()
 intents.dm_messages = False
 
@@ -25,11 +25,15 @@ class ProgPhil(Bot):
         This can get invoked multiple times, use :meth:`setup_hook()` instead
         for loading databases, etc."""
 
-        print(f"{self.user.display_name} running.")
+        print(f'{self.user.display_name} running.')
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
         # Load every cog inside cogs folder.
         for cog in os.listdir("bot/cogs"):
             if cog[-3:] == ".py":
-                await self.load_extension(f"cogs.{cog[:-3]}")
+                await self.load_extension(f'cogs.{cog[:-3]}')
+
+
+bot = ProgPhil()
+bot.run(token)
