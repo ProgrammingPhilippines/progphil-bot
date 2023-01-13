@@ -1,3 +1,5 @@
+from typing import Optional
+
 import discord
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
@@ -88,16 +90,16 @@ class Announcements(Cog):
     async def multi_with_media(
             self,
             interaction: discord.Interaction,
-            photo: discord.Attachment,
+            photo: Optional[discord.Attachment] = None,
     ) -> None:
 
-        if not is_allowed(photo):
+        if photo and not is_allowed(photo):
             return await interaction.response.send_message(
                 f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
                 ephemeral=True
             )
 
-        announcement = Announcement(interaction, photo)
+        announcement = Announcement(photo)
         await interaction.response.send_modal(announcement)
         await announcement.wait()
 
