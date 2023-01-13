@@ -15,6 +15,9 @@ REQUIRED_ROLES = [
 
 # might be exploited
 
+def is_allowed(attachment: discord.Attachment):
+    return attachment.filename.split(".")[-1] in ALLOWED_EXT
+
 
 class Announcements(Cog):
     def __init__(self, bot: Bot):
@@ -43,7 +46,7 @@ class Announcements(Cog):
         you need to have the right perms inorder to run this command
         """
 
-        if photo.filename.split(".")[-1] not in ALLOWED_EXT:
+        if not is_allowed(photo):
             return await interaction.response.send_message(
                 f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
                 ephemeral=True
@@ -65,7 +68,6 @@ class Announcements(Cog):
         *REQUIRED_ROLES
     )
     async def announce(self, interactions: discord.Interaction, message: str) -> None:
-
         channel = interactions.channel  # get the channel the command was called on
         await interactions.response.send_message(
             f"Announcement has been made",
@@ -88,6 +90,12 @@ class Announcements(Cog):
             interaction: discord.Interaction,
             photo: discord.Attachment,
     ) -> None:
+
+        if not is_allowed(photo):
+            return await interaction.response.send_message(
+                f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
+                ephemeral=True
+            )
 
         announcement = Announcement(interaction, photo)
         await interaction.response.send_modal(announcement)
