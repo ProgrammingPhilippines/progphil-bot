@@ -4,7 +4,7 @@ import discord
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
 
-from bot.utils.modals import Announcement
+from utils.modals import Announcement
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
 REQUIRED_ROLES = [
