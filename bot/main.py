@@ -2,11 +2,10 @@ import os
 
 from discord import Intents
 from discord.ext.commands import Bot
-from dotenv import load_dotenv
+
+from config import BotConfig
 
 
-load_dotenv(".env")  # Loads .env file
-token = os.getenv("token")
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
 
@@ -15,14 +14,14 @@ class ProgPhil(Bot):
     def __init__(self, **kwargs):
         super().__init__(
             **kwargs,
-            command_prefix="?",
+            command_prefix=BotConfig.prefix,
             intents=intents
         )
 
     async def on_ready(self) -> None:
         """Invoked when the bot finish setting up
-        
-        This can get invoked multiple times, use :meth:`setup_hook()` instead
+
+        This can get invoked multiple times, use :meth:setup_hook() instead
         for loading databases, etc."""
 
         print(f"{self.user.display_name} running.")
@@ -39,4 +38,4 @@ class ProgPhil(Bot):
 
 if __name__ == '__main__':
     bot = ProgPhil()
-    bot.run(token)
+    bot.run(BotConfig.token)
