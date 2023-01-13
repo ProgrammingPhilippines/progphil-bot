@@ -1,0 +1,7 @@
+bot:
+  prefix: "!"
+  token: !ENV "token"
+  mod_roles: ["Admin", "Moderator", "Helper", "baby, ako na lang kasi"]
+
+database:
+  ...
