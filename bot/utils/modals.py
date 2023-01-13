@@ -22,11 +22,24 @@ class Announcement(Modal, title='Announcement'):
     async def on_submit(self, interaction: Interaction) -> None:
         channel = interaction.channel
 
-        if photo := self.attachment:
+        if photo := self.attachment:  # if there is a photo
             photo = await photo.to_file()
 
-        await channel.send(self.announcement_title.value, file=photo)
-        await channel.send(self.announcement.value)
+        announcement = format_announcement(self.announcement_title.value, self.announcement.value)  # Formats the announcement
+        await channel.send(announcement, file=photo)
         await interaction.response.send_message(
             'Announcement has been sent', ephemeral=True
         )
+
+
+def format_announcement(title, body):
+    """
+    Formats the announcement
+
+    :param title: Announcement Title
+    :param body: Announcement body
+    :return: Formatted announcement
+    """
+
+    # This may be modified in future
+    return f'**{title}**\n\n{body}'

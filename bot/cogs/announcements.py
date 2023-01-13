@@ -18,6 +18,12 @@ REQUIRED_ROLES = [
 # might be exploited
 
 def is_allowed(attachment: discord.Attachment):
+    """
+    Checks if the attachment is allowed
+
+    :param attachment: attachment to check
+    :return:
+    """
     return attachment.filename.split(".")[-1] in ALLOWED_EXT
 
 
