@@ -2,6 +2,8 @@ import discord
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
 
+from bot.utils.modals import Announcement
+
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
 REQUIRED_ROLES = [
     "Admin",
@@ -9,6 +11,8 @@ REQUIRED_ROLES = [
     "Helper",
     "baby, ako na lang kasi"
 ]
+
+
 # might be exploited
 
 
@@ -38,6 +42,7 @@ class Announcements(Cog):
         Announcement Command that needs a Photo as an Argument and a one line message,
         you need to have the right perms inorder to run this command
         """
+
         if photo.filename.split(".")[-1] not in ALLOWED_EXT:
             return await interaction.response.send_message(
                 f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
@@ -59,13 +64,34 @@ class Announcements(Cog):
     @checks.has_any_role(
         *REQUIRED_ROLES
     )
-    async def announce(self, interactions: discord.Interaction, message: str):
+    async def announce(self, interactions: discord.Interaction, message: str) -> None:
+
         channel = interactions.channel  # get the channel the command was called on
         await interactions.response.send_message(
             f"Announcement has been made",
             ephemeral=True
         )
         await channel.send(message)
+
+    @command(
+        name="multi_with_media",
+        description="Make Multiple Line Announcements with Media"
+    )
+    @checks.has_any_role(
+        *REQUIRED_ROLES
+    )
+    @describe(
+        photo="The Photo File"
+    )
+    async def multi_with_media(
+            self,
+            interaction: discord.Interaction,
+            photo: discord.Attachment,
+    ) -> None:
+
+        announcement = Announcement(interaction, photo)
+        await interaction.response.send_modal(announcement)
+        await announcement.wait()
 
 
 async def setup(bot: Bot):
