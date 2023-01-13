@@ -21,9 +21,10 @@ class Announcement(Modal, title='Announcement'):
 
     async def on_submit(self, interaction: Interaction) -> None:
         channel = interaction.channel
+        photo = None
 
-        if photo := self.attachment:  # if there is a photo
-            photo = await photo.to_file()
+        if self.attachment:  # If the user has uploaded an attachment
+            photo = await self.attachment.to_file()
 
         announcement = format_announcement(self.announcement_title.value, self.announcement.value)  # Formats the announcement
         await channel.send(announcement, file=photo)
