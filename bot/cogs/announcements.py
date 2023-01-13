@@ -46,6 +46,10 @@ class Announcements(Cog):
         """
         Announcement Command that needs a Photo as an Argument and a one line message,
         you need to have the right perms inorder to run this command
+
+        :param interaction:
+        :param photo:
+        :param to_announce:
         """
 
         if not is_allowed(photo):
@@ -70,6 +74,12 @@ class Announcements(Cog):
         *REQUIRED_ROLES
     )
     async def announce(self, interactions: discord.Interaction, message: str) -> None:
+        """
+        Announcement Command that needs a one line message
+
+        :param interactions:
+        :param message:
+        """
         channel = interactions.channel  # get the channel the command was called on
         await interactions.response.send_message(
             f"Announcement has been made",
@@ -92,6 +102,12 @@ class Announcements(Cog):
             interaction: discord.Interaction,
             photo: Optional[discord.Attachment] = None,
     ) -> None:
+        """
+        Announcement Command that uses modals to make announcements with media
+
+        :param interaction:
+        :param photo:
+        """
 
         if photo and not is_allowed(photo):
             return await interaction.response.send_message(
