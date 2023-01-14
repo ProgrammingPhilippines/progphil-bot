@@ -24,7 +24,7 @@ In order to use the bot, you'll need the following tools:
 
 3. Clone the repository: `git clone https://github.com/ProgrammingPhilippines/progphil-bot`.
 
-5. Install the required libraries with poetry: `poetry install`.
+5. Go to progphil-bot directory: `cd progphil-bot`, and install the required libraries with poetry: `poetry install`.
 
 6. Create a new file called `.env` in the project root and add the following line with your bot's secret token: `token=<paste-secret-token-here>`.
 
