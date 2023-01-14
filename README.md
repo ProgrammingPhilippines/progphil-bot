@@ -14,7 +14,7 @@ Follow these instructions to set up the bot on your Discord server.
 In order to use the bot, you'll need the following tools:
 
 - python 3.8 or later (check your version with python --version)
-- poetry (install with ```pip3 install poetry``` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer))
+- poetry (install with ```pip3 install poetry``` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer).
 
 
 ### Installation
@@ -22,7 +22,7 @@ In order to use the bot, you'll need the following tools:
 
 2. Grab the secret token for the bot from the "Bot" tab of your Discord application.
 
-3. Clone the repository: `git clone https://github.com/ProgrammingPhilippines/progphil-bot`
+3. Clone the repository: `git clone https://github.com/ProgrammingPhilippines/progphil-bot`.
 
 5. Install the required libraries with poetry: `poetry install`.
 
