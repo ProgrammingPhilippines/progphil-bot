@@ -1,7 +1,7 @@
 bot:
   prefix: "!"
   token: !ENV "token"
-  mod_roles: ["Admin", "Moderator", "Helper", "baby, ako na lang kasi"]
+  staff_roles: [748554755265134635, 809311700560904201, "baby, ako na lang kasi"]
 
 database:
   ...
