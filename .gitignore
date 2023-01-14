@@ -87,6 +87,7 @@ nb-configuration.xml
 ## Project
 ##############################
 *.env
+user-config.yml
 
 ##############################
 ## Python
