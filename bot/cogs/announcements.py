@@ -5,17 +5,11 @@ from discord.ext.commands import Bot, Cog
 from discord.app_commands import command, describe, checks
 
 from utils.modals import Announcement
+from utils.decorators import is_staff
+
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
-REQUIRED_ROLES = [
-    "Admin",
-    "Moderator",
-    "Helper",
-    "baby, ako na lang kasi"
-]
 
-
-# might be exploited
 
 def is_allowed(attachment: discord.Attachment):
     """
@@ -31,82 +25,41 @@ class Announcements(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    # Add announcement commands here
+    @is_staff()
     @command(
-        name="media_announce",
-        description="Send a announcement with media",
-    )
-    @describe(
-        photo="The Photo File",
-        to_announce="Message to announce"
-    )
-    @checks.has_any_role(
-        *REQUIRED_ROLES
-    )
-    async def announce_with_media(
-            self,
-            interaction: discord.Interaction,
-            photo: discord.Attachment,
-            to_announce: str,
-    ) -> None:
-        """
-        Announcement Command that needs a Photo as an Argument and a one line message,
-        you need to have the right perms inorder to run this command
-
-        :param interaction:
-        :param photo:
-        :param to_announce:
-        """
-
-        if not is_allowed(photo):
-            return await interaction.response.send_message(
-                f"File {photo.filename}, is not a supported file, only send photos with {ALLOWED_EXT}",
-                ephemeral=True
-            )
-
-        channel = self.bot.get_channel(interaction.channel_id)
-        await channel.send(to_announce, file=await photo.to_file())
-        await interaction.response.send_message(
-            f"Announcement Has been sent",
-            ephemeral=True
-        )
-
-    @command(
-        name="announce",
+        name="shout",
         description="Make Single Line Announcements on the Channel it was called on"
     )
     @describe(message="The Announcement Message to send")
-    @checks.has_any_role(
-        *REQUIRED_ROLES
-    )
-    async def announce(self, interactions: discord.Interaction, message: str) -> None:
+    async def shout(
+        self,
+        interaction: discord.Interaction,
+        channel: discord.TextChannel,
+        message: str,
+    ) -> None:
         """
         Announcement Command that needs a one line message
 
         :param interactions:
         :param message:
         """
-        channel = interactions.channel  # get the channel the command was called on
-        await interactions.response.send_message(
+        await interaction.response.send_message(
             f"Announcement has been made",
             ephemeral=True
         )
         await channel.send(message)
 
+    @is_staff()
     @command(
-        name="multi_with_media",
+        name="announce",
         description="Make Multiple Line Announcements with Media"
     )
-    @checks.has_any_role(
-        *REQUIRED_ROLES
-    )
-    @describe(
-        photo="The Photo File"
-    )
-    async def multi_with_media(
-            self,
-            interaction: discord.Interaction,
-            photo: Optional[discord.Attachment] = None,
+    @describe(photo="The Photo File")
+    async def announce(
+        self,
+        interaction: discord.Interaction,
+        channel: discord.TextChannel,
+        photo: Optional[discord.Attachment] = None
     ) -> None:
         """
         Announcement Command that uses modals to make announcements with media
@@ -121,7 +74,7 @@ class Announcements(Cog):
                 ephemeral=True
             )
 
-        announcement = Announcement(photo)
+        announcement = Announcement(photo, channel)
         await interaction.response.send_modal(announcement)
         await announcement.wait()
 
