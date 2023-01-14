@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import dotenv
 import yaml
@@ -24,8 +25,13 @@ def _load_env(loader: yaml.Loader, node: yaml.Node) -> str:
 
 yaml.SafeLoader.add_constructor("!ENV", _load_env)
 
-with open("config.yml", "r") as CONFIG:
-    CONFIG = yaml.safe_load(CONFIG)
+if Path("user-config.yml").exists():
+    print("`user-config.yml` file found, loading user configurations.")
+    with open("user-config.yml", "r") as CONFIG:
+        CONFIG = yaml.safe_load(CONFIG)
+else:
+    with open("config.yml", "r") as CONFIG:
+        CONFIG = yaml.safe_load(CONFIG)
 
 
 class ConfigGen(type):
@@ -85,4 +91,4 @@ class BotConfig(metaclass=ConfigGen):
 class Moderation(metaclass=ConfigGen):
     key = "bot"
 
-    mod_roles: list[str]
+    staff_roles: list[int]
