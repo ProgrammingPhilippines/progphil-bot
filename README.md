@@ -26,7 +26,7 @@ In order to use the bot, you'll need the following tools:
 
 5. Install the required libraries with poetry: `poetry install`.
 
-6. Create a new file called `.env` in the project root and add the following line with your bot's secret token: `TOKEN=<paste-secret-token-here>`.
+6. Create a new file called `.env` in the project root and add the following line with your bot's secret token: `token=<paste-secret-token-here>`.
 
 7. Run the bot with `poetry run python main.py`
 
