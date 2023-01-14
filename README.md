@@ -1,7 +1,11 @@
 # ProgPhil Bot
 > **Warning** PROJECT IS UNDERGOING A REVIVAL PHASE :construction:
 
-Custom Discord bot for Programming Philippines community.
+A custom Discord bot for the Programming Philippines community. This project is currently undergoing a revival phase :construction:
+
+### Built with
+- [python](https://python.org)
+- [discord.py](https://discordpy.readthedocs.io/)
 
 # Getting Started
 Follow these instructions to set up the bot on your Discord server.
@@ -28,6 +32,11 @@ In order to use the bot, you'll need the following tools:
 
 # Contributing
 Want to contribute to the project? Check out the [available issues](https://github.com/ProgrammingPhilippines/progphil-bot/issues) and start coding!
+1. Fork the repository.
+2. Create your feature branch.
+3. Commit your changes `git commit -m "you amazing commit"`.
+4. Push the branch `git push -u origin your-faeture-branch`.
+5. Open a pull request.
 
 # Community
 - Kanban board [here](https://github.com/orgs/ProgrammingPhilippines/projects/2/views/1)
