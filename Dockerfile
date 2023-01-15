@@ -2,6 +2,7 @@ FROM python:3.10-slim-bullseye
 
 ARG PROGPHIL
 
+# necessary env vars for poetry to work properly
 ENV PROGPHIL=$PROGPHIL \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
@@ -11,7 +12,7 @@ ENV PROGPHIL=$PROGPHIL \
     PIP_DEFAULT_TIMEOUT=100 \
     POETRY_VERSION=1.3.2
 
-# Install Poetry 1.3.2 via curl
+# Install Poetry 1.3.2 via pip
 RUN pip install -U pip \
     && apt-get update \
     && pip install "poetry==1.3.2"
