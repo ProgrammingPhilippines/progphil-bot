@@ -1,0 +1,22 @@
+FROM python:3.10-slim-bullseye
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry 1.3.2 via curl
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.poetry/bin:${PATH}"
+
+# Install Poetry dependencies
+WORKDIR /app
+RUN python -m venv env
+COPY poetry.lock pyproject.toml ./
+RUN . env/bin/activate && poetry install --no-dev
+
+# Copy source code
+COPY . .
+
+# Run the bot
+CMD . env/bin/activate && poetry run python progphl-bot/bot/main.py
