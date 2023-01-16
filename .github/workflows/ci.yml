@@ -1,3 +1,5 @@
+# Purpose: Build and push Docker image to DockerHub
+
 name: ci
 
 on:
