@@ -30,5 +30,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # image tag is based on the date the commit is made.
-          tags: ${{ secrets.DOCKER_USERNAME }}/progphil-bot:$(date +%s)
+          tags: ${{ secrets.DOCKER_USERNAME }}/progphil-bot:latest
