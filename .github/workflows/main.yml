@@ -38,3 +38,9 @@ jobs:
     - name: Run Pylint Checks
       run: |
         poetry run pylint --errors-only ./bot
+        
+    - name: Run flake8 Checks
+      run: |
+        poetry run flake8 --extend-ignore E501 ./bot        
+        
+        
