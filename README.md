@@ -1,13 +1,13 @@
 # ProgPhil Bot
 
 ![status](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/main.yml/badge.svg)
-![License: MIT](https://img.shields.io/github/license/ProgrammingPhilippines/progphil-bot)
-
-[![](https://dcbadge.vercel.app/api/server/MmWwgXQezf)](discord)
+![status](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/docker-ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/github/license/ProgrammingPhilippines/progphil-bot)](https://opensource.org/licenses/MIT)
+[![Discord](https://img.shields.io/discord/748554476398444635?style=plastic)](https://discord.gg/MmWwgXQezf)
 
 ### Built with
-![python](https://img.shields.io/badge/python-python-green)
-![discord.py](https://img.shields.io/badge/discord.py-discord.py-blue)
+[![python](https://img.shields.io/badge/python-python-green)](https://www.python.org/)
+[![discord.py](https://img.shields.io/badge/discord.py-discord.py-blue)](https://discordpy.readthedocs.io/en/stable/)
 
 # Getting Started	
 
