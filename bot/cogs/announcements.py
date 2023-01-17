@@ -2,7 +2,7 @@ from typing import Optional
 
 import discord
 from discord.ext.commands import Bot, Cog
-from discord.app_commands import command, describe, checks
+from discord.app_commands import command, describe
 
 from utils.modals import Announcement
 from utils.decorators import is_staff
@@ -30,7 +30,10 @@ class Announcements(Cog):
         name="shout",
         description="Make Single Line Announcements on the Channel it was called on"
     )
-    @describe(message="The Announcement Message to send")
+    @describe(
+        channel="Channel to send the announcement to",
+        message="The Announcement Message to send"
+    )
     async def shout(
         self,
         interaction: discord.Interaction,
@@ -40,8 +43,9 @@ class Announcements(Cog):
         """
         Announcement Command that needs a one line message
 
-        :param interactions:
-        :param message:
+        :param interaction: Interaction
+        :param channel: Channel to send the announcement to
+        :param message: Message to send
         """
         await interaction.response.send_message(
             f"Announcement has been made",
@@ -54,7 +58,10 @@ class Announcements(Cog):
         name="announce",
         description="Make Multiple Line Announcements with Media"
     )
-    @describe(photo="The Photo File")
+    @describe(
+        channel="Channel to send the announcement to",
+        photo="The Photo File"
+    )
     async def announce(
         self,
         interaction: discord.Interaction,
@@ -64,8 +71,9 @@ class Announcements(Cog):
         """
         Announcement Command that uses modals to make announcements with media
 
-        :param interaction:
-        :param photo:
+        :param interaction: Interaction
+        :param channel: Channel to send the announcement to
+        :param photo: Photo to send with the announcement
         """
 
         if photo and not is_allowed(photo):
