@@ -1,4 +1,5 @@
 from discord import Interaction
+from discord.ext.commands import Bot, Cog, CommandError
 from discord.app_commands import (
     AppCommandError,
     CheckFailure,
@@ -7,11 +8,6 @@ from discord.app_commands import (
     CommandNotFound,
     CommandOnCooldown
 )
-from discord.ext.commands import (
-    Bot,
-    Cog,
-    CommandError,
-)
 
 error_map = {
     MissingRole: "You are missing the role {error.missing_role} to use this command.",
@@ -19,7 +15,7 @@ error_map = {
     CheckFailure: "You are not allowed to use this command.",
     CommandNotFound: "This command was not found.",
     CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds."
-}
+}  # note: some of these errors are not yet implemented in the bot
 
 
 class ErrorHandler(Cog):
@@ -33,8 +29,15 @@ class ErrorHandler(Cog):
 
     @Cog.listener()
     async def on_app_command_error(self, interaction: Interaction, error: CommandError):
+        """
+        Handles all errors that occur in app commands and sends a response to the user.
+
+        :param interaction: Interaction
+        :param error: Error
+        """
+        # returns the error message if it exists, else returns the default error message
         error_message = error_map.get(type(error), self.error_message)
-        error_message = error_message.format(error=error)
+        error_message = error_message.format(error=error)  # formats the error message if it has a format string
         await interaction.response.send_message(error_message, ephemeral=True)
 
 
