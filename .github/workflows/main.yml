@@ -33,6 +33,7 @@ jobs:
     - name: Install Poetry Dependencies
       run: |
         poetry add pylint
+        poetry add flake8
         poetry install
         
     - name: Run Pylint Checks
