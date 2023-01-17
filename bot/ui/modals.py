@@ -15,7 +15,12 @@ class Announcement(Modal, title='Announcement'):
         style=TextStyle.paragraph
     )
 
-    def __init__(self, attachment: Attachment, channel: TextChannel, mention: str | None = None):
+    def __init__(
+            self,
+            attachment: Attachment,
+            channel: TextChannel,
+            mention: str = None
+            ):
         super().__init__()
         self.attachment = attachment
         self.channel = channel
@@ -31,9 +36,9 @@ class Announcement(Modal, title='Announcement'):
         if self.mention == "roles":
             async def role_callback(interaction: Interaction):
                 """Represents the role select callback.
-                
-                This will get triggered when the "Role Select Dropdown" gets submitted
-                Once submitted, roles.values() will hold a list of selected roles.
+
+                This will get called when "Role Select Dropdown" gets submitted
+                Once submitted, roles.values will hold a list of selected roles.
                 We'll add the mentioned roles to the pre-defined `mentions` variable
                 to pass on the Announcement modal for parsing.
 
@@ -48,9 +53,10 @@ class Announcement(Modal, title='Announcement'):
                 """
 
                 for role in roles.values:
-                    mentions.append(role.mention) # Append the mentions.
+                    mentions.append(role.mention)  # Append the mentions.
 
-                view.stop() # Stop the view once finished
+                await interaction.response.send_message("Role select successful.", ephemeral=True)
+                view.stop()  # Stop the view once finished
 
             view = View(timeout=120)
             roles = RoleSelect(placeholder="Select roles to mention", max_values=25)
@@ -61,36 +67,25 @@ class Announcement(Modal, title='Announcement'):
 
         elif self.mention == "everyone":
             # Just append the default role mention, `@everyone`
-            mentions.append(interaction.guild.default_role.mention)
+            mentions.append(str(interaction.guild.default_role))
 
-        announcement = self.announcement.value # The announcement body from the modal
+        # The announcement body from the modal
+        announcement = f'**{self.announcement_title.value}**\n\n{self.announcement.value}'
         # New if block, mainly for parsing mentions
         if mentions and "$mention" in announcement:
-            # Note: `if mentions and "$mention" in announcement` == `if bool(mentions) and "$mention" in announcement`
-            # if mentions list is empty, it returns False, else it becomes True
-            # so this if statement only gets triggered if the list of mentions is not empty and theres a $mention flag
-            # inside the announcement body 
+            # This only gets triggered if the list of mentions is not empty and theres a $mention flag
+            # inside the announcement body
 
             # format the number of roles supplied only.
             new_announcement = announcement.replace("$mention", "{}", len(mentions))
-            announcement = new_announcement.format(*mentions[:len(mentions) + 1])
+            announcement = new_announcement.format(*mentions[:len(mentions)])
         else:
             # Else if no mention queries, just join the list and put it in front.
             announcement = f"{' '.join(mentions)}\n{announcement}"
 
-        announcement = format_announcement(self.announcement_title.value, announcement)  # Formats the announcement
         await self.channel.send(announcement, file=photo)
-        await interaction.followup.send("Announcement sent.", ephemeral=True)
 
-
-def format_announcement(title, body):
-    """
-    Formats the announcement
-
-    :param title: Announcement Title
-    :param body: Announcement body
-    :return: Formatted announcement
-    """
-
-    # This may be modified in future
-    return f'**{title}**\n\n{body}'
+        if interaction.response.is_done():  # if the interaction has been responded to before
+            await interaction.followup.send("Announcement sent.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Announcement sent.", ephemeral=True)
