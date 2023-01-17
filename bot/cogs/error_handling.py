@@ -1,5 +1,3 @@
-from typing import Union
-
 from discord import Interaction
 from discord.app_commands import (
     AppCommandError,
@@ -15,6 +13,14 @@ from discord.ext.commands import (
     CommandError,
 )
 
+error_map = {
+    MissingRole: "You are missing the role {error.missing_role} to use this command.",
+    MissingPermissions: "You are missing the required permissions to use this command.",
+    CheckFailure: "You are not allowed to use this command.",
+    CommandNotFound: "This command was not found.",
+    CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds."
+}
+
 
 class ErrorHandler(Cog):
     def __init__(self, bot: Bot):
@@ -27,26 +33,9 @@ class ErrorHandler(Cog):
 
     @Cog.listener()
     async def on_app_command_error(self, interaction: Interaction, error: CommandError):
-        error_message = self.error_message
-
-        try:
-            raise error
-
-        except CheckFailure as e:
-            if isinstance(e, MissingRole):
-                error_message = f"You are missing the role {', '.join(e.missing_role)} to use this command."
-            elif isinstance(e, MissingPermissions):
-                error_message = "You are missing the required permissions to use this command."
-            elif isinstance(e, CommandOnCooldown):
-                error_message = f"This command is on cooldown. Try again in {e.retry_after:.2f} seconds."
-            else:
-                error_message = "You are not allowed to use this command."
-
-        except CommandNotFound:
-            error_message = "This command was not found."
-
-        finally:
-            await interaction.response.send_message(error_message, ephemeral=True)
+        error_message = error_map.get(type(error), self.error_message)
+        error_message = error_message.format(error=error)
+        await interaction.response.send_message(error_message, ephemeral=True)
 
 
 async def setup(bot: Bot):
