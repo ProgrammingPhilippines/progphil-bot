@@ -1,11 +1,13 @@
 # ProgPhil Bot
 
-![status](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/main.yml/badge.svg)![License: MIT](https://img.shields.io/github/license/ProgrammingPhilippines/progphil-bot)![python](https://img.shields.io/badge/python-python-green)[![](https://dcbadge.vercel.app/api/server/MmWwgXQezf)](discord)
+![status](https://github.com/ProgrammingPhilippines/progphil-bot/actions/workflows/main.yml/badge.svg)
+![License: MIT](https://img.shields.io/github/license/ProgrammingPhilippines/progphil-bot)
+
+[![](https://dcbadge.vercel.app/api/server/MmWwgXQezf)](discord)
 
 ### Built with
-
-- [python](https://python.org)
-- [discord.py](https://discordpy.readthedocs.io/)
+![python](https://img.shields.io/badge/python-python-green)
+![discord.py](https://img.shields.io/badge/discord.py-discord.py-blue)
 
 # Getting Started	
 
@@ -15,17 +17,23 @@ Follow these instructions to set up the bot on your Discord server.
 
 In order to use the bot, you'll need the following tools:
 
-- python 3.8 or later (check your version with python --version)
+- python 3.8 or later (check your version with ``python --version``)
 - poetry (install with ``pip3 install poetry`` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer).
 
 ### Installation
 
 1. Create a new Discord application on the [Discord Developer Portal](https://discord.com/developers/applications) and set the required permissions for the bot.
 2. Grab the secret token for the bot from the "Bot" tab of your Discord application.
-3. Clone the repository: `git clone https://github.com/ProgrammingPhilippines/progphil-bot`.
-4. Go to progphil-bot directory: `cd progphil-bot`, and install the required libraries with poetry: `poetry install`.
-5. Create a new file called `.env` in the project root and add the following line with your bot's secret token: `token=<paste-secret-token-here>`.
-6. Run the bot with `poetry run python main.py`
+3. Clone the repository
+```
+git clone https://github.com/ProgrammingPhilippines/progphil-bot
+```
+4. Install the dependencies
+```
+cd progphil-bot
+
+poetry install
+```
 
 Read the [Development Guide](https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide) for an in-depth look at the development process and guidelines for contributing to the ProgPhil Bot project.
 
