@@ -1,15 +1,7 @@
 # Ignored Files
 # -----------------------
-**/.git
+.git
 *.md
 .cache
 *.txt
 .gitignore
-user-config.yml
-.vscode/
-.code-workspace
-.gitattributes
-**/.DS_Store
-__pycache__
-*.py[cod]
-.env
