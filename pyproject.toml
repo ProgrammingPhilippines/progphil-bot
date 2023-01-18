@@ -10,6 +10,7 @@ python = "^3.10"
 discord-py = "^2.1.0"
 python-dotenv = "^0.21.0"
 pyyaml = "^6.0"
+flake8 = "^6.0.0"
 
 
 [build-system]

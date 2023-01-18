@@ -2,9 +2,9 @@ from typing import Optional
 
 import discord
 from discord.ext.commands import Bot, Cog
-from discord.app_commands import command, describe
+from discord.app_commands import Choice, choices, command, describe
 
-from utils.modals import Announcement
+from ui.modals import Announcement
 from utils.decorators import is_staff
 
 
@@ -26,14 +26,10 @@ class Announcements(Cog):
         self.bot = bot
 
     @is_staff()
-    @command(
-        name="shout",
-        description="Make Single Line Announcements on the Channel it was called on"
-    )
-    @describe(
-        channel="Channel to send the announcement to",
-        message="The Announcement Message to send"
-    )
+    @command(name="shout",
+             description="Make Single Line Announcements on the Channel it was called on")
+    @describe(channel="Channel to send the announcement to",
+              message="The Announcement Message to send")
     async def shout(
         self,
         interaction: discord.Interaction,
@@ -54,26 +50,34 @@ class Announcements(Cog):
         await channel.send(message)
 
     @is_staff()
-    @command(
-        name="announce",
-        description="Make Multiple Line Announcements with Media"
+    @command(name="announce",
+             description="Make Multiple Line Announcements with Media")
+    @choices(
+        mention=[
+            Choice(name="everyone", value="everyone"),
+            Choice(name="roles", value="roles")
+        ]
     )
-    @describe(
-        channel="Channel to send the announcement to",
-        photo="The Photo File"
-    )
+    @describe(channel="Channel to send the announcement to",
+              photo="The Photo File")
     async def announce(
         self,
         interaction: discord.Interaction,
         channel: discord.TextChannel,
-        photo: Optional[discord.Attachment] = None
+        photo: Optional[discord.Attachment] = None,
+        mention: Choice[str] = ""
     ) -> None:
         """
         Announcement Command that uses modals to make announcements with media
 
-        :param interaction: Interaction
-        :param channel: Channel to send the announcement to
+        :param interaction: Interacton
+        :param channel: The channel to send the announcement to
         :param photo: Photo to send with the announcement
+        :param mention: Wether to have mentions or not
+
+        If the command invoker chooses the mention parameter,
+        send a selection view that selects roles that they want to mention.
+
         """
 
         if photo and not is_allowed(photo):
@@ -82,7 +86,11 @@ class Announcements(Cog):
                 ephemeral=True
             )
 
-        announcement = Announcement(photo, channel)
+        if mention:
+            # If the user picked any of the 2 choices
+            mention = mention.value
+
+        announcement = Announcement(photo, channel, mention)
         await interaction.response.send_modal(announcement)
         await announcement.wait()
 
