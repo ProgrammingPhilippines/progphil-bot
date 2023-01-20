@@ -1,9 +1,9 @@
-FROM python:3.10-slim-bullseye
+FROM python:3.10-slim
 
-ARG PROGPHIL
+ARG token
 
 # necessary env vars for poetry to work properly
-ENV PROGPHIL=$PROGPHIL \
+ENV token=$token \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
