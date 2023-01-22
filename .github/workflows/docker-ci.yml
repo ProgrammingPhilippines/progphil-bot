@@ -56,7 +56,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh/
           echo "$SSH_KEY" > ~/.ssh/pph.key
-          chmod 600 ~/.ssh/pph.key
+          chmod 700 ~/.ssh/pph.key
           cat >>~/.ssh/config <<END
           Host staging
             HostName $SSH_HOST
