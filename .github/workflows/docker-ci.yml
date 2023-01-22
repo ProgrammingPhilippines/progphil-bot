@@ -72,13 +72,13 @@ jobs:
         name: test SSH using manual ssh
         run: ssh staging 'touch pph_ssh_test.txt'
       -
-        name: Deploy using appleboy
-        uses: appleboy/ssh-action@v0.1.7
+        name: Deploy using garygrossgarten
+        uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ env.SERVER_SSH_KEY }}
-          script: |
+          privateKey: ${{ env.SERVER_SSH_KEY }}
+          command: |
             docker stop progphil-bot || true && docker rm progphil-bot || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest
             docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} -it -d ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest
