@@ -2,6 +2,8 @@
 # SSH on remote server and run docker commands to update running bot
 # Currenty deploys on push on any branch for testing
 
+#for development we cant use dockerhub since user-config.yml is not present on repository
+
 name: Docker CICD
 
 on:
@@ -74,15 +76,33 @@ jobs:
 #      - 
 #        name: test SSH using manual ssh
 #        run: ssh staging 'touch pph_ssh_test.txt'
+
       -
-        name: Deploy using on Server
+        name:  Deploy using on Server
         uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           privateKey: ${{ env.SERVER_SSH_KEY }}
           command: |
-            docker stop progphil-bot || true && docker rm progphil-bot || true
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest
-            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} --name progphil-bot -it -d ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest 
-            docker system prune -f
+            cd pph
+            git pull
+            docker stop progphil-bot-dev || true && docker rm progphil-bot-dev || true
+            docker rm progphil-bot-dev
+            docker build -t progphil-bot-dev .
+            docker run -it -d  --name progphil-bot-dev progphil-bot-dev
+            docker image prune -f
+            
+
+#      -
+#        name: Deploy using on Server
+#        uses: garygrossgarten/github-action-ssh@release
+#        with:
+#          host: ${{ secrets.SERVER_HOST }}
+#          username: ${{ secrets.SERVER_USERNAME }}
+#          privateKey: ${{ env.SERVER_SSH_KEY }}
+#          command: |
+#            docker stop progphil-bot || true && docker rm progphil-bot || true
+#            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest
+#            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} --name progphil-bot -it -d ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest 
+#            docker system prune -f
