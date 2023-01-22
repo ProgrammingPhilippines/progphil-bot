@@ -7,9 +7,9 @@
 name: Docker CICD
 
 on:
-  push
-#    branches:
-#      - "main"
+  push:
+    branches:
+      - "main"
 
 env:
   USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -21,6 +21,7 @@ env:
   SERVER_SSH_KEY: ${{secrets.SERVER_SSH_KEY}}
 
 jobs:
+#We cant use this job on dev since theres no userconfig.yml on repo
 #  build:
 #    runs-on: ubuntu-latest
 #    steps:
