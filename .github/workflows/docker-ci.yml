@@ -1,5 +1,6 @@
 # Purpose: Build and push Docker image to DockerHub
 # SSH on remote server and run docker commands to update running bot
+# Currenty deploys on push on any branch for testing
 
 name: Docker CICD
 
@@ -18,32 +19,32 @@ env:
   SERVER_SSH_KEY: ${{secrets.SERVER_SSH_KEY}}
 
 jobs:
-#  build:
-#    runs-on: ubuntu-latest
-#    steps:
-#      -
-#        name: Checkout
-#        uses: actions/checkout@v3
-#      -
-#        name: Login to DockerHub
-#        uses: docker/login-action@v2
-#        with:
-#          username: ${{ env.USERNAME }}
-#          password: ${{ env.TOKEN }}
-#      -
-#        name: Set up Docker Buildx
-#        uses: docker/setup-buildx-action@v2
-#      -
-#        name: Build and push image
-#        uses: docker/build-push-action@v2
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          push: true
-#          tags: ${{ env.USERNAME }}/progphil-bot:latest
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.USERNAME }}
+          password: ${{ env.TOKEN }}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Build and push image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.USERNAME }}/progphil-bot:latest
   
   deploy:
- #   needs: build
+    needs: build
     runs-on: ubuntu-latest
     steps:
       -
@@ -56,7 +57,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh/
           echo "$SSH_KEY" > ~/.ssh/pph.key
-          chmod 700 ~/.ssh/pph.key
+          chmod 600 ~/.ssh/pph.key
           cat >>~/.ssh/config <<END
           Host staging
             HostName $SSH_HOST
@@ -68,11 +69,13 @@ jobs:
           SSH_USER: ${{ secrets.SERVER_USERNAME }}
           SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
           SSH_HOST: ${{ secrets.SERVER_HOST }}
-      - 
-        name: test SSH using manual ssh
-        run: ssh staging 'touch pph_ssh_test.txt'
+          
+#      use this to test if key works without third party actions
+#      - 
+#        name: test SSH using manual ssh
+#        run: ssh staging 'touch pph_ssh_test.txt'
       -
-        name: Deploy using garygrossgarten
+        name: Deploy using on Server
         uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.SERVER_HOST }}
