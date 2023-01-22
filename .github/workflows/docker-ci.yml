@@ -4,9 +4,9 @@
 name: Docker CICD
 
 on:
-  push:
-    branches:
-      - "main"
+  push
+#    branches:
+#      - "main"
 
 env:
   USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
