@@ -11,6 +11,11 @@ on:
 env:
   USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+  REMOTE_SERVER: ${{ secrets.REMOTE_SERVER }}
+  
+  SERVER_USERNAME: ${{ secrets.REMOTE_SERVER_USERNAME }}
+  SERVER_SSH_KEY: ${{secrets.SSH_KEY}}
 
 jobs:
 #  build:
