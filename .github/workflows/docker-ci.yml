@@ -84,5 +84,5 @@ jobs:
           command: |
             docker stop progphil-bot || true && docker rm progphil-bot || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest
-            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} -it -d ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest --name progphil-bot
+            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} --name progphil-bot -it -d ${{ secrets.DOCKERHUB_USERNAME }}/progphil-bot:latest 
             docker system prune -f
