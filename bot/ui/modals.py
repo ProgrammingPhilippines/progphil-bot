@@ -1,5 +1,7 @@
 from discord import Interaction, TextStyle, Attachment, TextChannel
-from discord.ui import Modal, TextInput, View, RoleSelect
+from discord.ui import Modal, TextInput
+
+from ui.views import AnnouncementView
 
 
 class Announcement(Modal, title='Announcement'):
@@ -28,60 +30,27 @@ class Announcement(Modal, title='Announcement'):
 
     async def on_submit(self, interaction: Interaction) -> None:
         photo = None
-        mentions = []
 
         if self.attachment:  # If the user has uploaded an attachment
             photo = await self.attachment.to_file()
 
-        if self.mention == "roles":
-            async def role_callback(interaction: Interaction):
-                """Represents the role select callback.
-
-                This will get called when "Role Select Dropdown" gets submitted
-                Once submitted, roles.values will hold a list of selected roles.
-                We'll add the mentioned roles to the pre-defined `mentions` variable
-                to pass on the Announcement modal for parsing.
-
-                Example result:
-                ```
-                    mentions = [
-                        <@&role_id_here>,
-                        ...,
-                        ..., # and so on
-                    ]
-                ```
-                """
-
-                for role in roles.values:
-                    mentions.append(role.mention)  # Append the mentions.
-
-                await interaction.response.send_message("Role select successful.", ephemeral=True)
-                view.stop()  # Stop the view once finished
-
-            view = View(timeout=120)
-            roles = RoleSelect(placeholder="Select roles to mention", max_values=25)
-            roles.callback = role_callback
-            view.add_item(roles)
-            await interaction.response.send_message(view=view, ephemeral=True)
-            await view.wait()
-
-        elif self.mention == "everyone":
-            # Just append the default role mention, `@everyone`
-            mentions.append(str(interaction.guild.default_role))
-
-        # The announcement body from the modal
         announcement = f'**{self.announcement_title.value}**\n\n{self.announcement.value}'
-        # New if block, mainly for parsing mentions
-        if mentions and "$mention" in announcement:
-            # This only gets triggered if the list of mentions is not empty and theres a $mention flag
-            # inside the announcement body
 
-            # format the number of roles supplied only.
-            new_announcement = announcement.replace("$mention", "{}", len(mentions))
-            announcement = new_announcement.format(*mentions[:len(mentions)])
-        else:
-            # Else if no mention queries, just join the list and put it in front.
-            announcement = f"{' '.join(mentions)}\n{announcement}"
+        if self.mention:
+            selection_view = AnnouncementView()
+            await interaction.response.send_message(view=selection_view, ephemeral=True)
+            await selection_view.wait()
+            # Gather the "mention" strings of the selected objects
+            tags = ("$user", "$role", "$channel")
+            user_mentions = [user.mention for user in selection_view.user_mentions]
+            role_mentions = [role.mention for role in selection_view.role_mentions]
+            channel_mentions = [channel.mention for channel in selection_view.channel_mentions]
+
+            # Format the announcement one by one
+            for tag, mention_type in zip(tags, (user_mentions, role_mentions, channel_mentions)):
+                if len(mention_type) > 0:  # If the list is empty (any of the following mention lists)
+                    announcement = announcement.replace(tag, "{}", len(mention_type))
+                    announcement = announcement.format(*mention_type)
 
         await self.channel.send(announcement, file=photo)
 

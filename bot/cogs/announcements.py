@@ -53,10 +53,7 @@ class Announcements(Cog):
     @command(name="announce",
              description="Make Multiple Line Announcements with Media")
     @choices(
-        mention=[
-            Choice(name="everyone", value="everyone"),
-            Choice(name="roles", value="roles")
-        ]
+        mention=[Choice(name="yes", value="yes")]
     )
     @describe(channel="Channel to send the announcement to",
               photo="The Photo File")
@@ -87,7 +84,7 @@ class Announcements(Cog):
             )
 
         if mention:
-            # If the user picked any of the 2 choices
+            # If the user picked yes
             mention = mention.value
 
         announcement = Announcement(photo, channel, mention)
