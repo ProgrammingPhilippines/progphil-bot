@@ -70,7 +70,7 @@ class Announcements(Cog):
         :param interaction: Interacton
         :param channel: The channel to send the announcement to
         :param photo: Photo to send with the announcement
-        :param mention: Wether to have mentions or not
+        :param mention: Whether to have mentions or not
 
         If the command invoker chooses the mention parameter,
         send a selection view that selects roles that they want to mention.
