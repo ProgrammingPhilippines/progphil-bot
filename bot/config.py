@@ -9,13 +9,13 @@ dotenv.load_dotenv()
 
 
 def _load_env(loader: yaml.Loader, node: yaml.Node) -> str:
-    """A constructor for loading ENV YAML tags 
+    """A constructor for loading ENV YAML tags
 
     Usage in the YAML config:
 
         # Key is the config key
         app:
-            key: !ENV "value" 
+            key: !ENV "value"
     """
 
     default = None
