@@ -13,7 +13,7 @@ class AnnouncementView(View):
     """The view for announcement.
 
     This view includes UserSelect, RoleSelect and Channel Select.
-    Once the view has been submitted, the class variables 
+    Once the view has been submitted, the class variables
     will be loaded with the selected values
     """
     user_mentions: list[Member] = []

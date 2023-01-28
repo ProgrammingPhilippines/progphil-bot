@@ -6,7 +6,7 @@ from config import Moderation
 def is_staff():
     """A decorator for checking if the
     command invoker is a staff
-    
+
     Example:
     ```
         @is_staff()
@@ -24,7 +24,7 @@ def is_staff():
 
             if role in interaction.user.roles:
                 staff = True
-                break # Break the loop and continue the comand if the invoker is a staff
+                break  # Break the loop and continue the comand if the invoker is a staff
 
         return staff
     return app_commands.check(predicate)

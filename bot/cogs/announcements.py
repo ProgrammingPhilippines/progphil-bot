@@ -44,7 +44,7 @@ class Announcements(Cog):
         :param message: Message to send
         """
         await interaction.response.send_message(
-            f"Announcement has been made",
+            "Announcement has been made",
             ephemeral=True
         )
         await channel.send(message)
