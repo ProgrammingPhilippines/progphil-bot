@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches:
+      # Matches all release branches like: release/2023-01 or release/2023-01-01
+      - 'release/[0-9][0-9][0-9][0-9]-*' 
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - # Please follow conventional-commits convention on commits.
+        # https://www.conventionalcommits.org/en/v1.0.0/
+        name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: simple
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package-name: "progphil-bot"
+  deploy:
+    name: Deploy Release
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Configure SSH Key permissions
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/pph.key
+          chmod 600 ~/.ssh/pph.key
+          cat >>~/.ssh/config <<END
+          Host staging
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/pph.key
+            StrictHostKeyChecking no
+          END
+        env:
+          SSH_USER: ${{ secrets.SERVER_USERNAME }}
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SSH_HOST: ${{ secrets.SERVER_HOST }}
+      - # Re-deploying to the server as a prod container. 
+        name:  Deploy to Server
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          privateKey: ${{ env.SERVER_SSH_KEY }}
+          command: |
+            cd pph
+            git pull
+            docker stop progphil-bot-prod || true && docker rm progphil-bot-prod || true
+            docker rm progphil-bot-prod
+            docker build -t progphil-bot-prod .
+            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} -it -d  --name progphil-bot-prod progphil-bot-prod
+            docker image prune -f
