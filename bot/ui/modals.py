@@ -46,11 +46,11 @@ class Announcement(Modal, title='Announcement'):
             role_mentions = [role.mention for role in selection_view.role_mentions]
             channel_mentions = [channel.mention for channel in selection_view.channel_mentions]
 
-            # Format the announcement one by one
             for tag, mention_type in zip(tags, (user_mentions, role_mentions, channel_mentions)):
                 if len(mention_type) > 0:  # If the list is empty (any of the following mention lists)
-                    announcement = announcement.replace(tag, "{}", len(mention_type))
-                    announcement = announcement.format(*mention_type)
+                    for mention in mention_type:
+                        # Replace the tags one by one
+                        announcement = announcement.replace(tag, mention, 1)
 
         await self.channel.send(announcement, file=photo)
 
