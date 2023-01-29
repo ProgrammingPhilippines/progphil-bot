@@ -56,7 +56,6 @@ jobs:
             cd pph
             git pull
             docker stop progphil-bot-prod || true && docker rm progphil-bot-prod || true
-            docker rm progphil-bot-prod
             docker build -t progphil-bot-prod .
             docker run --env token=${{secrets.PPH_PROD_SERVER_BOT_TOKEN }} -it -d  --name progphil-bot-prod progphil-bot-prod
             docker image prune -f
