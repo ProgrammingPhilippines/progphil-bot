@@ -43,5 +43,5 @@ class AnnouncementView(View):
             f"{len(self.role_mentions)} role(s) selected.\n"
             "Sending announcement..."
         )
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(message, ephemeral=True)
         self.stop()
