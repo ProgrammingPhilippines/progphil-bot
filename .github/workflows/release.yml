@@ -53,7 +53,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           privateKey: ${{ env.SERVER_SSH_KEY }}
           command: |
-            cd pph
+            cd pph-prod/progphil-bot
             git pull
             docker stop progphil-bot-prod || true && docker rm progphil-bot-prod || true
             docker build -t progphil-bot-prod .
