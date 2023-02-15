@@ -4,7 +4,7 @@ import discord
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import Choice, choices, command, describe
 
-from ui.modals import Announcement
+from ui.modals.announcement import Announcement
 from utils.decorators import is_staff
 
 
