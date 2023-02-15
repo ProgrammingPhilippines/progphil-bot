@@ -15,7 +15,6 @@ warnings.filterwarnings("ignore", module="aiomysql")  # surpress annoying aiomys
 
 
 class ProgPhil(Bot):
-    pool: Pool
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -37,7 +36,7 @@ class ProgPhil(Bot):
         """This method only gets called ONCE, load stuff here."""
 
         # Create a database pool
-        self.pool = await create_pool(
+        self.pool: Pool = await create_pool(
             host=Database.host,
             port=3306,
             db=Database.name,
@@ -54,7 +53,7 @@ class ProgPhil(Bot):
 
     async def close(self):
         await super().close()
-        await self.pool.close()
+        self.pool.close()
 
 
 if __name__ == '__main__':
