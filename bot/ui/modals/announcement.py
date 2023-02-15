@@ -34,7 +34,12 @@ class Announcement(Modal, title='Announcement'):
         if self.attachment:  # If the user has uploaded an attachment
             photo = await self.attachment.to_file()
 
-        announcement = f'**{self.announcement_title.value}**\n\n{self.announcement.value}'
+        if self.announcement_title.value:
+            self.announcement_title = f"**{self.announcement_title.value}**"
+        else:
+            self.announcement_title = ""
+
+        announcement = self.announcement_title + f'\n\n{self.announcement.value}'
 
         if self.mention:
             selection_view = AnnouncementView()
