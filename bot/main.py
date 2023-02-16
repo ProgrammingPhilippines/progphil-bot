@@ -1,7 +1,6 @@
 import os
-import warnings
 
-from aiomysql import Pool, create_pool
+from asyncpg import Pool, create_pool
 from discord import Intents
 from discord.ext.commands import Bot
 
@@ -10,8 +9,6 @@ from config import BotConfig, Database
 
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
-
-warnings.filterwarnings("ignore", module="aiomysql")  # surpress annoying aiomysql warnings
 
 
 class ProgPhil(Bot):
@@ -38,8 +35,7 @@ class ProgPhil(Bot):
         # Create a database pool
         self.pool: Pool = await create_pool(
             host=Database.host,
-            port=3306,
-            db=Database.name,
+            database=Database.name,
             user=Database.user,
             password=Database.password
         )
@@ -53,7 +49,7 @@ class ProgPhil(Bot):
 
     async def close(self):
         await super().close()
-        self.pool.close()
+        await self.pool.close()
 
 
 if __name__ == '__main__':
