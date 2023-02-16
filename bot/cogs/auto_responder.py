@@ -3,7 +3,7 @@ from math import ceil
 from discord import Interaction, Embed, Message
 from discord.ui import Select, View
 from discord.app_commands import Choice, command, describe, choices
-from discord.ext.commands import Bot, Cog
+from discord.ext.commands import Bot, Cog, GroupCog
 
 from database.auto_responder import AutoRespondDB
 from utils.decorators import is_staff
@@ -11,7 +11,7 @@ from ui.modals.auto_responder import AutoResponder
 from ui.views.auto_responder import AutoResponderPagination
 
 
-class Responder(Cog):
+class Responder(GroupCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.db = AutoRespondDB(self.bot.pool)
@@ -50,7 +50,7 @@ class Responder(Cog):
                 break
 
     @is_staff()
-    @command(name="addresponse",
+    @command(name="add",
              description="Adds an automated response to a certain message")
     @describe(response_type="Determines if the chat should be regular or a reply.")
     @choices(
@@ -70,7 +70,7 @@ class Responder(Cog):
         await modal.wait()
 
     @is_staff()
-    @command(name="viewresponses",
+    @command(name="viewall",
              description="Gets all automated responses.")
     async def view_responses(self, interaction: Interaction):
         """Gets all automated responses and their messages."""
@@ -111,7 +111,7 @@ class Responder(Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @is_staff()
-    @command(name="deleteresponse",
+    @command(name="delete",
              description="Deletes a selected response.")
     async def delete_responses(self, interaction: Interaction):
         """Deletes a selected response"""
