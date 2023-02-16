@@ -11,7 +11,7 @@ discord-py = "^2.1.0"
 python-dotenv = "^0.21.0"
 pyyaml = "^6.0"
 flake8 = "^6.0.0"
-aiomysql = "^0.1.1"
+asyncpg = "^0.27.0"
 
 
 [build-system]
