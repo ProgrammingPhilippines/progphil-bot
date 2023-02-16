@@ -14,6 +14,8 @@ from ui.views.auto_responder import AutoResponderPagination
 class Responder(GroupCog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+
+    async def cog_load(self) -> None:
         self.db = AutoRespondDB(self.bot.pool)
 
     @Cog.listener()
@@ -39,7 +41,7 @@ class Responder(GroupCog):
                 condition = response["message"] in message.content.split()
 
             if condition:
-                if response["rtype"] == "reply":
+                if response["response_type"].strip() == "reply":
                     await message.reply(
                         response["response"]
                     )
@@ -70,7 +72,7 @@ class Responder(GroupCog):
         await modal.wait()
 
     @is_staff()
-    @command(name="viewall",
+    @command(name="all",
              description="Gets all automated responses.")
     async def view_responses(self, interaction: Interaction):
         """Gets all automated responses and their messages."""
@@ -90,7 +92,7 @@ class Responder(GroupCog):
             for num, response in enumerate(data, start=1):
                 description += (
                     f"{num}. **{response['message']}**"
-                    f"```Response: {response['response']}\nResponse Type: {response['rtype']}```\n"
+                    f"```Response: {response['response']}\nResponse Type: {response['response_type']}```\n"
                 )
 
             embed.description = description
@@ -98,8 +100,7 @@ class Responder(GroupCog):
 
             if page_count < 2:
                 # Disables all buttons if there is only 1 page.
-                for button in view.children:
-                    button.disabled = True
+                view.next_button.disabled = True
 
             await interaction.response.send_message(
                 embed=embed,
