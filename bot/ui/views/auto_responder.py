@@ -4,6 +4,19 @@ from discord.ui import View, Button, button
 from database.auto_responder import AutoRespondDB
 
 
+def _format_description(data: dict) -> str:
+    description = ""
+
+    for num, response in enumerate(data, start=1):
+        description += (
+            f"{num}. **{response['message']}**"
+            f"```Response: {response['response']}"
+            f"Response Type: {response['response_type']}```\n"
+        )
+
+    return description
+
+
 class AutoResponderPagination(View):
     """The view for checking auto responder items.
 
@@ -39,11 +52,7 @@ class AutoResponderPagination(View):
         description = f"Page {self.offset // 5 + 1}/{self.chunk_count}\n"
         data = await self.db.get_responses(self.offset)
 
-        for num, response in enumerate(data, start=1):
-            description += (
-                f"{num}. **{response['message']}**"
-                f"```Response: {response['response']}\nResponse Type: {response['rtype']}```\n"
-            )
+        description += _format_description(data)
 
         embed.description = self.title + description
         await interaction.response.edit_message(embed=embed, view=self)
@@ -63,11 +72,7 @@ class AutoResponderPagination(View):
         description = f"Page {self.offset // 5 + 1}/{self.chunk_count}\n"
         data = await self.db.get_responses(self.offset)
 
-        for num, response in enumerate(data, start=1):
-            description += (
-                f"{num}. **{response['message']}**"
-                f"```Response: {response['response']}\nResponse Type: {response['rtype']}```\n"
-            )
+        description += _format_description(data)
 
         embed.description = self.title + description
         await interaction.response.edit_message(embed=embed, view=self)
