@@ -91,7 +91,7 @@ jobs:
             docker stop progphil-bot-dev || true && docker rm progphil-bot-dev || true
             docker rm progphil-bot-dev
             docker build -t progphil-bot-dev .
-            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} -it -d  --name progphil-bot-dev progphil-bot-dev
+            docker run --env token=${{secrets.PPH_TEST_SERVER_BOT_TOKEN }} -it -d  --network="host" --name progphil-bot-dev progphil-bot-dev
             docker image prune -f
             
 
