@@ -92,3 +92,12 @@ class Moderation(metaclass=ConfigGen):
     key = "bot"
 
     staff_roles: list[int]
+
+
+class Database(metaclass=ConfigGen):
+    key = "database"
+
+    name: str
+    host: str
+    user: str
+    password: str
