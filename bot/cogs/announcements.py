@@ -33,7 +33,7 @@ class Announcements(Cog):
     async def shout(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
+        channel: discord.Thread | discord.TextChannel,
         message: str,
     ) -> None:
         """
@@ -60,7 +60,7 @@ class Announcements(Cog):
     async def announce(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
+        channel: discord.Thread | discord.TextChannel,
         photo: Optional[discord.Attachment] = None,
         mention: Choice[str] = ""
     ) -> None:

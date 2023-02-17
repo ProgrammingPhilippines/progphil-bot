@@ -35,10 +35,10 @@ class Responder(GroupCog):
                 is_phrase = True
 
             if is_phrase:
-                condition = response["message"] in message.content
+                condition = response["message"] in message.content.lower()
 
             else:
-                condition = response["message"] in message.content.split()
+                condition = response["message"] in message.content.lower().split()
 
             if condition:
                 if response["response_type"].strip() == "reply":
