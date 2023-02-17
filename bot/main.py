@@ -1,9 +1,10 @@
 import os
 
+from asyncpg import Pool, create_pool
 from discord import Intents
 from discord.ext.commands import Bot
 
-from config import BotConfig
+from config import BotConfig, Database
 
 
 intents = Intents().all()
@@ -11,6 +12,7 @@ intents.dm_messages = False  # pycharm showing a warning Intents' object attribu
 
 
 class ProgPhil(Bot):
+
     def __init__(self, **kwargs):
         super().__init__(
             **kwargs,
@@ -21,19 +23,33 @@ class ProgPhil(Bot):
     async def on_ready(self) -> None:
         """Invoked when the bot finish setting up
 
-        This can get invoked multiple times, use :meth:setup_hook() instead
-        for loading databases, etc."""
+        This can get invoked multiple times, use :meth:`setup_hook()` instead
+        for loading databases, etc.
+        """
 
         print(f"{self.user.display_name} running.")
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
-        # Load every cog inside cogs folder.
+
+        # Create a database pool
+        self.pool: Pool = await create_pool(
+            host=Database.host,
+            database=Database.name,
+            user=Database.user,
+            password=Database.password
+        )
+
+        # Load every cog inside cogs folder
         for cog in os.listdir("bot/cogs"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
 
         await self.tree.sync()
+
+    async def close(self):
+        await super().close()
+        await self.pool.close()
 
 
 if __name__ == '__main__':
