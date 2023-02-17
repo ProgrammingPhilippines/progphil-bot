@@ -23,7 +23,7 @@ class AutoResponder(Modal, title="Auto Responder"):
 
     async def on_submit(self, interaction: Interaction) -> None:
         await self.db.insert_response(
-            self.message.value.strip(),
+            self.message.value.strip().lower(),
             self.response.value.strip(),
             self.response_type
         )
