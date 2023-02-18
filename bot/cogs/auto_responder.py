@@ -91,8 +91,10 @@ class Responder(GroupCog):
 
             for num, response in enumerate(data, start=1):
                 description += (
-                    f"{num}. **{response['message']}**"
-                    f"```Response: {response['response']}\nResponse Type: {response['response_type']}```\n"
+                    f"{num}. **{response['message']}**\n"
+                    f"```ID: {response['id']}\n"
+                    f"Response: {response['response']}\n"
+                    f"Response Type: {response['response_type']}```\n"
                 )
 
             embed.description = description
@@ -114,7 +116,7 @@ class Responder(GroupCog):
     @is_staff()
     @command(name="delete",
              description="Deletes a selected response.")
-    async def delete_responses(self, interaction: Interaction):
+    async def delete_responses(self, interaction: Interaction, response_id: int):
         """Deletes a selected response"""
 
         records_count = await self.db.records_count()
@@ -125,43 +127,14 @@ class Responder(GroupCog):
                 ephemeral=True
             )
 
-        if records_count > 25:
-            # The max items you can select on the selection
-            # is 25, so we set it to 25 if it grows more than that
-            records_count = 25
+        is_deleted = await self.db.delete_response(response_id)
 
-        async def select_callback(interaction: Interaction):
-            """This callback gets called after the selection is done."""
+        if is_deleted:
+            message = "Deleted Successfully."
+        else:
+            message = f"There was a problem deleting #{response_id}. It may not exist."
 
-            for selected in selection.values:
-                await self.db.delete_response(int(selected))
-
-            await interaction.response.edit_message(
-                content="Deletion finished.",
-                view=None
-            )
-
-        view = View()
-        selection = Select(
-            placeholder="Select items...",
-            max_values=records_count
-        )
-
-        selection.callback = select_callback
-
-        # Dynamically adds the options from the database.
-        for response in await self.db.get_responses():
-            selection.add_option(
-                label=response["message"],
-                value=response["id"]
-            )
-
-        view.add_item(selection)
-        await interaction.response.send_message(
-            "Pick the custom responses you want to delete.",
-            view=view,
-            ephemeral=True
-        )
+        await interaction.response.send_message(message, ephemeral=True)
 
 
 async def setup(bot: Bot):
