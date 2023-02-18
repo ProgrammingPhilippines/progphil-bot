@@ -7,6 +7,21 @@ class AutoRespondDB:
     def __init__(self, pool: Pool) -> None:
         self._pool = pool
 
+    async def _check_item(self, response_id: int) -> bool:
+        """Checks if a response is already in the database.
+
+        :param response_id: The response id
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool  # This just serves as a typehint
+
+            item = await conn.fetch("""
+                SELECT * FROM pph_auto_responses WHERE id = $1
+            """, response_id)
+
+        return bool(item)
+
     async def insert_response(self, message: str,
                               response: str, response_type: str) -> None:
         """Inserts a response to the database.
@@ -27,11 +42,16 @@ class AutoRespondDB:
                 ) VALUES ($1, $2, $3);
             """, message, response, response_type)
 
-    async def delete_response(self, response_id: int) -> None:
+    async def delete_response(self, response_id: int) -> bool:
         """Deletes a response from the database.
 
         :param response_id: The id of the response to delete.
+        :returns: Wether the delete was successful or not
         """
+
+        if not await self._check_item(response_id):
+            # Return false if the item does not exist
+            return False
 
         async with self._pool.acquire() as conn:
             conn: Pool
@@ -39,6 +59,8 @@ class AutoRespondDB:
             await conn.execute("""
                 DELETE FROM pph_auto_responses WHERE id = $1;
             """, response_id)
+
+        return True
 
     async def get_responses(self, offset: int = None) -> list[dict[str, str]]:
         """Gets all message and their responses from the database.

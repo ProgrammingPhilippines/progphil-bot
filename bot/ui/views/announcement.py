@@ -1,4 +1,11 @@
-from discord import Button, Interaction, Member, Role, TextChannel
+from discord import (
+    Button,
+    Interaction,
+    Member,
+    Role,
+    TextChannel,
+    ChannelType
+)
 from discord.ui import (
     View,
     UserSelect,
@@ -30,7 +37,16 @@ class AnnouncementView(View):
         self.role_mentions.extend(selected.values)
         await interaction.response.send_message("`Selection saved`", ephemeral=True)
 
-    @select(cls=ChannelSelect, placeholder="Select channels to mention", max_values=25)
+    @select(
+        cls=ChannelSelect, placeholder="Select channels to mention", max_values=25,
+        channel_types=[
+            ChannelType.text,
+            ChannelType.public_thread,
+            ChannelType.private_thread,
+            ChannelType.forum,
+            ChannelType.voice
+        ]
+    )  # Apparently the categories are breaking the bot.
     async def channel_select(self, interaction: Interaction, selected: ChannelSelect):
         self.channel_mentions.extend(selected.values)
         await interaction.response.send_message("`Selection saved`", ephemeral=True)
@@ -43,5 +59,5 @@ class AnnouncementView(View):
             f"{len(self.role_mentions)} role(s) selected.\n"
             "Sending announcement..."
         )
-        await interaction.response.send_message(message, ephemeral=True)
+        await interaction.response.edit_message(content=message, view=None)
         self.stop()

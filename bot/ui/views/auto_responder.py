@@ -9,8 +9,9 @@ def _format_description(data: dict) -> str:
 
     for num, response in enumerate(data, start=1):
         description += (
-            f"{num}. **{response['message']}**"
-            f"```Response: {response['response']}\n"
+            f"{num}. **{response['message']}**\n"
+            f"```ID: {response['id']}\n"
+            f"Response: {response['response']}\n"
             f"Response Type: {response['response_type']}```\n"
         )
 
