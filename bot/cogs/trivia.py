@@ -18,6 +18,7 @@ class Trivia(GroupCog):
         self.bot = bot
         self.db: Type[TriviaDB | None] = None
         self.config: Type[dict | None] = None
+        self.loop: tasks.Loop
 
     async def cog_load(self) -> None:
         self.db = TriviaDB(self.bot.pool)
