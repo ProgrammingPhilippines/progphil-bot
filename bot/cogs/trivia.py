@@ -1,3 +1,5 @@
+# pylint: disable = no-member
+
 from datetime import datetime, time, timedelta
 from typing import Type
 
