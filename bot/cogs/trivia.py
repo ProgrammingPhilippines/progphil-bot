@@ -59,12 +59,12 @@ class Trivia(GroupCog):
         The trivia loop, runs every day at 00:00 UTC+8 (default)
         """
 
+        if self.config is None:  # If the config is None, return
+            return
+
         trivia_channel = self.bot.get_channel(
             int(self.config["channel_id"])
         )  # Gets the trivia channel
-
-        if self.config is None:  # If the config is None, return
-            return
 
         response = requests.get(
             "https://api.api-ninjas.com/v1/facts",
