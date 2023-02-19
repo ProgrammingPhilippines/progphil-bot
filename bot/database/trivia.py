@@ -20,7 +20,7 @@ class TriviaDB:
 
         return dict(config) if config else None
 
-    async def update(self, channel_id: str, schedule: str) -> None:
+    async def update(self, channel_id: int, schedule: str) -> None:
         """
         Updates the trivia config.
 
@@ -36,7 +36,7 @@ class TriviaDB:
                     SET channel_id = $1, schedule = $2
             """, channel_id, schedule)
 
-    async def insert(self, channel_id: str, schedule: str) -> None:
+    async def insert(self, channel_id: int, schedule: str) -> None:
         """
         Inserts the trivia config.
 
