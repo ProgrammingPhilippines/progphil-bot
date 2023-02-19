@@ -19,16 +19,16 @@ class Trivia(GroupCog):
         self.db: Type[TriviaDB | None] = None
         self.config: Type[dict | None] = None
 
-        if self.config is not None:  # if config exists, change the task's start time
-            self.loop.change_interval(
-                time=self.get_schedule(self.config)
-            )
-
-        self.loop.start()
-
     async def cog_load(self) -> None:
         self.db = TriviaDB(self.bot.pool)
         self.config = await self.db.get_config()
+
+        if self.config is not None:  # if config exists, change the task's start time
+            self.trivia_loop.change_interval(
+                time=self.get_schedule(self.config)
+            )
+
+        self.trivia_loop.start()
 
     @staticmethod
     def get_schedule(config) -> time:
@@ -39,7 +39,7 @@ class Trivia(GroupCog):
         """
 
         if config is None:  # If the config is None, return 00:00
-            return time(hour=12, minute=0, second=0)
+            return time(hour=16, minute=0, second=0)
 
         schedule_utc_plus_8 = datetime.strptime(
             config["schedule"],
@@ -54,7 +54,7 @@ class Trivia(GroupCog):
         return schedule.time()
 
     @tasks.loop(time=time(16, 0, 0))  # Runs every day at 00:00 UTC+8 (default)
-    async def loop(self) -> None:
+    async def trivia_loop(self) -> None:
         """
         The trivia loop, runs every day at 00:00 UTC+8 (default)
         """
@@ -92,7 +92,7 @@ class Trivia(GroupCog):
         await trivia_channel.send(embed=embed)
 
     @is_staff()
-    @command(name="schedule", description="Schedule the trivia session")
+    @command(name="schedule", description="Schedule the trivia")
     @describe(schedule="Schedule of the trivia in 24 hour format ex. 12:00")
     async def schedule(self, interaction: discord.Interaction, schedule: str) -> None:
         """
@@ -113,7 +113,7 @@ class Trivia(GroupCog):
             schedule=schedule
         )  # Updates the config
 
-        self.loop.change_interval(
+        self.trivia_loop.change_interval(
             time=self.get_schedule(self.config)
         )  # Changes the interval of the trivia loop
 
@@ -176,7 +176,7 @@ class Trivia(GroupCog):
             schedule=schedule
         )  # Inserts the config
 
-        self.loop.change_interval(
+        self.trivia_loop.change_interval(
             time=self.get_schedule(self.config)
         )  # Changes the interval of the trivia loop
 

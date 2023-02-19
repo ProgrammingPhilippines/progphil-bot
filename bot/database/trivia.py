@@ -18,7 +18,7 @@ class TriviaDB:
                 SELECT * FROM pph_trivia;
             """)
 
-        return dict(config) if config else None
+        return dict(config) if config is not None else None
 
     async def update(self, channel_id: int, schedule: str) -> None:
         """
