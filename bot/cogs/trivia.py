@@ -171,7 +171,7 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
-        self.db.insert(
+        await self.db.insert(
             channel_id=channel.id,
             schedule=schedule
         )  # Inserts the config
