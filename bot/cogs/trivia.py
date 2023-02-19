@@ -4,7 +4,7 @@ from typing import Type
 import requests
 import discord
 from discord import Embed
-from discord.ext.tasks import loop
+from discord.ext import tasks
 from discord.ext.commands import Bot, GroupCog
 from discord.app_commands import command, describe
 
@@ -53,7 +53,7 @@ class Trivia(GroupCog):
 
         return schedule.time()
 
-    @loop(time=time(16, 0, 0))  # Runs every day at 00:00 UTC+8 (default)
+    @tasks.loop(time=time(16, 0, 0))  # Runs every day at 00:00 UTC+8 (default)
     async def trivia_loop(self) -> None:
         """
         The trivia loop, runs every day at 00:00 UTC+8 (default)
