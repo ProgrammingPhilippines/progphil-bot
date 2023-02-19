@@ -1,11 +1,11 @@
-import json
 from datetime import datetime, time, timedelta
 from typing import Type
 
 import requests
 import discord
+from discord import Embed
 from discord.ext import tasks
-from discord.ext.commands import Bot, Cog
+from discord.ext.commands import Bot, GroupCog
 from discord.app_commands import command, describe
 
 from database.trivia import TriviaDB
@@ -13,12 +13,18 @@ from config import API
 from utils.decorators import is_staff
 
 
-class Trivia(Cog):
+class Trivia(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.db: Type[TriviaDB | None] = None
         self.config: Type[dict | None] = None
-        self.trivia_loop.start()
+
+        if self.config is not None:  # if config exists, change the task's start time
+            self.loop.change_interval(
+                time=self.get_schedule(self.config)
+            )
+
+        self.loop.start()
 
     async def cog_load(self) -> None:
         self.db = TriviaDB(self.bot.pool)
@@ -48,7 +54,14 @@ class Trivia(Cog):
         return schedule.time()
 
     @tasks.loop(time=time(16, 0, 0))  # Runs every day at 00:00 UTC+8 (default)
-    async def trivia_loop(self) -> None:
+    async def loop(self) -> None:
+        """
+        The trivia loop, runs every day at 00:00 UTC+8 (default)
+        """
+
+        trivia_channel = self.bot.get_channel(
+            int(self.config["channel_id"])
+        )  # Gets the trivia channel
 
         if self.config is None:  # If the config is None, return
             return
@@ -61,22 +74,27 @@ class Trivia(Cog):
         )
 
         if response.status_code != 200:  # If the status code is not 200, return
-            await self.trivia_channel.send(
+            await trivia_channel.send(
                 f"An error occurred while fetching trivia. Error code: {response.status_code}"
             )
             return
 
-        trivia_channel = self.bot.get_channel(self.config["channel_id"])
-        await trivia_channel.send()
+        response_json = response.json()
 
-    @command(name="test", description="Test command")
-    async def test(self, interaction: discord.Interaction, t: int):
-        await interaction.response.send_message(json.dumps(self.config, indent=4))
+        embed = Embed(
+            title="Prof. Progphil Trivia of the Day",
+            description=response_json[0]["fact"],
+            color=discord.Color.blurple()
+        ).set_image(
+            url="https://cdn.discordapp.com/attachments/972510204505763951/1076388478088122368/image-12.png"
+        )
+
+        await trivia_channel.send(embed=embed)
 
     @is_staff()
-    @command(name="trivia_schedule", description="Schedule the trivia session")
+    @command(name="schedule", description="Schedule the trivia session")
     @describe(schedule="Schedule of the trivia in 24 hour format ex. 12:00")
-    async def trivia_schedule(self, interaction: discord.Interaction, schedule: str) -> None:
+    async def schedule(self, interaction: discord.Interaction, schedule: str) -> None:
         """
         Schedules a trivia session
 
@@ -86,20 +104,20 @@ class Trivia(Cog):
 
         if self.config is None:
             await interaction.response.send_message(
-                "Please setup the trivia first, use /trivia_setup.",
+                "Please setup the trivia first, use /trivia setup.",
                 ephemeral=True)
             return
 
-        await self.db.update_config(
+        await self.db.update(
             channel_id=self.config["channel_id"],
             schedule=schedule
-        )
+        )  # Updates the config
 
-        self.trivia_loop.change_interval(
+        self.loop.change_interval(
             time=self.get_schedule(self.config)
         )  # Changes the interval of the trivia loop
 
-        await self.bot.reload_extension("bot.cogs.trivia")
+        await self.bot.reload_extension("cogs.trivia")
 
         await interaction.response.send_message(
             "Trivia session scheduled",
@@ -107,9 +125,9 @@ class Trivia(Cog):
         )
 
     @is_staff()
-    @command(name="trivia_channel", description="Set the trivia channel")
+    @command(name="channel", description="Set the trivia channel")
     @describe(channel="Channel to send the trivia to")
-    async def trivia_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+    async def channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         """
         Sets the trivia channel
 
@@ -119,16 +137,16 @@ class Trivia(Cog):
 
         if self.config is None:
             await interaction.response.send_message(
-                "Please setup the trivia first, use /trivia_setup.",
+                "Please setup the trivia first, use /trivia setup.",
                 ephemeral=True)
             return
 
-        await self.db.update_config(
+        await self.db.update(
             channel_id=channel.id,
             schedule=self.config["schedule"]
-        )
+        )  # Updates the config
 
-        await self.bot.reload_extension("bot.cogs.trivia")
+        await self.bot.reload_extension("cogs.trivia")
 
         await interaction.response.send_message(
             "Trivia channel set",
@@ -136,10 +154,10 @@ class Trivia(Cog):
         )
 
     @is_staff()
-    @command(name="trivia_setup", description="Setup the trivia")
+    @command(name="setup", description="Setup the trivia")
     @describe(channel="Channel to send the trivia to")
     @describe(schedule="Schedule of the trivia session in 24 hour format ex. 12:00")
-    async def trivia_setup(self, interaction: discord.Interaction, channel: discord.TextChannel, schedule: str) -> None:
+    async def setup(self, interaction: discord.Interaction, channel: discord.TextChannel, schedule: str) -> None:
         """
         Sets up the trivia
 
@@ -149,20 +167,20 @@ class Trivia(Cog):
         """
         if self.config is not None:  # This makes that the trivia can only be setup once
             await interaction.response.send_message(
-                "Trivia is already setup, use /trivia_channel and /trivia_schedule to change the channel and schedule.",
+                "Trivia is already setup, use /trivia channel and /trivia schedule to change the channel and schedule.",
                 ephemeral=True)
             return
 
-        self.db.insert_config(
+        self.db.insert(
             channel_id=channel.id,
             schedule=schedule
-        )
+        )  # Inserts the config
 
-        self.trivia_loop.change_interval(
+        self.loop.change_interval(
             time=self.get_schedule(self.config)
         )  # Changes the interval of the trivia loop
 
-        await self.bot.reload_extension("bot.cogs.trivia")
+        await self.bot.reload_extension("cogs.trivia")
 
         await interaction.response.send_message(
             "Trivia setup",

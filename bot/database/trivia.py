@@ -6,7 +6,11 @@ class TriviaDB:
         self._pool = pool
 
     async def get_config(self) -> dict:
-        """Gets the trivia config."""
+        """
+        Gets the trivia config.
+
+        :return: Dict
+        """
         async with self._pool.acquire() as conn:
             conn: Pool
 
@@ -14,10 +18,15 @@ class TriviaDB:
                 SELECT * FROM pph_trivia;
             """)
 
-        return dict(config)
+        return dict(config) if config else None
 
-    async def update_config(self, channel_id: str, schedule: str) -> None:
-        """Updates the trivia config."""
+    async def update(self, channel_id: str, schedule: str) -> None:
+        """
+        Updates the trivia config.
+
+        :param channel_id: Channel id
+        :param schedule: Schedule
+        """
 
         async with self._pool.acquire() as conn:
             conn: Pool
@@ -27,8 +36,13 @@ class TriviaDB:
                     SET channel_id = $1, schedule = $2
             """, channel_id, schedule)
 
-    async def insert_config(self, channel_id: str, schedule: str) -> None:
-        """Inserts the trivia config."""
+    async def insert(self, channel_id: str, schedule: str) -> None:
+        """
+        Inserts the trivia config.
+
+        :param channel_id: Channel id
+        :param schedule: Schedule
+        """
         async with self._pool.acquire() as conn:
             conn: Pool
 
