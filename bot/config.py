@@ -101,3 +101,9 @@ class Database(metaclass=ConfigGen):
     host: str
     user: str
     password: str
+
+
+class API(metaclass=ConfigGen):
+    key = "api"
+
+    api_ninja: str
