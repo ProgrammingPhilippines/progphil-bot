@@ -23,9 +23,11 @@ class AnnouncementView(View):
     Once the view has been submitted, the class variables
     will be loaded with the selected values
     """
-    user_mentions: list[Member] = []
-    role_mentions: list[Role] = []
-    channel_mentions: list[TextChannel] = []
+    def __init__(self):
+        self.user_mentions: list[Member] = []
+        self.role_mentions: list[Role] = []
+        self.channel_mentions: list[TextChannel] = []
+        super().__init__()
 
     @select(cls=UserSelect, placeholder="Select users to mention", max_values=25)
     async def user_select(self, interaction: Interaction, selected: UserSelect):
