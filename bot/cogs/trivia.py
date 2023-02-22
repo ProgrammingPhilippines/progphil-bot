@@ -1,5 +1,5 @@
 # pylint: disable = no-member
-
+import re
 from datetime import datetime, time, timedelta
 from typing import Type
 
@@ -13,6 +13,17 @@ from discord.app_commands import command, describe
 from database.trivia import TriviaDB
 from config import API
 from utils.decorators import is_staff
+
+
+def _check_time(time: str) -> bool:
+    """Checks if the time is valid.
+
+    :param time: The time string. ex: 1:24, 16:23
+    """
+
+    pattern = re.compile("[0-2][0-3]:[0-5][0-9]")
+
+    return pattern.match(time)
 
 
 class Trivia(GroupCog):
@@ -110,6 +121,13 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
+        if _check_time(schedule) is None:
+            await interaction.response.send_message(
+                "Please enter a correct time. 00:00 to 23:59",
+                ephemeral=True
+            )
+            return
+
         await self.db.update(
             channel_id=self.config["channel_id"],
             schedule=schedule
@@ -171,6 +189,13 @@ class Trivia(GroupCog):
             await interaction.response.send_message(
                 "Trivia is already setup, use /trivia channel and /trivia schedule to change the channel and schedule.",
                 ephemeral=True)
+            return
+
+        if _check_time(schedule) is None:
+            await interaction.response.send_message(
+                "Please enter a correct time. 00:00 to 23:59",
+                ephemeral=True
+            )
             return
 
         await self.db.insert(
