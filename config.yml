@@ -1,13 +1,17 @@
 bot:
   prefix: "!"
   token: !ENV "token"
-  staff_roles: [748554755265134635, 809311700560904201, "baby, ako na lang kasi"]
 
 database:
+  database:
   name: !ENV "db_name"
   host: !ENV "db_host"
   user: !ENV "db_user"
   password: !ENV "db_pass"
 
 api:
-  api_ninja: !ENV "api_ninja_key"
+  api_ninja: !ENV "api_ninja"
+
+guild:
+  staff_roles: [748554755265134635]
+  dev_help_forum: 1020260384638259210
