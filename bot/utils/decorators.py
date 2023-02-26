@@ -1,6 +1,6 @@
 from discord import Interaction, app_commands
 
-from config import Moderation
+from config import GuildInfo
 
 
 def is_staff():
@@ -19,7 +19,7 @@ def is_staff():
     def predicate(interaction: Interaction) -> bool:
         staff = False
 
-        for id_ in Moderation.staff_roles:
+        for id_ in GuildInfo.staff_roles:
             role = interaction.guild.get_role(id_)
 
             if role in interaction.user.roles:

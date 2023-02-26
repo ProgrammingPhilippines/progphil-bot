@@ -88,10 +88,11 @@ class BotConfig(metaclass=ConfigGen):
     token: str
 
 
-class Moderation(metaclass=ConfigGen):
-    key = "bot"
+class GuildInfo(metaclass=ConfigGen):
+    key = "guild"
 
     staff_roles: list[int]
+    dev_help_forum: int
 
 
 class Database(metaclass=ConfigGen):
