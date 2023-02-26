@@ -1,7 +1,6 @@
 from math import ceil
 
 from discord import Interaction, Embed, Message
-from discord.ui import Select, View
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
 
