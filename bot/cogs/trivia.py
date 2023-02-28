@@ -37,9 +37,8 @@ class Trivia(GroupCog):
         :param time_string: The time string. ex: 1:24, 16:23
         """
 
-        pattern = re.compile("[0-2][0-3]:[0-5][0-9]")
-
-        return pattern.match(time_string)
+        pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        return re.match(pattern, time_string) is not None
 
     @staticmethod
     def _get_schedule(config) -> time:
