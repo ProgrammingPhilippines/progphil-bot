@@ -2,7 +2,8 @@
 
 import re
 from datetime import datetime, time, timedelta
-from typing import Type
+from textwrap import dedent
+from typing import Union, Match
 
 import requests
 import discord
@@ -16,47 +17,42 @@ from config import API
 from utils.decorators import is_staff
 
 
-def _check_time(time: str) -> bool:
-    """Checks if the time is valid.
-
-    :param time: The time string. ex: 1:24, 16:23
-    """
-
-    pattern = re.compile("[0-2][0-3]:[0-5][0-9]")
-
-    return pattern.match(time)
-
-
 class Trivia(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.db: Type[TriviaDB | None] = None
-        self.config: Type[dict | None] = None
+        self.sent_today = False
+        self.sent_date = None
+        self.db: Union[TriviaDB, None] = None
+        self.config: Union[dict, None] = None
 
     async def cog_load(self) -> None:
         self.db = TriviaDB(self.bot.pool)
         self.config = await self.db.get_config()
-
-        if self.config is not None:  # if config exists, change the task's start time
-            self.trivia_loop.change_interval(
-                time=self.get_schedule(self.config)
-            )
-
         self.trivia_loop.start()
 
     @staticmethod
-    def get_schedule(config) -> time:
+    def _check_time(time_string: str) -> bool:
+        """Checks if the time is valid.
+
+        :param time_string: The time string. ex: 1:24, 16:23
+        :return: True if the time is valid, False if not
+        """
+
+        pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        return re.match(pattern, time_string) is not None
+
+    def _get_schedule(self) -> time:
         """
         Gets the schedule of the trivia
 
         :return: Time
         """
 
-        if config is None:  # If the config is None, return 00:00
-            return time(hour=16, minute=0, second=0)
+        if self.config is None:  # If the config is None, return 00:00
+            return time(0, 0)
 
         schedule_utc_plus_8 = datetime.strptime(
-            config["schedule"],
+            self.config["schedule"],
             "%H:%M").time()  # Converts the schedule to a time object
 
         schedule_with_day = datetime.combine(
@@ -67,13 +63,26 @@ class Trivia(GroupCog):
 
         return schedule.time()
 
-    @tasks.loop(time=time(16, 0, 0))  # Runs every day at 00:00 UTC+8 (default)
+    @tasks.loop(minutes=1)
     async def trivia_loop(self) -> None:
         """
-        The trivia loop, runs every day at 00:00 UTC+8 (default)
+        The trivia loop that sends the trivia every day
         """
 
-        if self.config is None:  # If the config is None, return
+        if self.config is None:
+            # If the config is None, return
+            return
+
+        if datetime.today().date() != self.sent_date:
+            # If the current date is not equal to the sent_date, set sent_today to False
+            self.sent_today = False
+
+        if not datetime.utcnow().time() >= self._get_schedule():
+            # If the current time is not greater than the schedule, return
+            return
+
+        if self.sent_today:
+            # If the trivia has been sent today, return
             return
 
         trivia_channel = self.bot.get_channel(
@@ -105,6 +114,13 @@ class Trivia(GroupCog):
 
         await trivia_channel.send(embed=embed)
 
+        self.sent_today = True
+        self.sent_date = datetime.today().date()
+
+    @trivia_loop.before_loop
+    async def before_trivia_loop(self) -> None:
+        await self.bot.wait_until_ready()
+
     @is_staff()
     @command(name="schedule", description="Schedule the trivia")
     @describe(schedule="Schedule of the trivia in 24 hour format ex. 12:00")
@@ -122,7 +138,7 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
-        if _check_time(schedule) is None:
+        if self._check_time(schedule) is None:
             await interaction.response.send_message(
                 "Please enter a correct time. 00:00 to 23:59",
                 ephemeral=True
@@ -134,14 +150,43 @@ class Trivia(GroupCog):
             schedule=schedule
         )  # Updates the config
 
-        self.trivia_loop.change_interval(
-            time=self.get_schedule(self.config)
-        )  # Changes the interval of the trivia loop
-
-        await self.bot.reload_extension("cogs.trivia")
+        self.config = await self.db.get_config()  # Updates the config
 
         await interaction.response.send_message(
-            "Trivia session scheduled",
+            f"Trivia session scheduled at {schedule}",
+            ephemeral=True
+        )
+
+    @is_staff()
+    @command(name="config", description="Get the trivia config")
+    async def config(self, interaction: discord.Interaction) -> None:
+        """
+        Gets the trivia config
+
+        :param interaction: Interaction
+        """
+
+        if self.config is None:
+            await interaction.response.send_message(
+                "Please setup the trivia first, use /trivia setup.",
+                ephemeral=True)
+            return
+
+        embed = Embed(
+            title="Trivia Config",
+            description=dedent(f"""
+                Channel: {
+            self.bot.get_channel(
+                int(self.config["channel_id"])
+            ).mention
+            }
+                Schedule: {self.config["schedule"]}
+            """),
+            color=discord.Color.blurple()
+        )
+
+        await interaction.response.send_message(
+            embed=embed,
             ephemeral=True
         )
 
@@ -167,7 +212,7 @@ class Trivia(GroupCog):
             schedule=self.config["schedule"]
         )  # Updates the config
 
-        await self.bot.reload_extension("cogs.trivia")
+        self.config = await self.db.get_config()  # Updates the config
 
         await interaction.response.send_message(
             "Trivia channel set",
@@ -192,7 +237,7 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
-        if _check_time(schedule) is None:
+        if self._check_time(schedule) is None:
             await interaction.response.send_message(
                 "Please enter a correct time. 00:00 to 23:59",
                 ephemeral=True
@@ -204,11 +249,7 @@ class Trivia(GroupCog):
             schedule=schedule
         )  # Inserts the config
 
-        self.trivia_loop.change_interval(
-            time=self.get_schedule(self.config)
-        )  # Changes the interval of the trivia loop
-
-        await self.bot.reload_extension("cogs.trivia")
+        self.config = await self.db.get_config()  # Updates the config
 
         await interaction.response.send_message(
             "Trivia setup",
