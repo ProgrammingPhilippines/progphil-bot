@@ -44,7 +44,7 @@ Want to contribute to the project? Check out the [available issues](https://gith
 1. Fork the repository.
 2. Create your feature branch.
 3. Commit your changes `git commit -m "you amazing commit"`.
-4. Push the branch `git push -u origin your-faeture-branch`.
+4. Push the branch `git push -u origin your-feature-branch`.
 5. Open a pull request.
 
 Make sure to familiarize yourself with the project's development guidelines before making any contributions. The [Development Guide](https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide) provides an in-depth look at the development process and guidelines for contributing to the ProgPhil Bot project. This includes information on the project's code of conduct, testing procedures, and best practices for submitting pull requests. By reading and understanding the Development Guide, you can ensure that your contributions align with the project's goals and standards.
