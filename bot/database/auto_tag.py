@@ -9,14 +9,14 @@ class AutoTagDB:
     def __init__(self, pool: Pool):
         self._pool = pool
 
-    async def _check_entry(self, helper_id: int) -> bool:
+    async def _check_entry(self, entry_id: int) -> bool:
         async with self._pool.acquire() as conn:
             conn: Pool
 
             result = await conn.fetch("""
                 SELECT * FROM pph_auto_tag
                 WHERE id = $1;
-            """, helper_id)
+            """, entry_id)
 
             if result:
                 return True
