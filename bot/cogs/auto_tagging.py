@@ -10,33 +10,59 @@ from discord import (
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from config import GuildInfo
-from database.helpers import HelpersDB
+from database.auto_tag import AutoTagDB
+from database.config_auto import Config
 from utils.decorators import is_staff
-from ui.views.helpers import HelperSelection
+from ui.views.auto_tag import TaggingSelection
 
 
-def _getter(guild: Guild, helper: dict) -> Member | Role:
+def _getter(guild: Guild, entryentry: dict) -> Member | Role:
     """Gets the object type and returns it."""
 
-    if helper["obj_type"] == "role":
+    if entryentry["obj_type"] == "role":
         getter = guild.get_role
     else:
         getter = guild.get_member
 
-    return getter(helper["obj_id"])
+    return getter(entryentry["obj_id"])
 
 
-class Helpers(GroupCog):
+class Tagging(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.db = HelpersDB(self.bot.pool)
+        self.db = AutoTagDB(self.bot.pool)
+        self.config = Config(self.bot.pool)
 
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
-        if thread.parent_id != GuildInfo.dev_help_forum:
+        config = await self.config.get_config("auto_tagging")
+
+        if not config["config_status"]:
             return
 
+        entries = await self.db.view_from_forum(thread.parent.id)
+
+        if not entries:
+            return
+
+        # Get all the forum ID's of the entries
+        forum_ids = [f["tag_in"] for f in map(dict, entries)]
+
+        if thread.parent_id not in forum_ids:
+            return
+
+        to_mention = []
+        message = ""
+
+        for entry in map(dict, entries):
+            # Here just check if the thread parent (forum)
+            # matches any of the entries
+            if entry["tag_in"] == thread.parent.id:
+                message = entry["msg"] + "\n\n"
+                to_mention.append(_getter(thread.guild, entry).mention)
+
+        # Add the mentions to the message
+        message += "\n".join(to_mention)
         thread_msg = thread.get_partial_message(thread.id)
 
         try:
@@ -44,48 +70,53 @@ class Helpers(GroupCog):
         except HTTPException:
             pass
 
-        message = "Calling out helpers!\n"
-        helpers = await self.db.view_helpers()
-
-        for helper in map(dict, helpers):
-            helper = _getter(thread.guild, helper)
-
-            if helper:
-                message += helper.mention + "\n"
-
         await thread.send(message)
 
     @is_staff()
-    @command(name="add", description="Adds a PPH helper.")
-    async def add_helpers(self, interaction: Interaction):
-        """Adds a helper to the database."""
+    @command(name="toggle", description="Toggles the auto tagging.")
+    async def toggle_config(self, interaction: Interaction):
+        """Toggles auto tagging."""
 
-        view = HelperSelection()
+        toggle_map = {
+            True: "ON",
+            False: "OFF"
+        }
+        toggle = await self.config.toggle_config("auto_tagging")
+        await interaction.response.send_message(
+            f"Turned {toggle_map[toggle]} Auto Tagging.",
+            ephemeral=True
+        )
+
+    @is_staff()
+    @command(name="add", description="Adds an auto tag.")
+    async def add_entries(self, interaction: Interaction):
+        """Adds an entry to the database."""
+
+        view = TaggingSelection()
         await interaction.response.send_message(view=view, ephemeral=True)
         await view.wait()
 
-        for helper in view.selected:
-            # Set the helper's obj_type based on their instance
-            if isinstance(helper, Member):
+        for entry in view.selected:
+            # Set the entry's obj_type based on their instance
+            if isinstance(entry, Member):
                 obj_type = "user"
-            elif isinstance(helper, Role):
+            elif isinstance(entry, Role):
                 obj_type = "role"
 
-            await self.db.add_helper(helper.id, obj_type)
+            await self.db.add_entry(entry.id, obj_type, view.forum, view.message)
 
     @is_staff()
-    @command(name="remove", description="Removes a PPH helper.")
-    @describe(helper_id="The helper's ID. (do /helpers view to check their corresponding IDs.)")
-    async def remove_helper(self, interaction: Interaction, helper_id: int):
-        """Removes a helper from the database.
-
+    @command(name="remove", description="Removes an auto tag.")
+    @describe(entry_id="The entry's ID. (do /tagging view to check their corresponding IDs.)")
+    async def remove_entry(self, interaction: Interaction, entry_id: int):
+        """Removes an entry from the database.
         
-        :param helper_id: The helper's ID from the database. (not the obj_id.)"""
+        :param entry_id: The entry's ID from the database. (not the obj_id.)"""
 
-        if await self.db.remove_helper(helper_id):
-            message = f"Successfully removed helper with ID: {helper_id}"
+        if await self.db.remove_entry(entry_id):
+            message = f"Successfully removed entry with ID: {entry_id}"
         else:
-            message = f"Helper with ID: {helper_id} may not exist."
+            message = f"Auto Tag with ID: {entry_id} may not exist."
 
         await interaction.response.send_message(
             message,
@@ -93,26 +124,27 @@ class Helpers(GroupCog):
         )
 
     @is_staff()
-    @command(name="all", description="Views all PPH helpers.")
-    async def view_helpers(self, interaction: Interaction):
-        """Views all PPH helpers."""
+    @command(name="all", description="Views all auto tags.")
+    async def view_auto_tags(self, interaction: Interaction):
+        """Views all PPH entries."""
 
-        helpers = await self.db.view_helpers()
-        embed = Embed(description="**All PPH Helpers.**\n\n")
+        entry = await self.db.view_entries()
+        embed = Embed(description="**All PPH Auto Tags.**\n\n")
 
-        if not helpers:
+        if not entry:
             embed.description += "None yet..."
 
-        for helper in map(dict, helpers):
+        for entry in map(dict, entry):
             # Convert the `asyncpg.Record` objects to dicts
             # for better formatting.
 
-            # Use the defined getted to get the helper type.
-            obj = _getter(interaction.guild, helper)
-
+            # Use the defined getted to get the entry type.
+            obj = _getter(interaction.guild, entry)
+            forum = interaction.guild.get_channel(entry['tag_in'])
             embed.description += (
-                f"ID: {helper['id']} - {obj.mention}\n"
-                f"Type: {helper['obj_type'].title()}\n\n"
+                f"ID: {entry['id']} - {obj.mention}\n"
+                f"Forum: {forum.mention if forum else 'Not Found'}\n"
+                f"Type: {entry['obj_type'].title()}\n\n"
             )
 
         await interaction.response.send_message(
@@ -122,4 +154,4 @@ class Helpers(GroupCog):
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(Helpers(bot))
+    await bot.add_cog(Tagging(bot))
