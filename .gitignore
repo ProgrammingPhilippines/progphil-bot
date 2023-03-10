@@ -87,6 +87,7 @@ nb-configuration.xml
 ## Project
 ##############################
 *.env
+yoyo.ini
 user-config.yml
 
 ##############################
