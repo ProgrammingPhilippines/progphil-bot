@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.0.0...v1.0.1) (2023-03-07)
+
+
+### Features
+
+* 70 trivia ([#84](https://github.com/ProgrammingPhilippines/progphil-bot/issues/84)) ([5396cf5](https://github.com/ProgrammingPhilippines/progphil-bot/commit/5396cf53f355eb96f3c9562840c040595971aca7))
+
+
+### Bug Fixes
+
+* fixed announcement view channel mentions ([#81](https://github.com/ProgrammingPhilippines/progphil-bot/issues/81)) ([4da2c93](https://github.com/ProgrammingPhilippines/progphil-bot/commit/4da2c93260a243557f2528abe85c2a255d643bcf))
+
 ## 1.0.0 (2023-02-06)
 
 
