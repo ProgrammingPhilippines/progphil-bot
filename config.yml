@@ -13,5 +13,6 @@ api:
   api_ninja: !ENV "api_ninja"
 
 guild:
-  staff_roles: [748554755265134635]
+  staff_roles: [ 748554755265134635 ]
   dev_help_forum: 1020260384638259210
+  log_channel: 1084008856633491557

@@ -93,6 +93,7 @@ class GuildInfo(metaclass=ConfigGen):
 
     staff_roles: list[int]
     dev_help_forum: int
+    log_channel: int
 
 
 class Database(metaclass=ConfigGen):
