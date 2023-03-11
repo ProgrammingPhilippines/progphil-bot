@@ -13,7 +13,7 @@ from discord.ext.commands import Bot, GroupCog
 from discord.app_commands import command, describe
 
 from database.trivia import TriviaDB
-from config import API
+from config import API, GuildInfo
 from utils.decorators import is_staff
 
 
@@ -89,6 +89,8 @@ class Trivia(GroupCog):
             int(self.config_["channel_id"])
         )  # Gets the trivia channel
 
+        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+
         response = requests.get(
             "https://api.api-ninjas.com/v1/facts",
             headers={
@@ -96,10 +98,8 @@ class Trivia(GroupCog):
             }
         )
 
-        if response.status_code != 200:  # If the status code is not 200, return
-            await trivia_channel.send(
-                f"An error occurred while fetching trivia. Error code: {response.status_code}"
-            )
+        if not response.ok:  # If the status code is not 200, return
+            await log_channel.send(f"Trivia API Error: {response.status_code}")
             return
 
         response_json = response.json()
