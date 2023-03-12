@@ -9,6 +9,8 @@ from discord.app_commands import (
     CommandOnCooldown
 )
 
+from config import GuildInfo
+
 error_map = {
     MissingRole: "You are missing the role {error.missing_role} to use this command.",
     MissingPermissions: "You are missing the required permissions to use this command.",
@@ -35,8 +37,13 @@ class ErrorHandler(Cog):
         :param interaction: Interaction
         :param error: Error
         """
-        # returns the error message if it exists, else returns the default error message
-        error_message = error_map.get(type(error), self.error_message)
+        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+
+        error_message = error_map.get(type(error), self.error_message)  # gets the error message from the error map
+
+        if type(error) not in error_map:
+            await log_channel.send(f"An error occurred in the app command handler: {error}")
+
         error_message = error_message.format(error=error)  # formats the error message if it has a format string
         await interaction.response.send_message(error_message, ephemeral=True)
 
