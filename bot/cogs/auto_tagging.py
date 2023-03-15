@@ -16,15 +16,15 @@ from utils.decorators import is_staff
 from ui.views.auto_tag import TaggingSelection
 
 
-def _getter(guild: Guild, entryentry: dict) -> Member | Role:
+def _getter(guild: Guild, entry: dict) -> Member | Role:
     """Gets the object type and returns it."""
 
-    if entryentry["obj_type"] == "role":
+    if entry["obj_type"] == "role":
         getter = guild.get_role
     else:
         getter = guild.get_member
 
-    return getter(entryentry["obj_id"])
+    return getter(entry["obj_id"])
 
 
 class Tagging(GroupCog):
