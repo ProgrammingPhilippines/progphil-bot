@@ -3,6 +3,7 @@ import os
 from asyncpg import Pool, create_pool
 from discord import Intents
 from discord.ext.commands import Bot
+from yoyo import read_migrations, get_backend
 
 from config import BotConfig, Database
 
@@ -32,13 +33,23 @@ class ProgPhil(Bot):
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
 
+        db_host = Database.host
+        db_name = Database.name
+        db_user = Database.user
+        db_pw = Database.password
+
         # Create a database pool
         self.pool: Pool = await create_pool(
-            host=Database.host,
-            database=Database.name,
-            user=Database.user,
-            password=Database.password
+            host=db_host,
+            database=db_name,
+            user=db_user,
+            password=db_pw
         )
+
+        url = f"postgresql://{db_user}:{db_pw}@{db_host}/{db_name}"
+        backend = get_backend(url)
+        migrations = read_migrations('./migrations')
+        backend.apply_migrations(backend.to_apply(migrations))
 
         # Load every cog inside cogs folder
         for cog in os.listdir("bot/cogs"):

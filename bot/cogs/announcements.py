@@ -55,14 +55,21 @@ class Announcements(Cog):
     @choices(
         mention=[Choice(name="yes", value="yes")]
     )
+    @choices(
+        submission_type=[
+            Choice(name="embed", value="embed"),
+            Choice(name="regular", value="regular")
+        ]
+    )
     @describe(channel="Channel to send the announcement to",
               photo="The Photo File")
     async def announce(
         self,
         interaction: discord.Interaction,
         channel: discord.Thread | discord.TextChannel,
+        submission_type: Choice[str],
         photo: Optional[discord.Attachment] = None,
-        mention: Choice[str] = ""
+        mention: Choice[str] = "",
     ) -> None:
         """
         Announcement Command that uses modals to make announcements with media
@@ -87,7 +94,7 @@ class Announcements(Cog):
             # If the user picked yes
             mention = mention.value
 
-        announcement = Announcement(photo, channel, mention)
+        announcement = Announcement(photo, channel,  submission_type.value, mention)
         await interaction.response.send_modal(announcement)
         await announcement.wait()
 
