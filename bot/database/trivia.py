@@ -5,20 +5,20 @@ class TriviaDB:
     def __init__(self, pool: Pool) -> None:
         self._pool = pool
 
-    async def get_config(self) -> dict:
+    async def get_sched(self) -> dict:
         """
-        Gets the trivia config.
+        Gets the trivia schedule.
 
         :return: Dict
         """
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetchrow("""
+            sched = await conn.fetchrow("""
                 SELECT * FROM pph_trivia;
             """)
 
-        return dict(config) if config is not None else None
+        return dict(sched) if sched is not None else None
 
     async def update(self, channel_id: int, schedule: str) -> None:
         """
