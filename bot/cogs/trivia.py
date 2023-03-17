@@ -3,7 +3,7 @@
 import re
 from datetime import datetime, time, timedelta
 from textwrap import dedent
-from typing import Union, Match
+from typing import Union
 
 import requests
 import discord
@@ -12,8 +12,9 @@ from discord.ext import tasks
 from discord.ext.commands import Bot, GroupCog
 from discord.app_commands import command, describe
 
+from database.config_auto import Config
 from database.trivia import TriviaDB
-from config import API
+from config import API, GuildInfo
 from utils.decorators import is_staff
 
 
@@ -22,12 +23,12 @@ class Trivia(GroupCog):
         self.bot = bot
         self.sent_today = False
         self.sent_date = None
-        self.db: Union[TriviaDB, None] = None
-        self.config_: Union[dict, None] = None
+        self.db = TriviaDB(self.bot.pool)
+        self.config = Config(self.bot.pool)
+        self.sched: Union[dict, None] = None
 
     async def cog_load(self) -> None:
-        self.db = TriviaDB(self.bot.pool)
-        self.config_ = await self.db.get_config()
+        self.sched = await self.db.get_sched()
         self.trivia_loop.start()
 
     @staticmethod
@@ -48,11 +49,11 @@ class Trivia(GroupCog):
         :return: Time
         """
 
-        if self.config_ is None:  # If the config is None, return 00:00
+        if self.sched is None:  # If the config is None, return 00:00
             return time(0, 0)
 
         schedule_utc_plus_8 = datetime.strptime(
-            self.config_["schedule"],
+            self.sched["schedule"],
             "%H:%M").time()  # Converts the schedule to a time object
 
         schedule_with_day = datetime.combine(
@@ -69,8 +70,14 @@ class Trivia(GroupCog):
         The trivia loop that sends the trivia every day
         """
 
-        if self.config_ is None:
+        if self.sched is None:
             # If the config is None, return
+            return
+
+        config = await self.config.get_config("trivia")
+
+        if not config["config_status"]:
+            # If the trivia is toggled off
             return
 
         if datetime.today().date() != self.sent_date:
@@ -86,8 +93,10 @@ class Trivia(GroupCog):
             return
 
         trivia_channel = self.bot.get_channel(
-            int(self.config_["channel_id"])
+            int(self.sched["channel_id"])
         )  # Gets the trivia channel
+
+        log_channel = self.bot.get_channel(GuildInfo.log_channel)
 
         response = requests.get(
             "https://api.api-ninjas.com/v1/facts",
@@ -96,10 +105,8 @@ class Trivia(GroupCog):
             }
         )
 
-        if response.status_code != 200:  # If the status code is not 200, return
-            await trivia_channel.send(
-                f"An error occurred while fetching trivia. Error code: {response.status_code}"
-            )
+        if not response.ok:  # If the status code is not 200, return
+            await log_channel.send(f"Trivia API Error: {response.status_code}")
             return
 
         response_json = response.json()
@@ -122,6 +129,29 @@ class Trivia(GroupCog):
         await self.bot.wait_until_ready()
 
     @is_staff()
+    @command(name="toggle", description="Toggle the trivia")
+    async def toggle(self, interaction: discord.Interaction) -> None:
+        """
+        Toggles the trivia.
+        """
+
+        toggle_map = {
+            True: "ON",
+            False: "OFF"
+        }
+        config = "trivia"
+
+        if not await self.config.get_config(config):
+            await self.config.add_config(config)
+
+        toggle = await self.config.toggle_config(config)
+
+        await interaction.response.send_message(
+            f"Turned {toggle_map[toggle]} Trivias.",
+            ephemeral=True
+        )
+
+    @is_staff()
     @command(name="schedule", description="Schedule the trivia")
     @describe(schedule="Schedule of the trivia in 24 hour format ex. 12:00")
     async def schedule(self, interaction: discord.Interaction, schedule: str) -> None:
@@ -132,7 +162,7 @@ class Trivia(GroupCog):
         :param schedule: Schedule of the trivia
         """
 
-        if self.config_ is None:
+        if self.sched is None:
             await interaction.response.send_message(
                 "Please setup the trivia first, use /trivia setup.",
                 ephemeral=True)
@@ -146,11 +176,11 @@ class Trivia(GroupCog):
             return
 
         await self.db.update(
-            channel_id=self.config_["channel_id"],
+            channel_id=self.sched["channel_id"],
             schedule=schedule
         )  # Updates the config
 
-        self.config_ = await self.db.get_config()  # Updates the config
+        self.sched = await self.db.get_sched()  # Updates the config
 
         await interaction.response.send_message(
             f"Trivia session scheduled at {schedule}",
@@ -159,14 +189,14 @@ class Trivia(GroupCog):
 
     @is_staff()
     @command(name="config", description="Get the trivia config")
-    async def config(self, interaction: discord.Interaction) -> None:
+    async def config_(self, interaction: discord.Interaction) -> None:
         """
         Gets the trivia config
 
         :param interaction: Interaction
         """
 
-        if self.config_ is None:
+        if self.sched is None:
             await interaction.response.send_message(
                 "Please setup the trivia first, use /trivia setup.",
                 ephemeral=True)
@@ -177,10 +207,10 @@ class Trivia(GroupCog):
             description=dedent(f"""
                 Channel: {
             self.bot.get_channel(
-                int(self.config_["channel_id"])
+                int(self.sched["channel_id"])
             ).mention
             }
-                Schedule: {self.config_["schedule"]}
+                Schedule: {self.sched["schedule"]}
             """),
             color=discord.Color.blurple()
         )
@@ -201,7 +231,7 @@ class Trivia(GroupCog):
         :param channel: Channel to send the trivia to
         """
 
-        if self.config_ is None:
+        if self.sched is None:
             await interaction.response.send_message(
                 "Please setup the trivia first, use /trivia setup.",
                 ephemeral=True)
@@ -209,10 +239,10 @@ class Trivia(GroupCog):
 
         await self.db.update(
             channel_id=channel.id,
-            schedule=self.config_["schedule"]
+            schedule=self.sched["schedule"]
         )  # Updates the config
 
-        self.config_ = await self.db.get_config()  # Updates the config
+        self.sched = await self.db.get_sched()  # Updates the config
 
         await interaction.response.send_message(
             "Trivia channel set",
@@ -231,7 +261,7 @@ class Trivia(GroupCog):
         :param channel: Channel to send the trivia to
         :param schedule: Schedule of the trivia
         """
-        if self.config_ is not None:  # This makes that the trivia can only be setup once
+        if self.sched is not None:  # This makes that the trivia can only be setup once
             await interaction.response.send_message(
                 "Trivia is already setup, use /trivia channel and /trivia schedule to change the channel and schedule.",
                 ephemeral=True)
@@ -249,7 +279,7 @@ class Trivia(GroupCog):
             schedule=schedule
         )  # Inserts the config
 
-        self.config_ = await self.db.get_config()  # Updates the config
+        self.sched = await self.db.get_sched()  # Updates the config
 
         await interaction.response.send_message(
             "Trivia setup",
