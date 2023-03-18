@@ -1,3 +1,5 @@
+import traceback
+
 from discord import Interaction
 from discord.ext.commands import Bot, Cog, CommandError
 from discord.app_commands import (
@@ -42,7 +44,10 @@ class ErrorHandler(Cog):
         error_message = error_map.get(type(error), self.error_message)  # gets the error message from the error map
 
         if type(error) not in error_map:
-            await log_channel.send(f"An error occurred in the app command handler: {error}")
+            await log_channel.send(f"An error occurred in the app command handler:\n```{error}```")
+            await log_channel.send(
+                f"Stacktrace:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))}```"
+            )
 
         error_message = error_message.format(error=error)  # formats the error message if it has a format string
         await interaction.response.send_message(error_message, ephemeral=True)
