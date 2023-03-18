@@ -52,12 +52,11 @@ class JobHiring(GroupCog):
                 embed=Embed(
                     title='Job Hiring',
                     description=dedent(f"""
-                    **{job_title}**
+                    **[{job_title}]({job_url})**
                     *{job_company}*
                     
                     **Salary:** {job_salary}
                     **Job Type:** {job_type}
-                    *[More information]({job_url})*
                     """)
                 )
             )
