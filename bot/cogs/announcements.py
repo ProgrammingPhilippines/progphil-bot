@@ -48,6 +48,7 @@ class Announcements(Cog):
             ephemeral=True
         )
         await channel.send(message)
+        
 
     @is_staff()
     @command(name="announce",
