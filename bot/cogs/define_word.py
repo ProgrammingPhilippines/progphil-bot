@@ -25,9 +25,13 @@ class defineWord(Cog):
         
         url = "https://api.dictionaryapi.dev/api/v2/entries/en/"+word
         response=requests.get(url)
-        output=response.json()[0]
-        definition=output['meanings'][0]['definitions'][0]['definition']
-        respond_message="Word: "+word+"\nDefinition: "+str(definition)
+        
+        if "title" in response.json() and response.json()["title"] == "No Definitions Found":
+            respond_message=response.json()['message']
+        else:
+            output=response.json()[0]
+            definition=output['meanings'][0]['definitions'][0]['definition']
+            respond_message="Word: "+word+"\nDefinition: "+str(definition)
         await interaction.response.send_message(respond_message)
         
 
