@@ -35,7 +35,7 @@ class JobHiring(GroupCog):
 
         del soup, response  # Free up memory
 
-        try:
+        try:  # Raises AttributeError for some reason, so we'll just try again
             job_response = scraper.get(f"https://ph.indeed.com/viewjob?jk={element['data-jk']}")  # Get the job page
             soup = BeautifulSoup(job_response.text, "html.parser")
 
