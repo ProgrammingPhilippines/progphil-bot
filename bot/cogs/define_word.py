@@ -37,9 +37,15 @@ class define(GroupCog):
         if "title" in response.json() and response.json()["title"] == "No Definitions Found":
             respond_message=response.json()['message']
         else:
-            output=response.json()[0]
-            definition=output['meanings'][0]['definitions'][0]['definition']
-            respond_message="Word: "+word+"\nDefinition: "+str(definition)
+            definitions=''
+            for words in response.json():
+                for meaning in words['meanings']:
+                    for definition in meaning['definitions']:
+                        definitions+=definition['definition']+'\n'
+            
+            # output=response.json()[0]
+            # definition=output['meanings'][0]['definitions'][0]['definition']
+            respond_message="Here's what i got on the Word "+word+"\n\n"+definitions
         await interaction.response.send_message(respond_message)
 
     @is_staff()
