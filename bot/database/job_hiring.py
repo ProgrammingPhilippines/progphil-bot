@@ -5,7 +5,7 @@ class JobHiringDB:
     def __int__(self, pool: Pool):
         self._pool = pool
 
-    def get_config(self) -> dict:
+    async def get_config(self) -> dict:
         async with self._pool.acquire() as conn:
             conn: Pool
 
