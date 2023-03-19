@@ -1,5 +1,6 @@
 import requests
 import discord
+from discord import Embed
 from discord.ext.commands import Bot
 from discord.app_commands import command, describe
 from discord.ext.commands import GroupCog
@@ -34,17 +35,31 @@ class Define(GroupCog):
         response = requests.get(url)
 
         if "title" in response.json() and response.json()["title"] == "No Definitions Found":
-            respond_message = response.json()['message']
+            message = response.json()['message']
+            respond_message = Embed(
+                title=word,
+                description=message,
+                color=discord.Color.blurple()
+            )
         else:
             definitions = ''
-
+            num = 1
             for words in response.json():
                 for meaning in words['meanings']:
                     for definition in meaning['definitions']:
-                        definitions += definition['definition'] + '\n'
+                        part_of_speech = meaning['partOfSpeech']
+                        definitions += f'({str(part_of_speech)}) ' + \
+                            str(num)+'. '+definition['definition'] + '\n'
+                        num += 1
 
-            respond_message = f"Here's what i got on the Word {word} \n\n {definitions}"
-        await interaction.response.send_message(respond_message)
+            message = f"Here's what i got on the Word {word} \n\n {definitions}"
+            respond_message = Embed(
+                title=word,
+                description=message,
+                color=discord.Color.blurple()
+            )
+
+        await interaction.response.send_message(embed=respond_message)
 
     # Command to Turn this Command On or Off
     @is_staff()
