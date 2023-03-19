@@ -2,11 +2,11 @@ from textwrap import dedent
 
 import cloudscraper
 from bs4 import BeautifulSoup
-from discord import Embed
+from discord import Embed, Interaction
 from discord.app_commands import command
 from discord.ext.commands import Bot, GroupCog
 
-from bot.config import GuildInfo
+from config import GuildInfo
 
 
 class JobHiring(GroupCog):
@@ -14,11 +14,6 @@ class JobHiring(GroupCog):
 
     def __init__(self, bot: Bot):
         self.bot = bot
-
-    @command()
-    async def job_hiring(self, interaction):
-        await interaction.response.send_message('Sending job hiring...', ephemeral=True)
-        await self.send_job_hiring()
 
     async def send_job_hiring(self):
         scraper = cloudscraper.create_scraper()
@@ -48,6 +43,7 @@ class JobHiring(GroupCog):
                 .replace('Job Type', '')  # Full-time
             )
 
+            # will be changed to the actual channel
             await log_channel.send(
                 embed=Embed(
                     title='Job Hiring',
@@ -62,6 +58,33 @@ class JobHiring(GroupCog):
             )
         except AttributeError:
             await self.send_job_hiring()
+
+    # TODO: Create config command
+    @command()
+    async def config(self, interaction: Interaction):
+        ...
+
+    # TODO: Create switch command
+    @command()
+    async def switch(self, interaction: Interaction):
+        ...
+
+    # TODO: Create setup command
+    @command()
+    async def setup(self, interaction: Interaction):
+        ...
+
+    # TODO: Create config update commands
+    # i.e. job-hiring set schedule then the view will be sent
+
+    # TODO: Create loop for sending job hiring
+
+    # Note: This is just a test command
+    # @command()
+    # async def job_hiring(self, interaction):
+    #     await interaction.response.send_message('Sending job hiring...', ephemeral=True)
+    #     await self.send_job_hiring()
+
 
 
 async def setup(bot: Bot):
