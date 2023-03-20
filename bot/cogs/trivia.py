@@ -29,6 +29,7 @@ class Trivia(GroupCog):
 
     async def cog_load(self) -> None:
         self.sched = await self.db.get_sched()
+        self.trivia_loop.change_interval(time=self._get_schedule())
         self.trivia_loop.start()
 
     @staticmethod
@@ -40,7 +41,7 @@ class Trivia(GroupCog):
         """
 
         pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
-        return re.match(pattern, time_string) is not None
+        return re.match(pattern, time_string)
 
     def _get_schedule(self) -> time:
         """
@@ -52,19 +53,19 @@ class Trivia(GroupCog):
         if self.sched is None:  # If the config is None, return 00:00
             return time(0, 0)
 
-        schedule_utc_plus_8 = datetime.strptime(
+        utc8 = datetime.strptime(
             self.sched["schedule"],
             "%H:%M").time()  # Converts the schedule to a time object
 
-        schedule_with_day = datetime.combine(
+        sched_today = datetime.combine(
             datetime.today(),
-            schedule_utc_plus_8)  # Combines the schedule with the current day
+            utc8)  # Combines the schedule with the current day
 
-        schedule = schedule_with_day - timedelta(hours=8)  # Converts the schedule to UTC+0
+        schedule = sched_today - timedelta(hours=8)  # Converts the schedule to UTC+0
 
         return schedule.time()
 
-    @tasks.loop(minutes=1)
+    @tasks.loop()
     async def trivia_loop(self) -> None:
         """
         The trivia loop that sends the trivia every day
@@ -181,6 +182,8 @@ class Trivia(GroupCog):
         )  # Updates the config
 
         self.sched = await self.db.get_sched()  # Updates the config
+        self.trivia_loop.change_interval(time=self._get_schedule())
+        self.trivia_loop.restart()  # Restart the loop for the changes to be saved.
 
         await interaction.response.send_message(
             f"Trivia session scheduled at {schedule}",
