@@ -15,7 +15,10 @@ ENV token=$token \
 # Install Poetry 1.3.2 via pip
 RUN pip install -U pip \
     && apt-get update \
-    && pip install "poetry==1.3.2"
+    && apt-get install gcc -y \
+    && apt install -y libpq-dev python3-dev \
+    && pip install "poetry==1.3.2" \
+    && pip install setuptools>=65.5.1
 ENV PATH="${PATH}:/root/.poetry/bin"
 
 # Install Poetry dependencies
