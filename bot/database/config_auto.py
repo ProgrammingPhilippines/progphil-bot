@@ -37,7 +37,7 @@ class Config:
                 SELECT * FROM pph_config_auto
                 WHERE config_type = $1
             """, key)
-            # Get the config status
+
             config = dict(config)["config_status"]
             # Toggle the status
             # `not` keyword just kind of reverses the bool instance
@@ -46,3 +46,19 @@ class Config:
             """, not config, key)
 
         return not config
+
+    async def add_config(self, key: str) -> Any:
+        """Adds a configuration to the database.
+
+        :param key: The configuration key.
+        :param value: The configuration value.
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute("""
+                INSERT INTO pph_config_auto (config_type) VALUES ($1)
+            """, key)
+
+        return
