@@ -5,3 +5,4 @@ CREATE TABLE IF NOT EXISTS pph_config_auto (
 
 INSERT INTO pph_config_auto(config_type) VALUES ('auto_responder');
 INSERT INTO pph_config_auto(config_type) VALUES ('auto_tagging');
+INSERT INTO pph_config_auto(config_type) VALUES ('trivia');
