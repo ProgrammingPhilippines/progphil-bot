@@ -29,7 +29,7 @@ class Define(GroupCog):
         """
 
         if not self.command_enabled:
-            await interaction.response.send_message("Sorry, this command is currently disabled.")
+            await interaction.response.send_message("Sorry, this command is currently disabled.", ephemeral=True)
             return
 
         url = "https://api.dictionaryapi.dev/api/v2/entries/en/" + word
@@ -41,18 +41,15 @@ class Define(GroupCog):
                 description=message,
                 color=discord.Color.blurple()
             )
-            await interaction.response.send_message(embed=respond_message) 
+            await interaction.response.send_message(embed=respond_message)
             return
         else:
-            definitions = ''
             defs = []
             num = 1
             for words in response.json():
                 for meaning in words['meanings']:
                     for definition in meaning['definitions']:
                         part_of_speech = meaning['partOfSpeech']
-                        definitions += f'({str(part_of_speech)}) ' + \
-                            str(num)+'. '+definition['definition'] + '\n'
                         defs.append(f'({str(part_of_speech)}) ' +
                                     str(num)+'. '+definition['definition'] + '\n')
                         num += 1
@@ -121,7 +118,7 @@ class Define(GroupCog):
             self.command_enabled = True
             response = "Command is now Enabled"
 
-        await interaction.response.send_message(response)
+        await interaction.response.send_message(response, ephemeral=True)
 
 
 async def setup(bot: Bot):
