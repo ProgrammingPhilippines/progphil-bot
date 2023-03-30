@@ -34,7 +34,19 @@ class Define(GroupCog):
 
         url = "https://api.dictionaryapi.dev/api/v2/entries/en/" + word
         response = requests.get(url)
-        if "title" in response.json() and response.json()["title"] == "No Definitions Found":
+
+        if response.status_code == 404:
+            message = f"Could not find definition for {word}"
+            respond_message = Embed(
+                title=word,
+                description=message,
+                color=discord.Color.blurple()
+            )
+            await interaction.response.send_message(embed=respond_message)
+            return
+
+        elif "title" in response.json() and \
+           response.json()["title"] == "No Definitions Found":
             message = response.json()['message']
             respond_message = Embed(
                 title=word,
@@ -78,11 +90,11 @@ class Define(GroupCog):
 
             return respond_message
 
-        async def callback_next(interaction):
+        async def callback_next(interaction: discord.Interaction):
             respond_message = create_embed('next')
             await interaction.response.edit_message(embed=respond_message, view=view)
 
-        async def callback_previous(interaction):
+        async def callback_previous(interaction: discord.Interaction):
             respond_message = create_embed('previous')
             await interaction.response.edit_message(embed=respond_message, view=view)
 
