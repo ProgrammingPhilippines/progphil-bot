@@ -1,5 +1,6 @@
 from discord import (
     Embed,
+    ForumChannel,
     Guild,
     HTTPException,
     Interaction,
@@ -9,6 +10,7 @@ from discord import (
 )
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
+from discord.ui import Modal, TextInput
 
 from database.auto_tag import AutoTagDB
 from database.config_auto import Config
@@ -52,13 +54,13 @@ class Tagging(GroupCog):
             return
 
         to_mention = []
-        message = ""
+        custom_message = await self.db.get_custom_message(thread.parent.id)
+        message = (custom_message or "") + "\n\n"
 
         for entry in map(dict, entries):
             # Here just check if the thread parent (forum)
             # matches any of the entries
             if entry["tag_in"] == thread.parent.id:
-                message = entry["msg"] + "\n\n"
                 to_mention.append(_getter(thread.guild, entry).mention)
 
         # Add the mentions to the message
@@ -71,6 +73,51 @@ class Tagging(GroupCog):
             pass
 
         await thread.send(message)
+
+    @is_staff()
+    @command(name="custom_messages", description="Views all custom messages.")
+    async def custom_messages(self, interaction: Interaction):
+        embed = Embed(
+            description="**All custom messages**\n"
+        )
+
+        all_items = await self.db.get_all_messages()
+        msg = ""
+
+        for num, item in enumerate(all_items, start=1):
+            msg += (
+                f"{num}. Forum: {interaction.guild.get_channel(item['forum_id']).mention}\n"
+                f"Message: {item['msg']}\n\n"
+            )
+
+        if msg:
+            embed.description += msg
+        else:
+            embed.description += "Nothing here..."
+
+        await interaction.response.send_message(embed=embed)
+
+    @is_staff()
+    @command(name="message", description="Create a custom message on an auto tag forum.")
+    async def message(self, interaction: Interaction, forum: ForumChannel):
+        """Sets a custom message for a forum"""
+
+        async def callback(interaction: Interaction):
+            """The modal's callback so we don't get an error"""
+            await interaction.response.send_message("Success.", ephemeral=True)
+
+        modal = Modal(title="Set or Update Custom Message")
+        msg = TextInput(
+            label="Add custom message.",
+            placeholder="Type here... (Leave blank for default message.)",
+            default="Calling out peeps!\n\n"
+        )
+        modal.on_submit = callback
+        modal.add_item(msg)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+
+        await self.db.upsert_forum_message(forum.id, msg.value)
 
     @is_staff()
     @command(name="toggle", description="Toggles the auto tagging.")
@@ -103,7 +150,7 @@ class Tagging(GroupCog):
             elif isinstance(entry, Role):
                 obj_type = "role"
 
-            await self.db.add_entry(entry.id, obj_type, view.forum, view.message)
+            await self.db.add_entry(entry.id, obj_type, view.forum)
 
     @is_staff()
     @command(name="remove", description="Removes an auto tag.")
