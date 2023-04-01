@@ -2,8 +2,6 @@ from discord import Interaction, User, Role, ButtonStyle, ChannelType
 from discord.ui import (
     Button,
     View,
-    Modal,
-    TextInput,
     UserSelect,
     RoleSelect,
     ChannelSelect,
@@ -15,8 +13,7 @@ from discord.ui import (
 class TaggingSelection(View):
     def __init__(self):
         self.selected: list[User | Role] = []
-        self.forum: int
-        self.message: str
+        self.forum: int = None
         super().__init__()
 
     @select(cls=UserSelect, placeholder="Select users...", max_values=25)
@@ -37,7 +34,13 @@ class TaggingSelection(View):
             ephemeral=True
         )
 
-    @select(cls=ChannelSelect, placeholder="Select forum...", channel_types=[ChannelType.forum], min_values=1)
+    @select(
+        cls=ChannelSelect,
+        placeholder="Select forum...",
+        channel_types=[ChannelType.forum],
+        min_values=1,
+        max_values=1
+    )
     async def select_forum(self, interaction: Interaction, selection: RoleSelect):
         self.forum = selection.values[0].id
 
@@ -48,20 +51,12 @@ class TaggingSelection(View):
 
     @button(label="Submit", style=ButtonStyle.green)
     async def submit(self, interaction: Interaction, button: Button):
-        async def callback(interaction: Interaction):
-            """The modal's callback so we don't get an error"""
-            await interaction.response.send_message("Success.", ephemeral=True)
+        if not self.forum:
+            await interaction.response.send_message(
+                "Please select a forum.",
+                ephemeral=True
+            )
+            return
 
-        modal = Modal(title="Set Custom Message")
-        msg = TextInput(
-            label="Add custom message.",
-            placeholder="Type here... (Leave blank for default message.)",
-            default="Calling out peeps!\n\n"
-        )
-        modal.on_submit = callback
-        modal.add_item(msg)
-        await interaction.response.send_modal(modal)
-        await modal.wait()
-        self.message = msg.value
-
+        await interaction.response.edit_message(content="Done!")
         self.stop()

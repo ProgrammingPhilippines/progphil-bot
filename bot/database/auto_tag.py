@@ -39,8 +39,7 @@ class AutoTagDB:
         self,
         obj_id: int,
         obj_type: Literal["role", "user"],
-        tag_in: int,
-        msg: str
+        tag_in: int
     ) -> None:
         """Adds an `entry' to the database.
 
@@ -59,10 +58,9 @@ class AutoTagDB:
                 INSERT INTO pph_auto_tag(
                     obj_id,
                     obj_type,
-                    tag_in,
-                    msg
-                ) VALUES ($1, $2, $3, $4);
-            """, obj_id, obj_type, tag_in, msg)
+                    tag_in
+                ) VALUES ($1, $2, $3);
+            """, obj_id, obj_type, tag_in)
 
     async def remove_entry(self, entry_id: int) -> bool:
         """Removes entries from the database.
@@ -110,3 +108,56 @@ class AutoTagDB:
             """, forum_id)
 
             return entries
+
+    async def upsert_forum_message(self, forum_id: int, message: str):
+        """Sets a custom forum message
+
+        :param message: The custom message to send to a forum.
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            check = await conn.fetch("""
+                SELECT * FROM pph_auto_tag_messages
+                WHERE forum_id = $1;
+            """, forum_id)
+
+            if check:
+                await conn.execute("""
+                    UPDATE pph_auto_tag_messages SET msg = $1
+                    WHERE forum_id = $2;
+                """, message, forum_id)
+            else:
+                await conn.execute("""
+                    INSERT INTO pph_auto_tag_messages(forum_id, msg)
+                    VALUES ($1, $2);
+                """, forum_id, message)
+
+    async def get_custom_message(self, forum_id: int):
+        """Gets the custom message set for the forum."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            message = await conn.fetch("""
+                SELECT msg FROM pph_auto_tag_messages
+                WHERE forum_id = $1;
+            """, forum_id)
+
+            if message:
+                return dict(message[0])["msg"]
+
+            return None
+
+    async def get_all_messages(self):
+        """Gets all custom messages."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            messages = await conn.fetch("""
+                SELECT * FROM pph_auto_tag_messages
+            """)
+
+            return map(dict, messages)
