@@ -3,7 +3,7 @@ from discord import Interaction, ButtonStyle, TextChannel
 from discord.ui import View, Button, button
 
 from ui.modals.job_hiring import OncePerDay, SpecificDate, Recurring
-from bot.database.job_hiring import JobHiringDB
+from database.job_hiring import JobHiringDB
 
 
 class JobConfig(View):

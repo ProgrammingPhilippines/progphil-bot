@@ -9,14 +9,14 @@ from discord.app_commands import command, describe
 from discord.ext.commands import Bot, GroupCog
 
 from config import GuildInfo
-from bot.database.job_hiring import JobHiringDB
+from database.job_hiring import JobHiringDB
 from database.config_auto import Config
 from ui.modals.job_hiring import (
     OncePerDay,
     Recurring,
     SpecificDate
 )
-from bot.ui.views.job_hiring import JobConfig
+from ui.views.job_hiring import JobConfig
 from utils.decorators import is_staff
 
 (
