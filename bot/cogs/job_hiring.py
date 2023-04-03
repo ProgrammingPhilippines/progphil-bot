@@ -1,19 +1,48 @@
 from textwrap import dedent
+from typing import Union
 
 import cloudscraper
+import discord
 from bs4 import BeautifulSoup
 from discord import Embed, Interaction
-from discord.app_commands import command
+from discord.app_commands import command, describe
 from discord.ext.commands import Bot, GroupCog
 
 from config import GuildInfo
+from bot.database.job_hiring import JobHiringDB
+from database.config_auto import Config
+from ui.modals.job_hiring import (
+    OncePerDay,
+    Recurring,
+    SpecificDate
+)
+from bot.ui.views.job_hiring import JobConfig
+from utils.decorators import is_staff
+
+(
+    DAILY,
+    ONCE,
+    RECURRING
+) = range(3)
+
+modal_map = {
+    DAILY: OncePerDay,
+    ONCE: SpecificDate,
+    RECURRING: Recurring
+}
 
 
-class JobHiring(GroupCog):
+class Hiring(GroupCog):
     site_to_scrape = "https://ph.indeed.com/jobs?q=tech"
 
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.db: Union[JobHiringDB, None] = None
+        self._toggle_config: Union[Config, None] = None
+
+    async def cog_load(self) -> None:
+        self.db = JobHiringDB(self.bot.pool)
+        self._toggle_config = Config(self.bot.pool)
 
     async def send_job_hiring(self):
         scraper = cloudscraper.create_scraper()
@@ -59,33 +88,140 @@ class JobHiring(GroupCog):
         except AttributeError:
             await self.send_job_hiring()
 
-    # TODO: Create config command
-    @command()
+    @is_staff()
+    @command(name="config", description="Get the trivia config")
     async def config(self, interaction: Interaction):
-        ...
+        """
+        Gets the hiring config
 
-    # TODO: Create switch command
-    @command()
-    async def switch(self, interaction: Interaction):
-        ...
+        :param interaction: Interaction
+        """
+        schedule_config = await self.db.get_config()
 
-    # TODO: Create setup command
-    @command()
-    async def setup(self, interaction: Interaction):
-        ...
+        schedule_map = {
+            DAILY: "Daily",
+            ONCE: "Once",
+            RECURRING: "Recurring"
+        }
 
-    # TODO: Create config update commands
-    # i.e. job-hiring set schedule then the view will be sent
+        if schedule_config is None:
+            await interaction.response.send_message(
+                "Please setup the trivia first, use /hiring setup.",
+                ephemeral=True)
+            return
 
-    # TODO: Create loop for sending job hiring
+        embed = Embed(
+            title="Trivia Config",
+            description=dedent(f"""
+                        Channel: {self.bot.get_channel(int(schedule_config["channel_id"])).mention}
+                        Schedule: {schedule_config["schedule"]}
+                        Schedule Type: {schedule_map[schedule_config["schedule_type"]]}
+                    """),
+            color=discord.Color.random()
+        )
 
-    # Note: This is just a test command
-    # @command()
-    # async def job_hiring(self, interaction):
-    #     await interaction.response.send_message('Sending job hiring...', ephemeral=True)
-    #     await self.send_job_hiring()
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=True
+        )
 
+    @is_staff()
+    @command(name="toggle", description="Toggles the auto tagging.")
+    async def toggle_config(self, interaction: Interaction):
+        """Toggles auto tagging."""
+
+        toggle_map = {
+            True: "ON",
+            False: "OFF"
+        }
+        toggle = await self._toggle_config.toggle_config("job_hiring")
+        await interaction.response.send_message(
+            f"Turned {toggle_map[toggle]} Hiring.",
+            ephemeral=True
+        )
+
+    @is_staff()
+    @command(name="setup", description="Setup the trivia")
+    @describe(channel="Channel to send the trivia to")
+    async def setup(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+        """
+        Sets up the job hiring cog
+
+        :param interaction: Interaction
+        :param channel: Channel to send the job hiring posts to
+        """
+
+        schedule_config = await self.db.get_config()
+
+        if schedule_config is not None:  # This makes that the trivia can only be setup once
+            await interaction.response.send_message(
+                "Hiring is already setup, use /hiring channel and /hiring schedule to change the channel and schedule.",
+                ephemeral=True)
+            return
+
+        await self._send_view(interaction, channel, "setup")
+
+    @is_staff()
+    @command(name="channel", description="Change the channel to send the job hiring to")
+    @describe(channel="Channel to send the job hiring to")
+    async def channel(self, interaction: Interaction, channel: discord.TextChannel) -> None:
+        """
+        Changes the channel to send the job hiring to
+
+        :param interaction: Interaction
+        :param channel: Channel to send the job hiring to
+        """
+
+        schedule_config = await self.db.get_config()
+
+        if schedule_config is None:
+            await interaction.response.send_message(
+                "Please setup the job hiring first, use /hiring setup.",
+                ephemeral=True)
+            return
+
+        await self.db.update(
+            channel_id=channel.id,
+            schedule=schedule_config["schedule"],
+            schedule_type=schedule_config["schedule_type"]
+        )
+
+        await interaction.response.send_message(
+            f"Changed the channel to {channel.mention}",
+            ephemeral=True
+        )
+
+    @is_staff()
+    @command(name="schedule", description="Change the schedule of the job hiring")
+    async def schedule(self, interaction: Interaction) -> None:
+        """
+        Changes the schedule of the job hiring
+
+        :param interaction: Interaction
+        """
+
+        schedule_config = await self.db.get_config()
+
+        if schedule_config is None:
+            await interaction.response.send_message(
+                "Please setup the job hiring first, use /hiring setup.",
+                ephemeral=True)
+            return
+
+        await self._send_view(interaction, self.bot.get_channel(int(schedule_config["channel_id"])), "schedule")
+
+    async def _send_view(self, interaction: Interaction, channel: discord.TextChannel, sched_type: str):
+        embed = Embed(
+            title="Job Hiring Schedule",
+            description=dedent("""
+            :one: - Every Day at a specific time
+            :two: - Once on a specific day
+            :three: - Every N [months|days|hours|minutes|seconds]
+            """),
+            color=discord.Color.random()
+        )
+        await interaction.response.send_message(embed=embed, view=JobConfig(self.bot.pool, channel, sched_type))
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(JobHiring(bot))
+    await bot.add_cog(Hiring(bot))
