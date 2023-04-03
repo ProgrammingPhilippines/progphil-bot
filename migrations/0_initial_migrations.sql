@@ -18,3 +18,9 @@ CREATE TABLE IF NOT EXISTS pph_helpers (
     obj_id BIGINT,
     obj_type VARCHAR(10)
 );
+
+CREATE TABLE IF NOT EXISTS pph_job_hiring (
+    channel_id BIGINT,
+    schedule VARCHAR(70),
+    schedule_type INTEGER
+);
