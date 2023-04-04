@@ -1,3 +1,5 @@
+# pylint: disable = no-member
+
 from datetime import datetime, timedelta
 from textwrap import dedent
 from typing import Union
