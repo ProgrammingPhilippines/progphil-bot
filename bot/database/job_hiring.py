@@ -32,3 +32,11 @@ class JobHiringDB:
                 INSERT INTO pph_job_hiring(channel_id, schedule, schedule_type)
                     VALUES ($1, $2, $3);
             """, channel_id, schedule, schedule_type)
+
+    async def delete(self, channel_id: int) -> None:
+        conn: Pool
+
+        async with self._pool.acquire() as conn:
+            await conn.execute("""
+                DELETE FROM pph_job_hiring WHERE channel_id = $1;
+            """, channel_id)
