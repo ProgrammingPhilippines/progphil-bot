@@ -13,7 +13,11 @@ class OncePerDay(Modal):
 
     async def on_submit(self, interaction: Interaction) -> None:
         self.sched = self.sched.value
-        await interaction.response.send_message("Submitted.", ephemeral=True)
+
+        if not interaction.response.is_done():
+            await interaction.response.send_message("Submitted.", ephemeral=True)
+        else:
+            await interaction.followup.send("Submitted.", ephemeral=True)
 
 
 class SpecificDate(OncePerDay):
@@ -21,16 +25,16 @@ class SpecificDate(OncePerDay):
     title = "Once On A Specific Day"
     sched = TextInput(
         label="Input the desired date.",
-        placeholder="Enter date in MM/DD/YY format.",
+        placeholder="Enter date in MM/DD/YYYY format.",
         style=TextStyle.short
     )
 
 
 class Recurring(OncePerDay):
     schedule_type = 2
-    title = "Every N [months|days|hours|minutes|seconds]"
+    title = "Recurring"
     sched = TextInput(
         label="Input the desired schedule.",
-        placeholder="Enter schedule... (ex. 1month1day1hour)",
+        placeholder="Enter schedule... (ex. 1mt1d1h)",
         style=TextStyle.short
     )
