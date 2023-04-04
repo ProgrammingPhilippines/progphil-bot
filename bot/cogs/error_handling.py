@@ -46,7 +46,7 @@ class ErrorHandler(Cog):
         if type(error) not in error_map:
             await log_channel.send(f"An error occurred in the app command handler:\n```{error}```")
             await log_channel.send(
-                f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))}```"
+                f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))[:1950]}```"
             )
 
         error_message = error_message.format(error=error)  # formats the error message if it has a format string
