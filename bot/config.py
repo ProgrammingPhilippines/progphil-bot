@@ -76,8 +76,11 @@ class ConfigGen(type):
         """This method will get invoked in the child class
         when you try to get an attribute from the child class
         """
-        name = name.lower()
-        return CONFIG[cls.key][name]
+        try:
+            name = name.lower()
+            return CONFIG[cls.key][name]
+        except KeyError:
+            print(f"\u001b[31mERROR\u001b[37m: \u001b[33m{name}\u001b[37m was not found in the config file. Did you set it up correctly?")
 
 
 # Dataclasses here

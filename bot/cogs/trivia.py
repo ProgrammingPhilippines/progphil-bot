@@ -1,6 +1,5 @@
 # pylint: disable = no-member
 
-import re
 from datetime import datetime, time, timedelta
 from textwrap import dedent
 from typing import Union
@@ -16,6 +15,7 @@ from database.config_auto import Config
 from database.trivia import TriviaDB
 from config import API, GuildInfo
 from utils.decorators import is_staff
+from utils.utils import validate_time
 
 
 class Trivia(GroupCog):
@@ -31,17 +31,6 @@ class Trivia(GroupCog):
         self.sched = await self.db.get_sched()
         self.trivia_loop.change_interval(time=self._get_schedule())
         self.trivia_loop.start()
-
-    @staticmethod
-    def _check_time(time_string: str) -> bool:
-        """Checks if the time is valid.
-
-        :param time_string: The time string. ex: 1:24, 16:23
-        :return: True if the time is valid, False if not
-        """
-
-        pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
-        return re.match(pattern, time_string)
 
     def _get_schedule(self) -> time:
         """
@@ -169,7 +158,7 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
-        if self._check_time(schedule) is None:
+        if validate_time(schedule) is None:
             await interaction.response.send_message(
                 "Please enter a correct time. 00:00 to 23:59",
                 ephemeral=True
@@ -270,7 +259,7 @@ class Trivia(GroupCog):
                 ephemeral=True)
             return
 
-        if self._check_time(schedule) is None:
+        if validate_time(schedule) is None:
             await interaction.response.send_message(
                 "Please enter a correct time. 00:00 to 23:59",
                 ephemeral=True
