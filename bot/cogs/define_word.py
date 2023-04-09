@@ -2,9 +2,13 @@ import requests
 import discord
 from discord.ui import Button, View
 from discord import Embed
-from discord.ext.commands import Bot
-from discord.app_commands import command, describe
-from discord.ext.commands import GroupCog
+from discord.ext.commands import (
+    Bot,
+    Context,
+    GroupCog,
+    command as prefixed_command
+)
+from discord.app_commands import command
 
 from utils.decorators import is_staff
 
@@ -14,22 +18,20 @@ class Define(GroupCog):
         self.bot = bot
         self.command_enabled = True
 
-    @command(name="word", description="Give Dictionary Definition to the Given Word")
-    @describe(word="The Word that will be Defined")
+    @prefixed_command()
     async def define(
         self,
-        interaction: discord.Interaction,
+        ctx: Context,
         word: str,
     ) -> None:
         """
         Give Dictionary Definition to the Given Word
 
-        :param interaction: Interaction
         :param word: The Word to Define
         """
 
         if not self.command_enabled:
-            await interaction.response.send_message("Sorry, this command is currently disabled.", ephemeral=True)
+            await ctx.send("Sorry, this command is currently disabled.", delete_after=10)
             return
 
         url = "https://api.dictionaryapi.dev/api/v2/entries/en/" + word
@@ -42,7 +44,7 @@ class Define(GroupCog):
                 description=message,
                 color=discord.Color.blurple()
             )
-            await interaction.response.send_message(embed=respond_message)
+            await ctx.send(embed=respond_message)
             return
 
         elif "title" in response.json() and \
@@ -53,7 +55,7 @@ class Define(GroupCog):
                 description=message,
                 color=discord.Color.blurple()
             )
-            await interaction.response.send_message(embed=respond_message)
+            await ctx.send(embed=respond_message)
             return
         else:
             defs = []
@@ -108,7 +110,7 @@ class Define(GroupCog):
         view.add_item(button_previous)
         view.add_item(button_next)
 
-        await interaction.response.send_message(embed=create_embed('first'), view=view)
+        await ctx.send(embed=create_embed('first'), view=view)
 
     # Command to Turn this Command On or Off
     @is_staff()
