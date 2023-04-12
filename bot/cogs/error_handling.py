@@ -50,7 +50,11 @@ class ErrorHandler(Cog):
             )
 
         error_message = error_message.format(error=error)  # formats the error message if it has a format string
-        await interaction.response.send_message(error_message, ephemeral=True)
+
+        if interaction.response.is_done():
+            await interaction.followup.send(error_message, ephemeral=True)
+        else:
+            await interaction.response.send_message(error_message, ephemeral=True)
 
 
 async def setup(bot: Bot):
