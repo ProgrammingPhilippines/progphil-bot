@@ -21,7 +21,10 @@ class Define(GroupCog):
         self.bot = bot
         self.config = Config(self.bot.pool)
 
-    @prefixed_command()
+    @prefixed_command(
+        usage="<word>",
+        help="Define a Word (e.g. define hello)"
+    )
     async def define(
             self,
             ctx: Context,
