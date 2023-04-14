@@ -19,6 +19,7 @@ error_map = {
     CheckFailure: "You are not allowed to use this command.",
     CommandNotFound: "This command was not found.",
     CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds.",
+    BadArgument: "Invalid argument passed correct usage:\n```{ctx.command.usage}```",
 }  # note: some of these errors are not yet implemented in the bot
 
 
@@ -74,7 +75,7 @@ class ErrorHandler(Cog):
                 f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))[:1950]}```"
             )
 
-        error_message = error_message.format(error=error)
+        error_message = error_message.format(error=error, ctx=ctx)
 
         await ctx.send(error_message)
 
