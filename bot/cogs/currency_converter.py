@@ -15,14 +15,17 @@ from bot.config import GuildInfo
 from bot.utils.decorators import is_staff
 
 
-class Convert(GroupCog):
+class Converter(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.config = Config(self.bot.pool)
         symbols = requests.get("https://api.exchangerate.host/symbols").json()["symbols"]
         self.symbols = [(symbol, symbols[symbol]["description"]) for symbol in symbols]
 
-    @prefixed_command()
+    @prefixed_command(
+        usage="<amount> <from_currency> <to_currency>",
+        help="Convert Currency to Another Currency (e.g. 10 usd eur)"
+    )
     async def exchange(
             self,
             ctx: Context,
@@ -70,6 +73,13 @@ class Convert(GroupCog):
             f"The exchange rate for {amount:.2f} {from_currency.upper()} is {converted_amount:.2f} {to_currency.upper()}."
         )
 
+    @prefixed_command()
+    async def currencies(
+            self,
+            ctx: Context,
+    ) -> None:
+        ...
+
     @is_staff()
     @command(name="toggle", description="Toggle the currency converter command.")
     async def toggle_config(self, interaction: discord.Interaction):
@@ -96,4 +106,4 @@ class Convert(GroupCog):
 
 
 async def setup(bot: Bot) -> None:
-    await bot.add_cog(Convert(bot))
+    await bot.add_cog(Converter(bot))
