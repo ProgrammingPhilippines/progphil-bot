@@ -22,9 +22,13 @@ class CurrencyConverterPagination(View):
         self.data = data
         super().__init__(timeout=180)
 
-    # async def interaction_check(self, interaction):
-    #     if interaction.user.id != self.user.id:
-    #         return await interaction.response.send_message("You are not the owner of this view.", ephemeral=True)
+    async def interaction_check(self, interaction):
+        if interaction.user != self.user:
+            await interaction.response.send_message(
+                "You do not own this view.",
+                ephemeral=True
+            )
+        return interaction.user == self.user
 
     @button(label="Previous", disabled=True)
     async def previous_button(self, interaction: Interaction, button: Button):
