@@ -1,7 +1,7 @@
 import traceback
 
 from discord import Interaction
-from discord.ext.commands import Bot, Cog, CommandError
+from discord.ext.commands import Bot, Cog, CommandError, Context, BadArgument
 from discord.app_commands import (
     AppCommandError,
     CheckFailure,
@@ -18,7 +18,7 @@ error_map = {
     MissingPermissions: "You are missing the required permissions to use this command.",
     CheckFailure: "You are not allowed to use this command.",
     CommandNotFound: "This command was not found.",
-    CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds."
+    CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds.",
 }  # note: some of these errors are not yet implemented in the bot
 
 
@@ -55,6 +55,28 @@ class ErrorHandler(Cog):
             await interaction.followup.send(error_message, ephemeral=True)
         else:
             await interaction.response.send_message(error_message, ephemeral=True)
+
+    @Cog.listener()
+    async def on_command_error(self, ctx: Context, error: CommandError):
+        """
+        Handles all errors that occur in commands and sends a response to the user.
+
+        :param ctx: Context
+        :param error: Error
+        """
+        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+
+        error_message = error_map.get(type(error), self.error_message)
+
+        if type(error) not in error_map:
+            await log_channel.send(f"An error occurred in the command handler:\n```{error}```")
+            await log_channel.send(
+                f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))[:1950]}```"
+            )
+
+        error_message = error_message.format(error=error)
+
+        await ctx.send(error_message)
 
 
 async def setup(bot: Bot):
