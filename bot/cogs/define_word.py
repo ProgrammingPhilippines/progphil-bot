@@ -20,14 +20,15 @@ class Define(GroupCog):
 
     @prefixed_command()
     async def define(
-        self,
-        ctx: Context,
-        word: str,
+            self,
+            ctx: Context,
+            word: str,
     ) -> None:
         """
         Give Dictionary Definition to the Given Word
 
         :param word: The Word to Define
+        :param ctx: The Context of the Command
         """
 
         if not self.command_enabled:
@@ -47,8 +48,8 @@ class Define(GroupCog):
             await ctx.send(embed=respond_message)
             return
 
-        elif "title" in response.json() and \
-           response.json()["title"] == "No Definitions Found":
+        if "title" in response.json() and \
+                response.json()["title"] == "No Definitions Found":
             message = response.json()['message']
             respond_message = Embed(
                 title=word,
@@ -57,16 +58,16 @@ class Define(GroupCog):
             )
             await ctx.send(embed=respond_message)
             return
-        else:
-            defs = []
-            num = 1
-            for words in response.json():
-                for meaning in words['meanings']:
-                    for definition in meaning['definitions']:
-                        part_of_speech = meaning['partOfSpeech']
-                        defs.append(f'({str(part_of_speech)}) ' +
-                                    str(num)+'. '+definition['definition'] + '\n')
-                        num += 1
+
+        defs = []
+        num = 1
+        for words in response.json():
+            for meaning in words['meanings']:
+                for definition in meaning['definitions']:
+                    part_of_speech = meaning['partOfSpeech']
+                    defs.append(f'({str(part_of_speech)}) ' +
+                                str(num) + '. ' + definition['definition'] + '\n')
+                    num += 1
         global index_count
         index_count = 0
 
@@ -116,8 +117,8 @@ class Define(GroupCog):
     @is_staff()
     @command(name="toggle", description="Turn Define Command On/Off")
     async def toggle(
-        self,
-        interaction: discord.Interaction,
+            self,
+            interaction: discord.Interaction,
     ) -> None:
         """
         Turn Define Command On/Off
