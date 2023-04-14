@@ -9,7 +9,8 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from utils.decorators import is_staff
+from bot.ui.views.define_word import DefineWordPagination
+from bot.utils.decorators import is_staff
 
 
 class Define(GroupCog):
@@ -47,9 +48,10 @@ class Define(GroupCog):
 
             return await ctx.send(embed=respond_message)
 
-        if "title" in response.json() and \
-                response.json()["title"] == "No Definitions Found":
-            message = response.json()['message']
+        data = response.json()
+
+        if "title" in data and data["title"] == "No Definitions Found":
+            message = data['message']
             respond_message = Embed(
                 title=word,
                 description=message,
@@ -57,6 +59,16 @@ class Define(GroupCog):
             )
             await ctx.send(embed=respond_message)
             return
+
+        view = DefineWordPagination(ctx.author, data)
+
+        embed = Embed()
+        embed.title = f"Definition for {word}"
+        part_of_speech = data[0]["meanings"][0]["partOfSpeech"]
+        definition = data[0]["meanings"][0]["definitions"][0]["definition"]
+
+        embed.description = f"({part_of_speech}) - {definition}"
+        await ctx.send(embed=embed, view=view)
 
     @is_staff()
     @command(name="toggle", description="Turn Define Command On/Off")
