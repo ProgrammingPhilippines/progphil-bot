@@ -7,13 +7,14 @@ from discord.ui import View, Button, button
 class DefineWordPagination(View):
     def __init__(
         self,
+        word: str,
         user: User,
-        data: List[dict]
+        data: List[Tuple[str, str]]
     ):
         self.offset = 0
         self.user = user
-        self.data = self._format_data(data)
-        self.word = data[0]["word"]
+        self.word = word
+        self.data = data
         super().__init__(timeout=180)
 
     async def interaction_check(self, interaction):
@@ -39,7 +40,7 @@ class DefineWordPagination(View):
             button.disabled = True
 
         embed.title = f"Definition for {self.word}"
-        embed.description = f"({self.data[self.offset][0]} - {self.data[self.offset][1]})"
+        embed.description = f"`[{self.data[self.offset][0].upper()}]` - {self.data[self.offset][1]}"
 
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -53,12 +54,12 @@ class DefineWordPagination(View):
         self.previous_button.disabled = False
         self.offset += 1
 
-        if self.offset > len(self.data) - 1:
+        if self.offset > len(self.data) - 2:
             # Disable the button if the page is the last page
             button.disabled = True
 
         embed.title = f"Definition for {self.word}"
-        embed.description = f"({self.data[self.offset][0]} - {self.data[self.offset][1]})"
+        embed.description = f"`[{self.data[self.offset][0].upper()}]` - {self.data[self.offset][1]}"
 
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -69,17 +70,3 @@ class DefineWordPagination(View):
         """
 
         await interaction.response.edit_message(view=None)
-
-    @staticmethod
-    def _format_data(data: List[dict]) -> List[Tuple[str, str]]:
-        temp = data.pop()
-        formatted_data = []
-
-        while data:
-            for meaning in temp["meanings"]:
-                for definition in meaning["definitions"]:
-                    formatted_data.append((meaning["partOfSpeech"], definition["definition"]))
-
-            temp = data.pop()
-
-        return formatted_data
