@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import requests
 import discord
 from discord import Embed
@@ -32,7 +34,7 @@ class Define(GroupCog):
         :param ctx: The Context of the Command
         """
 
-        config = await self.config.get_config("currency_converter")
+        config = await self.config.get_config("define_word")
 
         if not config["config_status"]:
             await ctx.send("Sorry, this command is currently disabled.")
@@ -42,9 +44,8 @@ class Define(GroupCog):
         response = requests.get(url)
 
         if not response.ok:
-            message = f"Could not find definition for {word}"
+            message = f"Could not find definition for {word.lower()}"
             respond_message = Embed(
-                title=word,
                 description=message,
                 color=discord.Color.blurple()
             )
@@ -63,14 +64,15 @@ class Define(GroupCog):
             await ctx.send(embed=respond_message)
             return
 
-        view = DefineWordPagination(ctx.author, data)
+        data = self._format_data(data)
+        part_of_speech, definition = data[0]
 
         embed = Embed()
-        embed.title = f"Definition for {word}"
-        part_of_speech = data[0]["meanings"][0]["partOfSpeech"]
-        definition = data[0]["meanings"][0]["definitions"][0]["definition"]
+        embed.title = f"Definition for {word.lower()}"
+        embed.description = f"`[{part_of_speech.upper()}]` - {definition}"
 
-        embed.description = f"({part_of_speech}) - {definition}"
+        view = DefineWordPagination(word.lower(), ctx.author, data)
+
         await ctx.send(embed=embed, view=view)
 
     @is_staff()
@@ -87,6 +89,18 @@ class Define(GroupCog):
             f"Turned {toggle_map[toggle]} Define Word.",
             ephemeral=True
         )
+
+    @staticmethod
+    def _format_data(data: List[dict]) -> List[Tuple[str, str]]:
+        formatted_data = []
+
+        while data:
+            temp = data.pop()
+            for meaning in temp["meanings"]:
+                for definition in meaning["definitions"]:
+                    formatted_data.append((meaning["partOfSpeech"], definition["definition"]))
+
+        return formatted_data
 
 
 async def setup(bot: Bot):
