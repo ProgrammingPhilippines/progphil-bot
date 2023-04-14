@@ -1,7 +1,7 @@
 import traceback
 
 from discord import Interaction
-from discord.ext.commands import Bot, Cog, CommandError, Context, BadArgument
+from discord.ext.commands import Bot, Cog, CommandError, Context, BadArgument, MissingRequiredArgument
 from discord.app_commands import (
     AppCommandError,
     CheckFailure,
@@ -20,6 +20,7 @@ error_map = {
     CommandNotFound: "This command was not found.",
     CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds.",
     BadArgument: "Invalid argument passed correct usage:\n```{ctx.command.usage}```",
+    MissingRequiredArgument: "Missing required argument:\n```{ctx.command.usage}```",
 }  # note: some of these errors are not yet implemented in the bot
 
 
