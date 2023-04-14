@@ -44,7 +44,7 @@ class Converter(GroupCog):
         config = await self.config.get_config("currency_converter")
 
         if not config["config_status"]:
-            await ctx.send("Sorry, this command is currently disabled.", delete_after=10)
+            await ctx.send("Sorry, this command is currently disabled.")
             return
 
         if not self._is_supported(from_currency):
@@ -73,7 +73,7 @@ class Converter(GroupCog):
             f"The exchange rate for {amount:.2f} {from_currency.upper()} is {converted_amount:.2f} {to_currency.upper()}."
         )
 
-    @prefixed_command()
+    @prefixed_command(usage="<currency>", help="Get a list of supported currencies.")
     async def currencies(
             self,
             ctx: Context,
@@ -83,7 +83,7 @@ class Converter(GroupCog):
     @is_staff()
     @command(name="toggle", description="Toggle the currency converter command.")
     async def toggle_config(self, interaction: discord.Interaction):
-        """Toggles auto tagging."""
+        """Toggles converter."""
 
         toggle_map = {
             True: "ON",
@@ -91,7 +91,7 @@ class Converter(GroupCog):
         }
         toggle = await self.config.toggle_config("currency_converter")
         await interaction.response.send_message(
-            f"Turned {toggle_map[toggle]} Auto Tagging.",
+            f"Turned {toggle_map[toggle]} Currency Converter.",
             ephemeral=True
         )
 
