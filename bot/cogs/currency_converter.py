@@ -10,13 +10,15 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from bot.utils.decorators import is_staff
+from bot.database.config_auto import Config
 from bot.config import GuildInfo
+from bot.utils.decorators import is_staff
 
 
 class Convert(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.config = Config(self.bot.pool)
         symbols = requests.get("https://api.exchangerate.host/symbols").json()["symbols"]
         self.symbols = [(symbol, symbols[symbol]["description"]) for symbol in symbols]
 
@@ -36,6 +38,11 @@ class Convert(GroupCog):
         :param from_currency: The Currency to Convert From
         :param to_currency: The Currency to Convert To
         """
+        config = await self.config.get_config("currency_converter")
+
+        if not config["config_status"]:
+            await ctx.send("Sorry, this command is currently disabled.", delete_after=10)
+            return
 
         if not self._is_supported(from_currency):
             await ctx.send(f"Sorry, {from_currency.upper()} is not supported.")
@@ -61,6 +68,21 @@ class Convert(GroupCog):
 
         await ctx.send(
             f"The exchange rate for {amount:.2f} {from_currency.upper()} is {converted_amount:.2f} {to_currency.upper()}."
+        )
+
+    @is_staff()
+    @command(name="toggle", description="Toggle the currency converter command.")
+    async def toggle_config(self, interaction: discord.Interaction):
+        """Toggles auto tagging."""
+
+        toggle_map = {
+            True: "ON",
+            False: "OFF"
+        }
+        toggle = await self.config.toggle_config("currency_converter")
+        await interaction.response.send_message(
+            f"Turned {toggle_map[toggle]} Auto Tagging.",
+            ephemeral=True
         )
 
     def _is_supported(self, currency: str) -> bool:
