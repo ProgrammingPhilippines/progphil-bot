@@ -9,6 +9,7 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
+from bot.database.config_auto import Config
 from bot.ui.views.define_word import DefineWordPagination
 from bot.utils.decorators import is_staff
 
@@ -16,7 +17,7 @@ from bot.utils.decorators import is_staff
 class Define(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.command_enabled = True
+        self.config = Config(self.bot.pool)
 
     @prefixed_command()
     async def define(
@@ -31,8 +32,10 @@ class Define(GroupCog):
         :param ctx: The Context of the Command
         """
 
-        if not self.command_enabled:
-            await ctx.send("Sorry, this command is currently disabled.", delete_after=10)
+        config = await self.config.get_config("currency_converter")
+
+        if not config["config_status"]:
+            await ctx.send("Sorry, this command is currently disabled.")
             return
 
         url = "https://api.dictionaryapi.dev/api/v2/entries/en/" + word
@@ -71,25 +74,19 @@ class Define(GroupCog):
         await ctx.send(embed=embed, view=view)
 
     @is_staff()
-    @command(name="toggle", description="Turn Define Command On/Off")
-    async def toggle(
-            self,
-            interaction: discord.Interaction,
-    ) -> None:
-        """
-        Turn Define Command On/Off
+    @command(name="toggle", description="Toggle the define word command.")
+    async def toggle_config(self, interaction: discord.Interaction):
+        """Toggles converter."""
 
-        :param interaction: Interaction
-        """
-
-        if self.command_enabled:
-            self.command_enabled = False
-            response = "Command is now Disabled"
-        else:
-            self.command_enabled = True
-            response = "Command is now Enabled"
-
-        await interaction.response.send_message(response, ephemeral=True)
+        toggle_map = {
+            True: "ON",
+            False: "OFF"
+        }
+        toggle = await self.config.toggle_config("define_word")
+        await interaction.response.send_message(
+            f"Turned {toggle_map[toggle]} Define Word.",
+            ephemeral=True
+        )
 
 
 async def setup(bot: Bot):
