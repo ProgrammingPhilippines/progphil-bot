@@ -1,6 +1,5 @@
 import requests
 import discord
-from discord.ui import Button, View
 from discord import Embed
 from discord.ext.commands import (
     Bot,
@@ -12,6 +11,7 @@ from discord.app_commands import command
 
 from bot.database.config_auto import Config
 from bot.config import GuildInfo
+from bot.ui.views.currency_converter import CurrencyConverterPagination
 from bot.utils.decorators import is_staff
 
 
@@ -78,7 +78,25 @@ class Converter(GroupCog):
             self,
             ctx: Context,
     ) -> None:
-        ...
+        """
+        Get a list of supported currencies
+
+        :param ctx: The Context of the Command
+        """
+        config = await self.config.get_config("currency_converter")
+
+        if not config["config_status"]:
+            await ctx.send("Sorry, this command is currently disabled.")
+            return
+
+        embed = Embed()
+        embed.title = "Here are the available currencies:"
+        embed.description = "\n".join(
+            [f"{symbol[0].upper()} - {symbol[1]}" for count, symbol in enumerate(self.symbols, start=1) if count <= 10]
+        )
+
+        view = CurrencyConverterPagination(ctx.author, self.symbols)
+        await ctx.send(embed=embed, view=view)
 
     @is_staff()
     @command(name="toggle", description="Toggle the currency converter command.")
