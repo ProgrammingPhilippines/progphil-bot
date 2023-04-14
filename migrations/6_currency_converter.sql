@@ -1,0 +1,1 @@
+INSERT INTO pph_config_auto(config_type) VALUES ('currency_converter');
