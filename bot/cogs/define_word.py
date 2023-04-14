@@ -11,9 +11,9 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from bot.database.config_auto import Config
-from bot.ui.views.define_word import DefineWordPagination
-from bot.utils.decorators import is_staff
+from database.config_auto import Config
+from ui.views.define_word import DefineWordPagination
+from utils.decorators import is_staff
 
 
 class Define(GroupCog):
