@@ -1,13 +1,20 @@
 import traceback
 
 from discord import Interaction
-from discord.ext.commands import Bot, Cog, CommandError, Context, BadArgument, MissingRequiredArgument
+from discord.ext.commands import (
+    Bot,
+    Cog,
+    CommandError,
+    CommandNotFound,
+    Context,
+    BadArgument,
+    MissingRequiredArgument
+)
 from discord.app_commands import (
     AppCommandError,
     CheckFailure,
     MissingRole,
     MissingPermissions,
-    CommandNotFound,
     CommandOnCooldown
 )
 
@@ -78,7 +85,7 @@ class ErrorHandler(Cog):
 
         error_message = error_message.format(error=error, ctx=ctx)
 
-        await ctx.send(error_message)
+        await ctx.send(error_message, delete_after=5)
 
 
 async def setup(bot: Bot):
