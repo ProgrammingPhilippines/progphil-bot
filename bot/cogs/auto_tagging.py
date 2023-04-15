@@ -1,6 +1,5 @@
 from discord import (
     Embed,
-    ForumChannel,
     Guild,
     HTTPException,
     Interaction,
@@ -10,7 +9,6 @@ from discord import (
 )
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
-from discord.ui import Modal, TextInput
 
 from database.auto_tag import AutoTagDB
 from database.config_auto import Config
@@ -42,82 +40,20 @@ class Tagging(GroupCog):
         if not config["config_status"]:
             return
 
-        entries = await self.db.view_from_forum(thread.parent.id)
+        entry = await self.db.get_entry(thread.parent.id)
 
-        if not entries:
+        if not entry:
             return
 
-        # Get all the forum ID's of the entries
-        forum_ids = [f["tag_in"] for f in map(dict, entries)]
+        message = f"{_getter(thread.guild, entry).mention}\n{entry['c_message']}\n\n"
 
-        if thread.parent_id not in forum_ids:
-            return
-
-        to_mention = []
-        custom_message = await self.db.get_custom_message(thread.parent.id)
-        message = (custom_message or "") + "\n\n"
-
-        for entry in map(dict, entries):
-            # Here just check if the thread parent (forum)
-            # matches any of the entries
-            if entry["tag_in"] == thread.parent.id:
-                to_mention.append(_getter(thread.guild, entry).mention)
-
-        # Add the mentions to the message
-        message += "\n".join(to_mention)
         thread_msg = thread.get_partial_message(thread.id)
 
         try:
             await thread_msg.pin()
+            await thread.send(message)
         except HTTPException:
             pass
-
-        await thread.send(message)
-
-    @is_staff()
-    @command(name="custom_messages", description="Views all custom messages.")
-    async def custom_messages(self, interaction: Interaction):
-        embed = Embed(
-            description="**All custom messages**\n"
-        )
-
-        all_items = await self.db.get_all_messages()
-        msg = ""
-
-        for num, item in enumerate(all_items, start=1):
-            msg += (
-                f"{num}. Forum: {interaction.guild.get_channel(item['forum_id']).mention}\n"
-                f"Message: {item['msg']}\n\n"
-            )
-
-        if msg:
-            embed.description += msg
-        else:
-            embed.description += "Nothing here..."
-
-        await interaction.response.send_message(embed=embed)
-
-    @is_staff()
-    @command(name="message", description="Create a custom message on an auto tag forum.")
-    async def message(self, interaction: Interaction, forum: ForumChannel):
-        """Sets a custom message for a forum"""
-
-        async def callback(interaction: Interaction):
-            """The modal's callback so we don't get an error"""
-            await interaction.response.send_message("Success.", ephemeral=True)
-
-        modal = Modal(title="Set or Update Custom Message")
-        msg = TextInput(
-            label="Add custom message.",
-            placeholder="Type here... (Leave blank for default message.)",
-            default="Calling out peeps!\n\n"
-        )
-        modal.on_submit = callback
-        modal.add_item(msg)
-        await interaction.response.send_modal(modal)
-        await modal.wait()
-
-        await self.db.upsert_forum_message(forum.id, msg.value)
 
     @is_staff()
     @command(name="toggle", description="Toggles the auto tagging.")
@@ -128,36 +64,41 @@ class Tagging(GroupCog):
             True: "ON",
             False: "OFF"
         }
+
         toggle = await self.config.toggle_config("auto_tagging")
+
         await interaction.response.send_message(
             f"Turned {toggle_map[toggle]} Auto Tagging.",
             ephemeral=True
         )
 
     @is_staff()
-    @command(name="add", description="Adds an auto tag.")
-    async def add_entries(self, interaction: Interaction):
+    @command(name="manage", description="Add/Edit an auto tag.")
+    async def manage_entries(self, interaction: Interaction):
         """Adds an entry to the database."""
 
-        view = TaggingSelection()
+        view = TaggingSelection(self.db)
         await interaction.response.send_message(view=view, ephemeral=True)
         await view.wait()
 
-        for entry in view.selected:
-            # Set the entry's obj_type based on their instance
-            if isinstance(entry, Member):
-                obj_type = "user"
-            elif isinstance(entry, Role):
-                obj_type = "role"
+        entry = view.selected
 
-            await self.db.add_entry(entry.id, obj_type, view.forum)
+        if not view.selected:
+            return
+
+        if isinstance(entry, Member):
+            obj_type = "user"
+        elif isinstance(entry, Role):
+            obj_type = "role"
+
+        await self.db.upsert_entry(entry.id, obj_type, view.forum, view.custom_msg)
 
     @is_staff()
     @command(name="remove", description="Removes an auto tag.")
     @describe(entry_id="The entry's ID. (do /tagging view to check their corresponding IDs.)")
     async def remove_entry(self, interaction: Interaction, entry_id: int):
         """Removes an entry from the database.
-        
+
         :param entry_id: The entry's ID from the database. (not the obj_id.)"""
 
         if await self.db.remove_entry(entry_id):
@@ -181,17 +122,15 @@ class Tagging(GroupCog):
         if not entry:
             embed.description += "None yet..."
 
-        for entry in map(dict, entry):
-            # Convert the `asyncpg.Record` objects to dicts
-            # for better formatting.
-
+        for entry in entry:
             # Use the defined getted to get the entry type.
             obj = _getter(interaction.guild, entry)
-            forum = interaction.guild.get_channel(entry['tag_in'])
+            forum = interaction.guild.get_channel(entry['forum_id'])
             embed.description += (
-                f"ID: {entry['id']} - {obj.mention}\n"
-                f"Forum: {forum.mention if forum else 'Not Found'}\n"
-                f"Type: {entry['obj_type'].title()}\n\n"
+                f"`ID:` {entry['id']} - {obj.mention}\n"
+                f"`Forum:` {forum.mention if forum else 'Not Found'}\n"
+                f"`Type:` {entry['obj_type'].title()}\n"
+                f"`Message`: {entry['c_message']}\n\n"
             )
 
         await interaction.response.send_message(
