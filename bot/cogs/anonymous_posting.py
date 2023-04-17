@@ -1,4 +1,4 @@
-from uuid import UUID
+import os
 
 from discord import Interaction, Embed, Guild, Member, TextChannel
 from discord.app_commands import Choice, command, describe, choices
@@ -10,6 +10,9 @@ from database.config_auto import Config
 from utils.decorators import is_staff
 from ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
 from ui.views.forum_picker import ForumPicker
+
+
+SALT = os.getenv('salt')
 
 
 class AnonymousPosting(GroupCog, name="anon"):
@@ -63,17 +66,22 @@ class AnonymousPosting(GroupCog, name="anon"):
             """The callback to the forum selection view."""
 
             forum = interaction.guild.get_channel(int(forum_select.values[0]))
-            modal = AnonymousPost(forum, self.db)
+            modal = AnonymousPost(forum, SALT)
             await interaction.response.send_modal(modal)
             await modal.wait()
             view.stop()
+
+            if not modal.success:
+                return
+
             await self._send_to_logs(
                 (
                     "**New Anonymous Post**\n\n"
                     f"**{modal.post_title}**\n"
                     f"{modal.post_message.value[:1500]}\n\n"
                     f"author: {interaction.user.id} | {interaction.user.mention}\n"
-                    f"forum: [{modal.forum}]({modal.forum.jump_url})"
+                    f"forum: [{modal.forum}]({modal.forum.jump_url})\n"
+                    f"thread: [{modal.thread}]({modal.thread.jump_url})"
                 ),
                 interaction.user,
                 interaction.guild
@@ -108,10 +116,8 @@ class AnonymousPosting(GroupCog, name="anon"):
         await interaction.response.send_message(view=view, ephemeral=True)
         await view.wait()
 
-
-    @describe(uuid="The UUID of the post to reply to.")
     @command(name="reply", description="Reply anonymously to your forum post.")
-    async def reply(self, interaction: Interaction, uuid: str):
+    async def reply(self, interaction: Interaction):
         """Reply to a post."""
 
         status = await self.config.get_config("anonymous_posting")
@@ -122,34 +128,19 @@ class AnonymousPosting(GroupCog, name="anon"):
                 ephemeral=True
             )
 
-        forums = await self.db.get_forums()
-
-        if not forums:
-            return await interaction.response.send_message(
-                "Allowed forum channels aren't setup yet...",
-                ephemeral=True
-            )
-
-        posts = await self.db.get_posts(interaction.user.id)
-
-        if uuid not in [str(post['post_uuid']) for post in posts]:
-            return await interaction.response.send_message(
-                "This post doesn't exist.",
-                ephemeral=True
-            )
-
-        uuid = UUID(uuid)
-        post, = await self.db.get_post(uuid)
-        thread = interaction.guild.get_thread(post["post_id"])
-        modal = AnonymousReply(thread)
+        modal = AnonymousReply(SALT)
         await interaction.response.send_modal(modal)
         await modal.wait()
+
+        if not modal.success:
+            return
+
         await self._send_to_logs(
             (
-                f"**Anonymous Reply to: [{thread}]({thread.jump_url})**\n\n"
-                f"{modal.post_message.value[:1500]}\n\n"
+                f"**Anonymous Reply to: [{modal.thread}]({modal.thread.jump_url})**\n\n"
+                f"{modal.post_message.value[:1700]}\n\n"
                 f"author: {interaction.user.id} | {interaction.user.mention}\n"
-                f"forum: [{modal.thread}]({modal.thread.jump_url})"
+                f"forum: [{modal.thread.parent}]({modal.thread.parent.jump_url})"
             ),
             interaction.user,
             interaction.guild

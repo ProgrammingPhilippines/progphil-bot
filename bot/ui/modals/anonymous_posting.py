@@ -1,9 +1,8 @@
-from uuid import uuid4
+from base64 import b64encode
 
+from cryptography.fernet import Fernet, InvalidToken
 from discord import Interaction, ForumChannel, TextStyle, Thread
 from discord.ui import Modal, TextInput, View, Select
-
-from database.anonymous_posting import AnonymousPostingDB
 
 
 class AnonymousPost(Modal, title="Anonymous Post"):
@@ -17,16 +16,26 @@ class AnonymousPost(Modal, title="Anonymous Post"):
         style=TextStyle.long
     )
 
-    def __init__(self, forum: ForumChannel, db: AnonymousPostingDB):
+    def __init__(self, forum: ForumChannel, salt: str):
         self.forum = forum
-        self.db = db
+        self.salt = salt
+        self.success: bool = False
         super().__init__()
 
     async def on_submit(self, interaction: Interaction) -> None:
+        post_title = self.post_title.value
+        post_message = self.post_message.value
+
+        if post_title.isspace():
+            post_title = "Empty title..."
+
+        if post_message.isspace():
+            post_message = "Empty message..."
+
         if self.forum.flags.require_tag:
             async def select_callback(interaction: Interaction):
                 await interaction.response.edit_message(
-                    content=f"Selected {len(tag_selection.values)} tags...",
+                    content=f"Selected {len(tag_selection.values)} tag(s)...",
                     view=None
                 )
                 view.stop()
@@ -63,33 +72,32 @@ class AnonymousPost(Modal, title="Anonymous Post"):
                 if tag:
                     forum_tags.append(tag)
 
-            thread = await self.forum.create_thread(
-                name=self.post_title.value,
-                content=self.post_message.value,
+            thread_message = await self.forum.create_thread(
+                name=post_title,
+                content=post_message,
                 applied_tags=forum_tags
             )
 
         else:
-            thread = await self.forum.create_thread(
-                name=self.post_title.value,
-                content=self.post_message.value
+            thread_message = await self.forum.create_thread(
+                name=post_title,
+                content=post_message
             )
 
-        uuid = uuid4()
-        thread_id = thread.thread.id
+        self.thread = thread_message.thread
+        thread_id = self.thread.id
         author_id = interaction.user.id
+        key = b64encode(f"{author_id}{self.salt}"[:32].encode())
 
-        await self.db.insert_post(
-            uuid,
-            thread_id,
-            author_id,
-            self.post_title.value
-        )
+        fernet = Fernet(key)
+        encrypted = fernet.encrypt(f"{thread_id} {author_id}".encode())
 
         success_message = (
-            f"Successfully posted! here is your post UUID:\n**{uuid}**\n\n"
+            f"Successfully posted! here is your post ciphertext:\n`{encrypted.decode()}`\n\n"
             "Make sure not to lose that, you can use that to reply "
-            "to your original post using `/anonymous-posting reply`"
+            "to your original post using `/anon reply`\n\n"
+            "**DO NOT GIVE THIS TO ANYONE ELSE, OTHER PEOPLE CAN USE THIS\n"
+            "TO REPLY TO THIS POST.**"
         )
 
         if interaction.response.is_done():
@@ -97,18 +105,49 @@ class AnonymousPost(Modal, title="Anonymous Post"):
         else:
             await interaction.response.send_message(success_message, ephemeral=True)
 
+        self.success = True
+
 
 class AnonymousReply(Modal, title="Anonymous Reply"):
+    encrypted_post = TextInput(
+        label="Post Ciphertext",
+        placeholder="The ciphertext of your post."
+    )
     post_message = TextInput(
         label="Message",
         placeholder="Enter message...",
         style=TextStyle.long
     )
 
-    def __init__(self, thread: Thread):
-        self.thread = thread
+    def __init__(self, salt: str):
+        self.salt = salt
+        self.thread: Thread | None = None
+        self.success: bool = False
         super().__init__()
 
     async def on_submit(self, interaction: Interaction) -> None:
-       await self.thread.send(self.post_message.value)
-       await interaction.response.send_message("Success...", ephemeral=True)
+        post_message = self.post_message.value
+
+        if post_message.isspace():
+            post_message = "Empty reply..."
+
+        key = b64encode(f"{interaction.user.id}{self.salt}"[:32].encode())
+        fernet = Fernet(key)
+
+        try:
+            decrypted = fernet.decrypt(self.encrypted_post.value)
+        except InvalidToken:
+            return await interaction.response.send_message(
+                "Reply failed. Did you write the correct ciphertext for your post?",
+                ephemeral=True
+            )
+
+        thread_id, _ = decrypted.decode().split()
+        self.thread = interaction.guild.get_thread(int(thread_id))
+
+        if not self.thread:
+            return
+
+        await self.thread.send(post_message)
+        await interaction.response.send_message("Success...", ephemeral=True)
+        self.success = True
