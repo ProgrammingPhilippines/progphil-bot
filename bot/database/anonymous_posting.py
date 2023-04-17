@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from asyncpg import Pool
 
 
@@ -71,60 +69,6 @@ class AnonymousPostingDB:
             """)
 
             return forums
-
-    async def insert_post(
-        self,
-        uuid: UUID,
-        post_id: int,
-        author: int,
-        title: str
-    ):
-        """Inserts a post to the database.
-
-        :param uuid: The post uuid
-        :param post_id: The post id
-        :param author: The author id
-        :param title: The post title
-        """
-
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            await conn.execute("""
-                INSERT INTO pph_anonymous_posting_posts VALUES ($1, $2, $3, $4);
-            """, uuid, post_id, author, title)
-
-    async def get_posts(self, author_id: int):
-        """Gets all posts of an author.
-
-        :param author_id: The author to check.
-        """
-
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            posts = await conn.fetch("""
-                SELECT * FROM pph_anonymous_posting_posts
-                WHERE post_author = $1;
-            """, author_id)
-
-            return posts
-
-    async def get_post(self, uuid: UUID):
-        """Get a specific post with a uuid.
-
-        :param uuid: The post uuid.
-        """
-
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            post = await conn.fetch("""
-                SELECT * FROM pph_anonymous_posting_posts
-                WHERE post_uuid = $1;
-            """, uuid)
-
-            return post
 
     async def upsert_log_channel(self, channel_id: int):
         """Inserts a log channel to the database.
