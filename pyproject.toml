@@ -18,6 +18,7 @@ psycopg2 = "^2.9.5"
 cloudscraper = "^1.2.69"
 bs4 = "^0.0.1"
 psycopg2-binary = "^2.9.5"
+cryptography = "^40.0.2"
 
 
 [build-system]
