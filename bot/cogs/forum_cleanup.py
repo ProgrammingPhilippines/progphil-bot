@@ -1,3 +1,5 @@
+# pylint: disable = no-member
+
 import asyncio
 
 from asyncpg import Record
