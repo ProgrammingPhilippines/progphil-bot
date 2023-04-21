@@ -40,13 +40,13 @@ async def _archive_or_close_threads(forum: ForumChannel, conf: list[Record]):
             message, = [m async for m in thread.history(limit=1)]
             days_inactive = (now - message.created_at).days
 
-            if days_inactive >= close_t:
+            if days_inactive >= close_t["num_days"]:
                 await thread.edit(archived=True, reason="Inactivity")
         else:
             arc_time = thread.archive_timestamp
             days_inactive = (now - arc_time).days
 
-            if days_inactive >= lock_t:
+            if days_inactive >= lock_t["num_days"]:
                 await thread.edit(locked=True, reason="Inactivity")
 
 
