@@ -99,7 +99,7 @@ class ForumCleanupDB:
 
         return sched
 
-    async def upsert_conf(self, conf_type: Literal["close", "lock"], num_days: int):
+    async def upsert_conf(self, conf_type: Literal["close"], num_days: int):
         """Upserts a configuration on forum cleanup
 
         :param conf_type: The configuration type
@@ -126,3 +126,32 @@ class ForumCleanupDB:
             """)
 
         return conf
+
+    async def upsert_message(self, trigger: str, message: str):
+        """Upserts a closing/locking message. (the message send to the thread after closing.)
+
+        :param message: The message to send.
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute("""
+                INSERT INTO pph_forum_cleanup_message(c_trigger, c_message)
+                VALUES ($1, $2)
+                ON CONFLICT (c_trigger) DO
+                    UPDATE SET c_message = $2;
+            """, trigger, message)
+
+    async def get_message(self, trigger: str):
+        """Gets the message to be sent after closing/locking the thread."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            message = await conn.fetch("""
+                SELECT c_message FROM pph_forum_cleanup_message
+                WHERE c_trigger = $1;
+            """, trigger)
+
+            return message
