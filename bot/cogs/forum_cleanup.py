@@ -3,7 +3,7 @@
 import asyncio
 
 from asyncpg import Record
-from discord import Embed, Interaction, ForumChannel
+from discord import Embed, Interaction, ForumChannel, TextStyle
 from discord.app_commands import Choice, command, choices
 from discord.ext import tasks
 from discord.ui import Modal, TextInput, View, Select
@@ -25,31 +25,6 @@ sched_mapping = {
 }
 
 
-async def _archive_or_close_threads(forum: ForumChannel, conf: list[Record]):
-    """Archives or locks a thread.
-
-    :param forum: The forum to check
-    :param conf: The configurations
-    """
-
-    close_t, lock_t = conf
-    now = utcnow()
-
-    for thread in forum.threads + list([t async for t in forum.archived_threads()]):
-        if not thread.archived:
-            message, = [m async for m in thread.history(limit=1)]
-            days_inactive = (now - message.created_at).days
-
-            if days_inactive >= close_t["num_days"]:
-                await thread.edit(archived=True, reason="Inactivity")
-        else:
-            arc_time = thread.archive_timestamp
-            days_inactive = (now - arc_time).days
-
-            if days_inactive >= lock_t["num_days"]:
-                await thread.edit(locked=True, reason="Inactivity")
-
-
 class ForumCleanup(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -57,6 +32,32 @@ class ForumCleanup(GroupCog):
         self.toggle_config = Config(self.bot.pool)
         self.forums: list[ForumChannel] | None = None
         self.conf: list[Record] | None = None
+
+    async def _archive_threads(self, forum: ForumChannel, conf: list[Record]):
+        """Archives a thread.
+
+        :param forum: The forum to check
+        :param conf: The configurations
+        """
+
+        close_t, = conf
+        now = utcnow()
+        c_message = await self.db.get_message("close")
+
+        if not c_message:
+            c_message = "Archived due to inactivity."
+        else:
+            c_message = c_message[0]["c_message"]
+
+        embed = Embed(description=c_message)
+
+        for thread in forum.threads:
+            message, = [m async for m in thread.history(limit=1)]
+            days_inactive = (now - message.created_at).days
+
+            if days_inactive >= close_t["num_days"]:
+                await thread.send(embed=embed)
+                await thread.edit(archived=True, reason="Inactivity")
 
     async def _refresh_task(self):
         if self.thread_check.is_running():
@@ -97,7 +98,7 @@ class ForumCleanup(GroupCog):
             return
 
         for forum in self.forums:
-            await _archive_or_close_threads(forum, self.conf)
+            await self._archive_threads(forum, self.conf)
 
     @is_staff()
     @choices(
@@ -203,16 +204,15 @@ class ForumCleanup(GroupCog):
 
         async def modal_callback(interaction: Interaction):
             close_value = close.value
-            lock_value = lock.value
 
-            if not close_value.isdecimal() or not lock_value.isdecimal():
+            if not close_value.isdecimal():
                 return await interaction.response.send_message(
                     "Please enter valid digits.",
                     ephemeral=True
                 )
 
             await self.db.upsert_conf("close", int(close_value))
-            await self.db.upsert_conf("lock", int(lock_value))
+            await self.db.upsert_message("close", c_message.value)
             await self._refresh_requirements()
             await interaction.response.send_message(
                 "Success.",
@@ -221,10 +221,13 @@ class ForumCleanup(GroupCog):
 
         modal = Modal(title=f"{self.__cog_name__} Configurations")
         close = TextInput(label="Days inactive before closing a thread")
-        lock = TextInput(label="Days inactive before locking a thread")
+        c_message = TextInput(
+            label="Message to send after closing a thread",
+            style=TextStyle.long
+        )
 
         modal.add_item(close)
-        modal.add_item(lock)
+        modal.add_item(c_message)
         modal.on_submit = modal_callback
         await interaction.response.send_modal(modal)
 
