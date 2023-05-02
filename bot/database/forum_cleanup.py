@@ -128,7 +128,7 @@ class ForumCleanupDB:
         return conf
 
     async def upsert_message(self, trigger: str, message: str):
-        """Upserts a closing/locking message. (the message send to the thread after closing.)
+        """Upserts a closing message. (the message sent to the thread after closing.)
 
         :param message: The message to send.
         """
