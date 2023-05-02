@@ -1,8 +1,10 @@
 from discord import (
     Embed,
+    Forbidden,
     Guild,
     HTTPException,
     Interaction,
+    PartialMessage,
     Thread,
     Member,
     Role
@@ -33,6 +35,31 @@ class Tagging(GroupCog):
         self.db = AutoTagDB(self.bot.pool)
         self.config = Config(self.bot.pool)
 
+    async def attempt_send(
+        self,
+        thread: Thread,
+        thread_msg: PartialMessage,
+        message: str,
+        attempt: int = 0
+    ):
+        """Attempts to send a message to the thread.
+
+        Will retry everytime it fails until 5 tries.
+
+        :param thread: The thread to send to
+        :param thread_msg: The thread message
+        :param message: The message to send
+        :param attempt: Starting attempt number"""
+
+        if attempt > 5:
+            return
+
+        try:
+            await thread_msg.pin()
+            await thread.send(message)
+        except (HTTPException, Forbidden):
+            await self.attempt_send(thread, thread_msg, message, attempt + 1)
+
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
         config = await self.config.get_config("auto_tagging")
@@ -49,11 +76,7 @@ class Tagging(GroupCog):
 
         thread_msg = thread.get_partial_message(thread.id)
 
-        try:
-            await thread_msg.pin()
-            await thread.send(message)
-        except HTTPException:
-            pass
+        await self.attempt_send(thread, thread_msg, message)
 
     @is_staff()
     @command(name="toggle", description="Toggles the auto tagging.")
