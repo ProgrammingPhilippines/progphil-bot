@@ -8,7 +8,8 @@ from discord.ext.commands import (
     CommandNotFound,
     Context,
     BadArgument,
-    MissingRequiredArgument
+    MissingRequiredArgument,
+    UnexpectedQuoteError
 )
 from discord.app_commands import (
     AppCommandError,
@@ -73,6 +74,9 @@ class ErrorHandler(Cog):
         :param ctx: Context
         :param error: Error
         """
+        if isinstance(error, UnexpectedQuoteError):
+            return
+
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
 
         error_message = error_map.get(type(error), self.error_message)
