@@ -22,6 +22,9 @@ class Converter(GroupCog):
         symbols = requests.get("https://api.exchangerate.host/symbols").json()["symbols"]
         self.symbols = [(symbol, symbols[symbol]["description"]) for symbol in symbols]
 
+    def is_valid(self, amount: str):
+        return amount.isdigit() or amount.count(".") == 1
+
     @prefixed_command(
         usage="<amount> <from_currency> <to_currency>",
         help="Convert Currency to Another Currency (e.g. 10 usd eur)"
@@ -29,7 +32,7 @@ class Converter(GroupCog):
     async def exchange(
             self,
             ctx: Context,
-            amount: float,
+            amount: str,
             from_currency: str,
             to_currency: str,
     ) -> None:
@@ -41,6 +44,10 @@ class Converter(GroupCog):
         :param from_currency: The Currency to Convert From
         :param to_currency: The Currency to Convert To
         """
+        if not self.is_valid(amount) or len(amount) > 20:
+            await ctx.send("Please enter a valid amount.")
+            return
+
         config = await self.config.get_config("currency_converter")
 
         if not config["config_status"]:
@@ -70,7 +77,7 @@ class Converter(GroupCog):
         converted_amount = data["result"]
 
         await ctx.send(
-            f"The exchange rate for {amount:.2f} {from_currency.upper()} is {converted_amount:.2f} {to_currency.upper()}."
+            f"The exchange rate for {float(amount):.2f} {from_currency.upper()} is {converted_amount:.2f} {to_currency.upper()}."
         )
 
     @prefixed_command(usage="<currency>", help="Get a list of supported currencies.")
