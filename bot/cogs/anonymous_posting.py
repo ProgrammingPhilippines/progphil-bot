@@ -2,7 +2,7 @@ import os
 
 from discord import Interaction, Embed, Guild, Member, TextChannel
 from discord.app_commands import Choice, command, describe, choices
-from discord.ui import View, Select
+from discord.ui import View, Select, Button
 from discord.ext.commands import Bot, GroupCog
 
 from database.anonymous_posting import AnonymousPostingDB
@@ -10,6 +10,7 @@ from database.config_auto import Config
 from utils.decorators import is_staff
 from ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
 from ui.views.forum_picker import ForumPicker
+from ui.views.anon_posting import PersistentAnonView
 
 
 SALT = os.getenv('salt')
@@ -20,6 +21,15 @@ class AnonymousPosting(GroupCog, name="anon"):
         self.bot = bot
         self.db = AnonymousPostingDB(self.bot.pool)
         self.config = Config(self.bot.pool)
+
+    async def cog_load(self):
+        record = await self.db.get_view()
+
+        if not record:
+            return
+
+        self.bot.add_view(PersistentAnonView(SALT, self, self.config), message_id=record['message_id'])
+
 
     async def _send_to_logs(
         self,
@@ -255,6 +265,34 @@ class AnonymousPosting(GroupCog, name="anon"):
         await self.db.upsert_log_channel(channel.id)
         await interaction.response.send_message(
             f"Logging channel set to {channel.mention} | {channel.id}",
+            ephemeral=True
+        )
+
+    @is_staff()
+    @command(name="setbutton", description="Sets the button to this channel.")
+    async def set_button(self, interaction: Interaction, message: str | None):
+        """Sets the anonymous posting button on the interaction channel"""
+
+        default_message = "Post / Reply Anonymously!"
+        embed = Embed()
+
+        embed.description = message or default_message
+
+        record = await self.db.get_view()
+
+        if record:
+            channel = self.bot.get_channel(record["channel_id"])
+            message = channel.get_partial_message(record["message_id"])
+            await message.delete()
+
+        view = PersistentAnonView(SALT, self, self.config)
+
+        message = await interaction.channel.send(embed=embed, view=view)
+        self.bot.add_view(view, message_id=message.id)
+
+        await self.db.upsert_current_view(message.id, interaction.channel.id)
+        await interaction.response.send_message(
+            "Success.",
             ephemeral=True
         )
 
