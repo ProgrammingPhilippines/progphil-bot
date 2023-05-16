@@ -2,7 +2,7 @@ import os
 
 from discord import Interaction, Embed, Guild, Member, TextChannel
 from discord.app_commands import Choice, command, describe, choices
-from discord.ui import View, Select, Button
+from discord.ui import View, Select
 from discord.ext.commands import Bot, GroupCog
 
 from database.anonymous_posting import AnonymousPostingDB
