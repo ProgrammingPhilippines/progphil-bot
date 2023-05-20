@@ -44,7 +44,7 @@ class Converter(GroupCog):
         :param from_currency: The Currency to Convert From
         :param to_currency: The Currency to Convert To
         """
-        if not self.is_valid(amount) or len(amount) > 20:
+        if not self.is_valid(amount) or len(amount) > 10:
             await ctx.send("Please enter a valid amount.")
             return
 
