@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from cryptography.fernet import Fernet, InvalidToken
-from discord import Interaction, ForumChannel, TextStyle, Thread
+from discord import Embed, Interaction, ForumChannel, TextStyle, Thread, Forbidden
 from discord.ui import Modal, TextInput, View, Select
 
 
@@ -93,17 +93,22 @@ class AnonymousPost(Modal, title="Anonymous Post"):
         encrypted = fernet.encrypt(f"{thread_id} {author_id}".encode())
 
         success_message = (
-            f"Successfully posted! here is your post ciphertext:\n`{encrypted.decode()}`\n\n"
-            "Make sure not to lose that, you can use that to reply "
-            "to your original post using `/anon reply`\n\n"
-            "**DO NOT GIVE THIS TO ANYONE ELSE, OTHER PEOPLE CAN USE THIS\n"
-            "TO REPLY TO THIS POST.**"
+            f"Hello {interaction.user.mention},\n"
+            f"Here is your reply key for your anonymous post {thread_message.thread.jump_url}. Use the command `/anon reply` with this key to anonymously reply to it\n"
+            f"```{encrypted.decode()}```\n"
+            "Do not share this with other users."
         )
 
+        embed = Embed(
+            description=success_message
+        )
+
+        await interaction.user.send(embed=embed)
+
         if interaction.response.is_done():
-            await interaction.followup.send(success_message, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=True)
         else:
-            await interaction.response.send_message(success_message, ephemeral=True)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         self.success = True
 
@@ -111,7 +116,7 @@ class AnonymousPost(Modal, title="Anonymous Post"):
 class AnonymousReply(Modal, title="Anonymous Reply"):
     encrypted_post = TextInput(
         label="Post Ciphertext",
-        placeholder="The ciphertext of your post."
+        placeholder="The key of your post."
     )
     post_message = TextInput(
         label="Message",

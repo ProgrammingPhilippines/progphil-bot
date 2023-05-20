@@ -107,3 +107,30 @@ class AnonymousPostingDB:
             """)
 
             return channel_id
+
+    async def upsert_current_view(self, message_id: int, channel_id: int):
+        """Upserts the message view id."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute("""
+                INSERT INTO pph_anon_view VALUES (1, $1, $2)
+                ON CONFLICT (id)   
+                    DO UPDATE SET message_id = $1, channel_id = $2;
+            """, message_id, channel_id)
+
+    async def get_view(self):
+        """Get the message view id."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            message = await conn.fetch("""
+                SELECT * FROM pph_anon_view;
+            """)
+
+            if message:
+                return message[0]
+
+        return None

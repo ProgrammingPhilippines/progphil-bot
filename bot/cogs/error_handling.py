@@ -9,7 +9,8 @@ from discord.ext.commands import (
     Context,
     BadArgument,
     MissingRequiredArgument,
-    UnexpectedQuoteError
+    UnexpectedQuoteError,
+    InvalidEndOfQuotedStringError
 )
 from discord.app_commands import (
     AppCommandError,
@@ -74,7 +75,7 @@ class ErrorHandler(Cog):
         :param ctx: Context
         :param error: Error
         """
-        if isinstance(error, UnexpectedQuoteError):
+        if isinstance(error, (UnexpectedQuoteError, InvalidEndOfQuotedStringError)):
             return
 
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
