@@ -1,7 +1,8 @@
-from discord import Embed, Interaction
-from discord.ui import View, Button, button
+from typing import List, Any
 
 from database.auto_responder import AutoRespondDB
+from discord import Embed, Interaction, TextChannel, ChannelType
+from discord.ui import View, Button, button, ChannelSelect
 
 
 def _format_description(data: dict) -> str:
@@ -26,9 +27,9 @@ class AutoResponderPagination(View):
     """
 
     def __init__(
-        self,
-        db: AutoRespondDB,
-        chunk_count: int
+            self,
+            db: AutoRespondDB,
+            chunk_count: int
     ):
         self.offset = 0
         self.title = "**All automated responses.**\n"
@@ -77,3 +78,46 @@ class AutoResponderPagination(View):
 
         embed.description = self.title + description
         await interaction.response.edit_message(embed=embed, view=self)
+
+
+class ResponderChannelSelect(ChannelSelect):
+    def __init__(self, **kwargs):
+        super().__init__(
+            placeholder="Select a channel...",
+            channel_types=[ChannelType.text],
+            min_values=0,
+            **kwargs
+        )
+
+    async def callback(self, interaction: Interaction) -> Any:
+        await interaction.response.defer()
+
+
+class AutoResponderSelect(View):
+    def __init__(self, db: AutoRespondDB, channels: List[TextChannel], modal: "AutoResponder"):
+        super().__init__(timeout=180)
+        self.db = db
+        self.channels = channels
+        self.modal = modal
+        self.select = ResponderChannelSelect(max_values=len(self.channels) if len(self.channels) < 25 else 25)
+        self.add_item(self.select)
+
+    @button(label="Cancel")
+    async def cancel_button(self, interaction: Interaction, button: Button):
+        await interaction.response.send_message("Cancelled!", ephemeral=True)
+        self.stop()
+
+    @button(label="Submit")
+    async def submit_button(self, interaction: Interaction, button: Button):
+        response_id = await self.db.insert_response(
+            self.modal.message.value.strip().lower(),
+            self.modal.response.value.strip(),
+            self.modal.response_type,
+            len(self.select.values) > 0
+        )
+
+        for channel in self.select.values:
+            await self.db.insert_channel_response(channel.id, int(response_id))
+
+        await interaction.response.send_message("Response added!", ephemeral=True)
+        self.stop()
