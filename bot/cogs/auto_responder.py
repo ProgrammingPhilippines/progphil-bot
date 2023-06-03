@@ -1,13 +1,12 @@
 from math import ceil
 
+from database.auto_responder import AutoRespondDB
 from discord import Interaction, Embed, Message
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
-
-from database.auto_responder import AutoRespondDB
-from utils.decorators import is_staff
 from ui.modals.auto_responder import AutoResponder
 from ui.views.auto_responder import AutoResponderPagination
+from utils.decorators import is_staff
 
 
 class Responder(GroupCog):
@@ -33,22 +32,29 @@ class Responder(GroupCog):
             if len(response["message"].split()) > 1:
                 is_phrase = True
 
-            if is_phrase:
-                condition = response["message"] in message.content.lower()
+            condition = (
+                response["message"] in message.content.lower() if is_phrase
+                else response["message"] in message.content.lower().split()
+            )
 
-            else:
-                condition = response["message"] in message.content.lower().split()
+            if not condition:
+                continue
 
-            if condition:
-                if response["response_type"].strip() == "reply":
-                    await message.reply(
-                        response["response"]
-                    )
-                else:
-                    await message.channel.send(
-                        response["response"]
-                    )
-                break
+            channels = await self.db.get_response_channels(response["id"])
+
+            if response["specified"] and message.channel.id not in channels:
+                continue
+
+            if response["response_type"].strip() == "reply":
+                await message.reply(
+                    response["response"]
+                )
+                continue
+
+            await message.channel.send(
+                response["response"]
+            )
+            break
 
     @is_staff()
     @command(name="add",
@@ -66,7 +72,7 @@ class Responder(GroupCog):
         :param response_type: The response type.
         """
 
-        modal = AutoResponder(self.db, response_type.value)
+        modal = AutoResponder(self.db, response_type.value, self.bot)
         await interaction.response.send_modal(modal)
         await modal.wait()
 
