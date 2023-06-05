@@ -33,7 +33,7 @@ class PersistentAnonView(View):
             """The callback to the forum selection view."""
 
             forum = interaction.guild.get_channel(int(forum_select.values[0]))
-            modal = AnonymousPost(forum, self.salt)
+            modal = AnonymousPost(forum, self.salt, from_button=True)
             await interaction.response.send_modal(modal)
             await modal.wait()
             view.stop()
