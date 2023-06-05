@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from cryptography.fernet import Fernet, InvalidToken
-from discord import Embed, Interaction, ForumChannel, TextStyle, Thread, Forbidden
+from discord import Embed, Interaction, ForumChannel, TextStyle, Thread
 from discord.ui import Modal, TextInput, View, Select
 
 
@@ -16,9 +16,10 @@ class AnonymousPost(Modal, title="Anonymous Post"):
         style=TextStyle.long
     )
 
-    def __init__(self, forum: ForumChannel, salt: str):
+    def __init__(self, forum: ForumChannel, salt: str, from_button: bool = False):
         self.forum = forum
         self.salt = salt
+        self.from_button = from_button
         self.success: bool = False
         super().__init__()
 
@@ -94,7 +95,7 @@ class AnonymousPost(Modal, title="Anonymous Post"):
 
         success_message = (
             f"Hello {interaction.user.mention},\n"
-            f"Here is your reply key for your anonymous post {thread_message.thread.jump_url}. Use the command `/anon reply` with this key to anonymously reply to it\n"
+            f"Here is your reply key for your anonymous post {thread_message.thread.jump_url}. {['Use the command `/anon reply` with this key', 'Use the reply button'][self.from_button]} to anonymously reply to it\n"
             f"```{encrypted.decode()}```\n"
             "Do not share this with other users."
         )
