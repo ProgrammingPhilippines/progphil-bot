@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from cryptography.fernet import Fernet, InvalidToken
-from discord import Embed, Interaction, ForumChannel, TextStyle, Thread
+from discord import Embed, Forbidden, Interaction, ForumChannel, TextStyle, Thread
 from discord.ui import Modal, TextInput, View, Select
 
 
@@ -104,7 +104,10 @@ class AnonymousPost(Modal, title="Anonymous Post"):
             description=success_message
         )
 
-        await interaction.user.send(embed=embed)
+        try:
+            await interaction.user.send(embed=embed)
+        except Forbidden:
+            pass
 
         if interaction.response.is_done():
             await interaction.followup.send(embed=embed, ephemeral=True)
