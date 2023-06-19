@@ -4,6 +4,7 @@ from discord import Interaction
 from discord.ext.commands import (
     Bot,
     Cog,
+    CheckFailure as CtxCheckFailure,
     CommandError,
     CommandNotFound,
     Context,
@@ -50,6 +51,7 @@ class ErrorHandler(Cog):
         :param interaction: Interaction
         :param error: Error
         """
+
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
 
         error_message = error_map.get(type(error), self.error_message)  # gets the error message from the error map
@@ -75,7 +77,8 @@ class ErrorHandler(Cog):
         :param ctx: Context
         :param error: Error
         """
-        if isinstance(error, (UnexpectedQuoteError, InvalidEndOfQuotedStringError)):
+
+        if isinstance(error, (UnexpectedQuoteError, InvalidEndOfQuotedStringError, CtxCheckFailure)):
             return
 
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
