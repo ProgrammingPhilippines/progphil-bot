@@ -1,3 +1,5 @@
+# pylint: disable = no-member
+
 import asyncio
 
 from discord import Embed, ForumChannel, Interaction, TextStyle, Thread, NotFound
