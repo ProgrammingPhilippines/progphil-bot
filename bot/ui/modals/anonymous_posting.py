@@ -13,7 +13,8 @@ class AnonymousPost(Modal, title="Anonymous Post"):
     post_message = TextInput(
         label="Message",
         placeholder="Enter message...",
-        style=TextStyle.long
+        style=TextStyle.long,
+        max_length=2000
     )
 
     def __init__(self, forum: ForumChannel, salt: str, from_button: bool = False):
@@ -125,7 +126,8 @@ class AnonymousReply(Modal, title="Anonymous Reply"):
     post_message = TextInput(
         label="Message",
         placeholder="Enter message...",
-        style=TextStyle.long
+        style=TextStyle.long,
+        max_length=2000
     )
 
     def __init__(self, salt: str):
