@@ -116,10 +116,11 @@ class UserReminder(GroupCog):
             if len(member.roles) > 1:
                 continue
 
-            try:
-                await member.send(embed=Embed(description=self.message))
-            except Forbidden:
-                pass
+            if self.member_role == member.roles[0] or self.visitor_role == member.roles[0]:
+                try:
+                    await member.send(embed=Embed(description=self.message))
+                except Forbidden:
+                    pass
 
     def get_guild(self):
         """Get the guild instance."""
