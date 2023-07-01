@@ -62,7 +62,7 @@ class HelpSolver(GroupCog):
                     last_message.author.bot,
                     last_message.author == messages[0].author,
                     len(messages) < 5,
-                    (last_message.created_at - date).days < 5
+                    (date - last_message.created_at).days < 5
                 )
 
                 if any(conditions):
