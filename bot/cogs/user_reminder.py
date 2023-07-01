@@ -3,7 +3,7 @@
 import asyncio
 from enum import IntEnum
 
-from discord import Embed, Interaction, Role, TextStyle
+from discord import Embed, Interaction, Role, TextStyle, Forbidden
 from discord.ui import Modal, TextInput
 from discord.app_commands import Choice, choices, command
 from discord.utils import utcnow
@@ -116,7 +116,10 @@ class UserReminder(GroupCog):
             if len(member.roles) > 1:
                 continue
 
-            await member.send(embed=Embed(description=self.message))
+            try:
+                await member.send(embed=Embed(description=self.message))
+            except Forbidden:
+                pass
 
     def get_guild(self):
         """Get the guild instance."""
