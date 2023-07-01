@@ -1,3 +1,5 @@
+# pylint: disable = no-member
+
 import asyncio
 
 from discord import Embed, ForumChannel, Interaction, TextStyle, Thread, NotFound
@@ -33,7 +35,7 @@ class HelpSolver(GroupCog):
 
         if not isinstance(channel.parent, ForumChannel):
             return False
-        
+
         return channel.parent_id == GuildInfo.dev_help_forum
 
     @loop(minutes=1)
@@ -60,7 +62,7 @@ class HelpSolver(GroupCog):
                     last_message.author.bot,
                     last_message.author == messages[0].author,
                     len(messages) < 5,
-                    (last_message.created_at - date).days < 5
+                    (date - last_message.created_at).days < 5
                 )
 
                 if any(conditions):
@@ -74,15 +76,19 @@ class HelpSolver(GroupCog):
     @prefixed_command()
     async def solved(self, ctx: Context):
         settings = await self.db.get()
+
+        starter_message = await ctx.channel.fetch_message(ctx.channel.id)
+
+        if not settings or (
+            not ctx.author.guild_permissions.administrator or
+            ctx.author != starter_message.author
+        ):
+            return
+
         tag_id = settings["tag_id"]
 
         if not tag_id:
-            return
-
-        first_message, = [m async for m in ctx.channel.history(limit=1)]
-
-        if not settings or ctx.author != first_message.author:
-            return
+            return  
 
         description = settings["custom_message"] or "This post has been marked as solved."
 
