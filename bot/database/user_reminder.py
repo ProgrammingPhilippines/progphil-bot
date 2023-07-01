@@ -5,7 +5,7 @@ class UserReminderDB:
     def __init__(self, pool: Pool) -> None:
         self._pool = pool
 
-    async def get_message(self) -> str:
+    async def get_config(self) -> str | int | None:
         """
         Gets the reminder message.
 
@@ -14,28 +14,13 @@ class UserReminderDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            message = await conn.fetchrow("""
-                SELECT message FROM pph_user_reminder;
+            message = await conn.fetchrow(f"""
+                SELECT * FROM pph_user_reminder;
             """)
 
         return message if message is not None else None
 
-    async def update(self, message: str) -> None:
-        """
-        Updates the reminder message.
-
-        :param message: Message
-        """
-
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            await conn.execute("""
-                UPDATE pph_user_reminder 
-                    SET message = $1
-            """, message)
-
-    async def insert(self, message: str) -> None:
+    async def set_config(self, key: str, value: str | int) -> None:
         """
         Inserts the reminder message.
 
@@ -44,8 +29,9 @@ class UserReminderDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            await conn.execute("""
-                INSERT INTO pph_user_reminder(message)
-                    VALUES ($1);
-            """, message)
-
+            await conn.execute(f"""
+                INSERT INTO pph_user_reminder(id, {key})
+                VALUES (1, $1)
+                ON CONFLICT (id)
+                DO UPDATE SET {key} = $1;
+            """, value)
