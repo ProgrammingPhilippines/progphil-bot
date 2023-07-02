@@ -5,7 +5,7 @@ class UserReminderDB:
     def __init__(self, pool: Pool) -> None:
         self._pool = pool
 
-    async def get_config(self) -> str | int | None:
+    async def get_config(self) -> dict:
         """
         Gets the reminder message.
 

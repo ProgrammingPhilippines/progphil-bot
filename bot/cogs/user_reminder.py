@@ -65,12 +65,18 @@ class UserReminder(GroupCog):
         self.current_week = date.isocalendar()[1]
 
         await self._update()
+        self.reminder_loop.start()
 
     async def cog_load(self):
         asyncio.create_task(self.before_load())
 
     @loop(hours=24)
     async def reminder_loop(self):
+        s = await self._update()  # Check if settings are properly set
+
+        if not s:
+            return
+
         status = await self.config.get_config("user_reminder")
 
         if not status["config_status"]:
@@ -146,6 +152,8 @@ class UserReminder(GroupCog):
 
         self.member_role = guild.get_role(setting["member_role"])
         self.visitor_role = guild.get_role(setting["visitor_role"])
+
+        return True
 
     @is_staff()
     @command(name="toggle", description="Toggle the user reminder")
@@ -227,6 +235,28 @@ class UserReminder(GroupCog):
             ephemeral=True
         )
         await self._update()
+
+    @is_staff()
+    @command(name="config", description="View configs")
+    async def view_config(self, interaction: Interaction):
+        embed = Embed(
+            description="**Viewing Reminder Settings**\n```"
+        )
+
+        setting = await self.db.get_config()
+
+        for k, v in tuple(setting.items())[1:]:
+            if k == "day":
+                v = Day(v).name
+
+            if k == "interval":
+                v = Frequency(v).name
+
+            embed.description += f"{' '.join(map(str.title, k.split('_')))}: {v}\n"
+
+        embed.description += "```"
+
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: Bot):
