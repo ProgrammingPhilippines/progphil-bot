@@ -79,10 +79,7 @@ class HelpSolver(GroupCog):
 
         starter_message = await ctx.channel.fetch_message(ctx.channel.id)
 
-        if not settings or (
-            not ctx.author.guild_permissions.administrator or
-            ctx.author != starter_message.author
-        ):
+        if not settings or (ctx.author != starter_message.author and not ctx.author.guild_permissions.administrator):
             return
 
         tag_id = settings["tag_id"]
