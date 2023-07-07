@@ -38,10 +38,25 @@ class HelpSolver(GroupCog):
 
         return channel.parent_id == GuildInfo.dev_help_forum
 
+    @loop(minutes=60)
+    async def restarter(self):
+        """Just a restarter incase the loop crashes
+
+        - It crashes when `messages = [m async for m in thread.history(limit=10)]` returns an error.
+        """
+
+        if self.checker.is_running():
+            return
+
+        self.checker.start()
+
     @loop(minutes=1)
     async def checker(self):
         date = utcnow()
         settings = await self.db.get()
+
+        if not settings:
+            return
 
         desc = settings["reminder_message"] or "Reminder to mark your post as solved with `pph-solved`!"
         embed = Embed(description=desc)
