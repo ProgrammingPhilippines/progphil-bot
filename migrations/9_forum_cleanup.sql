@@ -1,3 +1,6 @@
+--
+--depends: 2_create_configs
+
 CREATE TABLE IF NOT EXISTS pph_forum_cleanup_forums (
 	forum_id BIGINT
 );
