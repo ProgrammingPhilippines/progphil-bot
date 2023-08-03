@@ -89,6 +89,7 @@ nb-configuration.xml
 *.env
 yoyo.ini
 user-config.yml
+project-env/
 
 ##############################
 ## Python
