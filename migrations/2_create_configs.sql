@@ -1,3 +1,6 @@
+--
+--depends: 1_improve_auto_tagging
+
 CREATE TABLE IF NOT EXISTS pph_config_auto (
     config_type VARCHAR(30) PRIMARY KEY,
     config_status BOOLEAN DEFAULT true

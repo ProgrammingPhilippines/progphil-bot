@@ -1,3 +1,6 @@
+--
+--depends: 2_create_configs
+
 ALTER TABLE pph_auto_tag DROP COLUMN msg;
 
 CREATE TABLE IF NOT EXISTS pph_auto_tag_messages(

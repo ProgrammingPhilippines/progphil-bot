@@ -1,3 +1,6 @@
+--
+--depends: 2_create_configs
+
 CREATE TABLE IF NOT EXISTS pph_job_hiring (
     channel_id BIGINT,
     schedule VARCHAR(70),

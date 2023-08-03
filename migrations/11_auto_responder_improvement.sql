@@ -1,3 +1,6 @@
+--
+--depends: 0_initial_migrations
+
 CREATE TABLE IF NOT EXISTS pph_auto_responder_channels (
     id SERIAL PRIMARY KEY,
     channel_id BIGINT NOT NULL,
