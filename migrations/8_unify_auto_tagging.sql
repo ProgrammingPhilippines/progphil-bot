@@ -1,3 +1,6 @@
+--
+--depends: 3_update_auto_tagging
+
 DROP TABLE pph_auto_tag_messages;
 
 ALTER TABLE pph_auto_tag ADD COLUMN c_message VARCHAR(4000) DEFAULT 'Calling out peeps!';
