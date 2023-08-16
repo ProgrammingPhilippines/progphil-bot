@@ -39,14 +39,15 @@ class ProgPhil(Bot):
         db_pw = Database.password
 
         # Create a database pool
+        db_port = 21317
         self.pool: Pool = await create_pool(
             host=db_host,
+            port=db_port,
             database=db_name,
             user=db_user,
             password=db_pw
         )
-
-        url = f"postgresql://{db_user}:{db_pw}@{db_host}/{db_name}"
+        url = f"postgres://avnadmin:AVNS_KP1CwsH4X3Eqv0kjBup@pg-2f0dde7a-cadornajansen4757-9a0b.aivencloud.com:21317/defaultdb?sslmode=require"
         backend = get_backend(url)
         migrations = read_migrations('./migrations')
         backend.apply_migrations(backend.to_apply(migrations))
