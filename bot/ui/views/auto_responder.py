@@ -113,6 +113,7 @@ class AutoResponderSelect(View):
             self.modal.message.value.strip().lower(),
             self.modal.response.value.strip(),
             self.modal.response_type,
+            self.modal.matching_type,
             len(self.select.values) > 0
         )
 

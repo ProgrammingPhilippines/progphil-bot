@@ -1,9 +1,12 @@
+import re
 from math import ceil
 
-from database.auto_responder import AutoRespondDB
 from discord import Interaction, Embed, Message
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
+from fuzzywuzzy import fuzz
+
+from database.auto_responder import AutoRespondDB
 from ui.modals.auto_responder import AutoResponder
 from ui.views.auto_responder import AutoResponderPagination
 from utils.decorators import is_staff
@@ -16,6 +19,31 @@ class Responder(GroupCog):
     async def cog_load(self) -> None:
         self.db = AutoRespondDB(self.bot.pool)
 
+    @staticmethod
+    def __match(message: str, trigger: str, matching_type: str) -> bool:
+        """Checks if the message matches the trigger.
+
+        :param message: The message to check.
+        :param trigger: The trigger to check.
+        :param matching_type: The matching type.
+        :return: True if the message matches the trigger, False otherwise.
+        """
+
+        if matching_type == "strict":
+            return fuzz.ratio(message, trigger) == 100
+
+        if matching_type == "strict_contains":
+            return trigger in message
+
+        if matching_type == "lenient":
+            return fuzz.partial_ratio(message, trigger) >= 80
+
+        if matching_type == "regex":
+            pattern = re.compile(r'{}'.format(trigger))
+            return pattern.match(message) is not None
+
+        return False
+
     @Cog.listener()
     async def on_message(self, message: Message):
         if message.author.bot:
@@ -27,17 +55,7 @@ class Responder(GroupCog):
         # If a certain trigger gets matched within the message,
         # Send a response based on the response type.
         for response in auto_resps:
-            is_phrase = False
-            # Checks if a trigger message is a phrase
-            if len(response["message"].split()) > 1:
-                is_phrase = True
-
-            condition = (
-                response["message"] in message.content.lower() if is_phrase
-                else response["message"] in message.content.lower().split()
-            )
-
-            if not condition:
+            if not self.__match(message.content, response["message"], response["matching_type"]):
                 continue
 
             channels = await self.db.get_response_channels(response["id"])
@@ -46,14 +64,10 @@ class Responder(GroupCog):
                 continue
 
             if response["response_type"].strip() == "reply":
-                await message.reply(
-                    response["response"]
-                )
+                await message.reply(response["response"])
                 continue
 
-            await message.channel.send(
-                response["response"]
-            )
+            await message.channel.send(response["response"])
             break
 
     @is_staff()
@@ -64,15 +78,23 @@ class Responder(GroupCog):
         response_type=[
             Choice(name="reply", value="reply"),
             Choice(name="regular", value="regular")
+        ],
+        matching_type=[
+            Choice(name="strict", value="strict"),
+            Choice(name="strict contains", value="strict_contains"),
+            Choice(name="lenient", value="lenient"),
+            Choice(name="regex", value="regex")
         ]
     )
-    async def add_response(self, interaction: Interaction, response_type: Choice[str]):
+    async def add_response(self, interaction: Interaction, response_type: Choice[str], matching_type: Choice[str]):
         """Adds an automated response to a certain message.
 
+        :param interaction: Discord interaction.
         :param response_type: The response type.
+        :param matching_type: The matching type.
         """
 
-        modal = AutoResponder(self.db, response_type.value, self.bot)
+        modal = AutoResponder(self.db, response_type.value, matching_type.value, self.bot)
         await interaction.response.send_modal(modal)
         await modal.wait()
 

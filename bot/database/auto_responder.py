@@ -29,6 +29,7 @@ class AutoRespondDB:
             message: str,
             response: str,
             response_type: str,
+            matching_type: str,
             specified: bool = False
     ) -> str:
         """Inserts a response to the database.
@@ -36,6 +37,7 @@ class AutoRespondDB:
         :param message: The message to respond to.
         :param response: The response to that message.
         :param response_type: The response type
+        :param matching_type: The matching type
         :param specified: Wether the response is specified to a channel or not.
         """
 
@@ -47,9 +49,10 @@ class AutoRespondDB:
                     message,
                     response,
                     response_type,
+                    matching_type,
                     specified
-                ) VALUES ($1, $2, $3, $4) RETURNING id;
-            """, message, response, response_type, specified)
+                ) VALUES ($1, $2, $3, $4, $5) RETURNING id;
+            """, message, response, response_type, matching_type, specified)
 
     async def insert_channel_response(self, channel_id: int, response_id: int) -> None:
         """Inserts a channel response to the database.
