@@ -19,6 +19,8 @@ cloudscraper = "^1.2.69"
 bs4 = "^0.0.1"
 psycopg2-binary = "^2.9.5"
 cryptography = "^40.0.2"
+fuzzywuzzy = "^0.18.0"
+python-levenshtein = "^0.21.1"
 
 
 [build-system]
