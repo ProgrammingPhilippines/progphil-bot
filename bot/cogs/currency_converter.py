@@ -1,6 +1,5 @@
 import requests
 import discord
-import locale
 from discord import Embed
 from discord.ext.commands import (
     Bot,
@@ -25,38 +24,6 @@ class Converter(GroupCog):
 
     def is_valid(self, amount: str):
         return amount.isdigit() or amount.count(".") == 1
-    
-    def get_locale_code(self, currency_code):
-        # Iterate through available locales and try to find a match
-        for loc in locale.locale_alias:
-            try:
-                locale.setlocale(locale.LC_ALL, loc)
-                info = locale.localeconv()
-                if info['int_curr_symbol'] == currency_code:
-                    return loc
-            except:
-                continue
-        return None
-
-    def format_currency(self, amount, currency_code):
-        currency_code = currency_code.upper()
-        locale_name = self.get_locale_code(currency_code)
-
-        if locale_name is None:
-            locale_name = "en-US"
-
-        try:
-            locale.setlocale(locale.LC_ALL, f'{locale_name}.UTF-8')
-        except locale.Error:
-            return ValueError(f"Locale '{locale_name}' is not available on this system.")
-
-        # Remove currency symbol
-        locale.__override_localeconv = {"currency_symbol": ""}
-
-        # Format the amount as currency without the currency symbol
-        formatted_currency = locale.currency(amount, symbol=False, grouping=True)
-
-        return f'{formatted_currency} {currency_code}'
 
     @prefixed_command(
         usage="<amount> <from_currency> <to_currency>",
@@ -109,8 +76,8 @@ class Converter(GroupCog):
 
         converted_amount = data["result"]
 
-        formatted_from = self.format_currency(float(amount), from_currency)
-        formatted_to = self.format_currency(converted_amount, to_currency)
+        formatted_from = f"{amount} {from_currency.upper()}"
+        formatted_to = f"{converted_amount} {to_currency.upper()}"
 
         await ctx.send(
             f"The exchange rate for {formatted_from} is {formatted_to}."
