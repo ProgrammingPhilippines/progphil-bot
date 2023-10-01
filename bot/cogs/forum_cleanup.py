@@ -55,7 +55,7 @@ class ForumCleanup(GroupCog):
             message, = [m async for m in thread.history(limit=1)]
             days_inactive = (now - message.created_at).days
 
-            if days_inactive >= close_t["num_days"]:
+            if days_inactive >= close_t["num_days"] and not thread.flags.pinned:
                 await thread.send(embed=embed)
                 await thread.edit(archived=True, reason="Inactivity")
 
