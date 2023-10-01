@@ -1,3 +1,5 @@
+import os
+
 import requests
 import discord
 from discord import Embed
@@ -19,8 +21,13 @@ class Converter(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.config = Config(self.bot.pool)
-        symbols = requests.get("https://api.exchangerate.host/symbols").json()["symbols"]
-        self.symbols = [(symbol, symbols[symbol]["description"]) for symbol in symbols]
+
+        symbols = requests.get(
+            "https://api.apilayer.com/currency_data/list",
+            headers={"apiKey": os.environ["currency_api_key"]}
+        ).json()
+
+        self.symbols = [(symbol, symbols[symbol]) for symbol in symbols["currencies"]]
 
     def is_valid(self, amount: str):
         return amount.isdigit() or amount.count(".") == 1
@@ -62,9 +69,8 @@ class Converter(GroupCog):
             await ctx.send(f"Sorry, {to_currency.upper()} is not supported.")
             return
 
-        response = requests.get(
-            f"https://api.exchangerate.host/convert?from={from_currency}&to={to_currency}&amount={amount}"
-        )
+        url = f"https://api.apilayer.com/currency_data/convert?from={from_currency}&to={to_currency}&amount={amount}"
+        response = requests.get(url, headers={"apiKey": os.environ["currency_api_key"]})
 
         data = response.json()
 
