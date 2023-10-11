@@ -154,13 +154,13 @@ class HelpSolver(GroupCog):
         await ctx.channel.send(embed=embed)
         await ctx.channel.edit(name=f"[SOLVED] {ctx.channel.name}", locked=True)
 
-    @command(name="configure", description="The custom message to send on a solved post.")
+    @command(name="configure", description="Configure the feature.")
     async def configure(self, interaction: Interaction, target_forum: ForumChannel):
         await self.settings.set_setting("dev_help_forum", target_forum.id)
         self.forum = target_forum
 
         tag_view = get_tag_options(self.tag_db, self.forum)
-        await interaction.followup.send(view=tag_view, ephemeral=True)
+        await interaction.response.send_message(view=tag_view, ephemeral=True)
         await tag_view.wait()
 
 
