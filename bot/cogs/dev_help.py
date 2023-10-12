@@ -2,7 +2,7 @@
 
 import asyncio
 
-from discord import Embed, ForumChannel, Interaction, Thread
+from discord import Embed, Guild, ForumChannel, Interaction, Thread
 from discord.ext.commands.context import Context
 from discord.ui import View, Select
 from discord.app_commands import command
@@ -35,10 +35,34 @@ def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
 
     for a_tag in forum.available_tags:
         tag_selection.add_option(
-            label=f"{a_tag.emoji}{a_tag.name}", value=a_tag.id
+            label=f"{a_tag.emoji}{a_tag.name}" if a_tag.emoji else a_tag.name, value=a_tag.id
         )
 
     view.add_item(tag_selection)
+    return view
+
+
+def get_forums(db: Settings, guild: Guild) -> View:
+    """Gets all forums."""
+
+    async def select_callback(interaction: Interaction):
+        await db.set_setting("dev_help_forum", int(forum_selection.values[0]))
+        await interaction.response.edit_message(
+            content=f"Success...",
+            view=None
+        )
+        view.stop()
+
+    view = View()
+    forum_selection = Select(placeholder="Select Forum...")
+    forum_selection.callback = select_callback
+
+    for forum in guild.forums:
+        forum_selection.add_option(
+            label=forum.name, value=forum.id
+        )
+
+    view.add_item(forum_selection)
     return view
 
 
@@ -50,10 +74,13 @@ class HelpSolver(GroupCog):
         self.config = Config(self.bot.pool)
         self.views_db = DevHelpViewsDB(self.bot.pool)
 
-    async def load(self):
-        await self.bot.wait_until_ready()
+    async def reload_forum(self):
         dev_help = await self.settings.get_setting("dev_help_forum")
         self.forum = self.bot.get_channel(dev_help)
+
+    async def load(self):
+        await self.bot.wait_until_ready()
+        await self.reload_forum()
 
         for view in await self.views_db.get_persistent_views():
             self.bot.add_view(
@@ -155,12 +182,21 @@ class HelpSolver(GroupCog):
         await ctx.channel.edit(name=f"[SOLVED] {ctx.channel.name}", locked=True)
 
     @command(name="configure", description="Configure the feature.")
-    async def configure(self, interaction: Interaction, target_forum: ForumChannel):
-        await self.settings.set_setting("dev_help_forum", target_forum.id)
-        self.forum = target_forum
+    async def configure(self, interaction: Interaction):
+        forum_view = get_forums(self.settings, interaction.guild)
+        await interaction.response.send_message(view=forum_view, ephemeral=True)
+        await forum_view.wait()
+
+        await self.reload_forum()
+
+        if not self.forum.available_tags:
+            return await interaction.followup.send(
+                "No tags available for this forum.",
+                ephemeral=True
+            )
 
         tag_view = get_tag_options(self.tag_db, self.forum)
-        await interaction.response.send_message(view=tag_view, ephemeral=True)
+        await interaction.followup.send(view=tag_view, ephemeral=True)
         await tag_view.wait()
 
 

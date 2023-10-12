@@ -28,6 +28,8 @@ class PersistentSolverView(View):
 
     @button(label="Solved!", style=ButtonStyle.green, custom_id="solved")
     async def solved(self, interaction: Interaction, button: Button):
+        await interaction.response.defer()
+
         settings = await self.tag_db.get()
         thread = self.forum.get_thread(self.message_id)
         tag = thread.parent.get_tag(settings["tag_id"])
