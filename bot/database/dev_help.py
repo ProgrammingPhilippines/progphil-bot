@@ -37,3 +37,47 @@ class DevHelpTagDB:
             return
 
         return setting_r[0]
+
+
+class DevHelpViewsDB:
+    def __init__(self, pool: Pool):
+        self._pool = pool
+
+    async def get_persistent_views(self):
+        """Gets all persistent views."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            views = await conn.fetch(f"""
+                SELECT * FROM pph_dev_help_views WHERE closed = false;
+            """)
+
+        return views
+
+    async def close_view(self, view_id: int):
+        """Closes a view from the database.
+
+        :param view_id: The view id.
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(f"""
+                UPDATE pph_dev_help_views SET closed = true WHERE thread_id = $1;
+            """, view_id)
+
+    async def add_view(self, thread_id: int, message_id: int,author_id: int):
+        """Adds a view to the database.
+
+        :param view_id: The view id.
+        :param message_id: The message id.
+        """
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(f"""
+                INSERT INTO pph_dev_help_views (thread_id, message_id, author_id) VALUES ($1, $2, $3);
+            """, thread_id, message_id, author_id)
