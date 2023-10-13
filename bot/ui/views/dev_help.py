@@ -1,6 +1,7 @@
 from discord import ButtonStyle, Interaction, ForumChannel
 from discord.ui import View, Button, button
 
+from config import GuildInfo
 from database.dev_help import DevHelpViewsDB, DevHelpTagDB
 
 
@@ -21,7 +22,13 @@ class PersistentSolverView(View):
         super().__init__(timeout=None)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
-        if not interaction.user.id == self.author_id:
+        conditions = (
+            interaction.user.id == self.author_id,
+            interaction.user.guild_permissions.administrator,
+            any(interaction.guild.get_role(role) in interaction.user.roles for role in GuildInfo.staff_roles)
+        )
+
+        if not any(conditions):
             await interaction.response.send_message("This isn't for you!", ephemeral=True)
             return False
         return True
@@ -37,5 +44,4 @@ class PersistentSolverView(View):
         await thread.edit(name=f"[SOLVED] {thread.name}", locked=True)
         await thread.send("This post has been marked as solved.")
         await self.db.close_view(thread.id)
-        await interaction.response.send_message("Solved!", ephemeral=True)
         self.stop()
