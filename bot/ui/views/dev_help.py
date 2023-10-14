@@ -1,5 +1,5 @@
 from discord import ButtonStyle, Interaction, ForumChannel
-from discord.ui import View, Button, button
+from discord.ui import View, Button, Select, button
 
 from config import GuildInfo
 from database.dev_help import DevHelpViewsDB, DevHelpTagDB
@@ -39,9 +39,53 @@ class PersistentSolverView(View):
 
         settings = await self.tag_db.get()
         thread = self.forum.get_thread(self.message_id)
+
+        users = {
+            (message.author.display_name, message.author.id)
+            async for message in thread.history(limit=None)
+            if message.author.id != self.forum.guild.me.id and message.author.id != self.author_id
+        }
+
+        message = "This post has been marked as solved."
+        view = None
+
+        if users:
+            async def selection_callback(interaction: Interaction):
+                await interaction.response.send_message("Thanks!", ephemeral=True)
+                view.stop()
+
+            async def cancel_callback(interaction: Interaction):
+                await interaction.response.send_message("Cancelled!", ephemeral=True)
+                view.stop()
+
+            view = View(timeout=60)
+            selection = Select(placeholder="Select users that helped you solve your problem.", max_values=len(users))
+            cancel = Button(label="Cancel", style=ButtonStyle.red)
+            cancel.callback = cancel_callback
+            selection.callback = selection_callback
+
+            for name, id in users:
+                selection.add_option(label=name, value=str(id))
+
+            view.add_item(selection)
+            view.add_item(cancel)
+
+            await interaction.followup.send(view=view, ephemeral=True)
+            await view.wait()
+
+            if selection.values:
+                members = [thread.guild.get_member(int(id)) for id in selection.values]
+                mentions = [member.mention for member in members if member is not None]
+                mentions_str = ', '.join(mentions)
+
+                if len(mentions) > 1:
+                    message += f" Thanks to the following users: {mentions_str}"
+                else:
+                    message += f" Thanks to {mentions_str}"
+
         tag = thread.parent.get_tag(settings["tag_id"])
         await thread.add_tags(tag, reason="Solved")
         await thread.edit(name=f"[SOLVED] {thread.name}", locked=True)
-        await thread.send("This post has been marked as solved.")
+        await thread.send(message)
         await self.db.close_view(thread.id)
         self.stop()
