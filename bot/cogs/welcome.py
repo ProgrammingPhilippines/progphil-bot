@@ -1,11 +1,12 @@
-from discord import Interaction, Member, Role, TextChannel, TextStyle
-from discord.app_commands import command, describe
-from discord.ui import Modal, TextInput
+from discord import Interaction, Member,  TextStyle, MemberFlags
+from discord.app_commands import command
+from discord.ui import Modal, TextInput, ChannelSelect, View
 from discord.ext.commands import Bot, Cog, GroupCog
 
 from database.settings import Settings
 from database.welcome import WelcomeDB
 
+from utils.decorators import is_staff
 
 class Welcomer(GroupCog):
     def __init__(self, bot: Bot):
@@ -13,59 +14,74 @@ class Welcomer(GroupCog):
         self.settings = Settings(self.bot.pool)
         self.db = WelcomeDB(self.bot.pool)
 
+    def __parse(self, message: str, member: Member):
+        """
+        Formats the message from the database
+        """
+        message = message.replace("{{user}}","<@"+ str(member.id)+">")
+        message = message.replace("{{user}}","<@"+ str(member.id)+">")
+        return message
+    
     @Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
+        """
+        An event listener that triggers when a member's information is updated.
+
+        Parameters:
+        - before (Member): The member object before the update.
+        - after (Member): The member object after the update.
+        """
+        
+        # Get the configured channel from the database
+        # NOTE: The targetted channel is set by the configure_welcomer method
         channel_id = await self.settings.get_setting("welcome_channel")
-        role_id = await self.settings.get_setting("welcome_role")
         channel = after.guild.get_channel(channel_id)
-        role = after.guild.get_role(role_id)
+        
+        # Extracting flags information from the member objects
+        # NOTE: The flags contain the onboarding status of the users
+        # Reference:
+        # https://discordpy.readthedocs.io/en/stable/api.html?highlight=memberflags#discord.MemberFlags
+        member_flags_before: MemberFlags = before.flags
+        member_flags_after: MemberFlags = after.flags
+        
+        # Check before and after state of the user's MemberFlags if they finished onboarding
+        if (
+            not member_flags_before.completed_onboarding
+            and member_flags_after.completed_onboarding
+        ):            
+            result = await self.db.get_message()
+            # Run the message through the parse method to replace special strings
+            message = self.__parse(result["message"], after)
+            await channel.send(message)
 
-        if not role:
-            return
-
-        if role in before.roles:
-            return
-
-        if role not in after.roles:
-            return
-
-        message = await self.db.get_message()
-
-        if message:
-            message = message[0]["message"].replace("[mention]", f"<@{after.id}>", 1)
-        else:
-            message = f"Welcome! {after.mention}"
-
-        await channel.send(message)
-
-    @describe(
-        role="Member that gets this role will be welcomed.",
-        channel="The channel where members will be welcomed"
-    )
-    @command(name="setup", description="Set the channel to welcome members in.")
-    async def set_channel(
-        self,
-        interaction: Interaction,
-        role: Role,
-        channel: TextChannel
-    ):
-        await self.settings.set_setting("welcome_channel", channel.id)
-        await self.settings.set_setting("welcome_role", role.id)
-        await interaction.response.send_message("Success.", ephemeral=True)
-
-    @command(name="message", description="Edit the welcome message.")
-    async def edit_message(self, interaction: Interaction):
-        async def modal_callback(interaction: Interaction):
-            await self.db.set_message(text.value)
-            await interaction.response.send_message("Success", ephemeral=True)
-
-        modal = Modal(title="Welcome Message")
-        modal.on_submit = modal_callback
-        text = TextInput(label="Message", style=TextStyle.long, max_length=2000)
-        modal.add_item(text)
-
-        await interaction.response.send_modal(modal)
-        await modal.wait()
+    @is_staff()
+    @command(name="configure", description="Configure the welcome message")
+    async def configure_welcomer(self,interaction: Interaction):
+        # Setup the view with a channel select for the channel where the message is going to be sent
+        view = View(timeout=1000)
+        channel_select = ChannelSelect(placeholder="Select a channel")
+        view.add_item(channel_select)
+        # Setup the modal with a text input for the message
+        modal = Modal(title="Configure the welcome message")
+        message_input = TextInput(placeholder="Set the welcome message", label="Message", required=True,style=TextStyle.long)
+        modal.add_item(message_input)
+        
+        # Save the selected channel into the settings database table as "welcome_channel" then send the modal
+        async def send_modal(interaction: Interaction):
+            channel_id = channel_select.values[0].id
+            await self.settings.set_setting("welcome_channel", channel_id)            
+            await interaction.response.send_modal(modal)
+        
+        # Save the inputted text into the database
+        async def set_message(interaction: Interaction):
+            await self.db.set_message(input.value)
+            await interaction.response.send_message(ephemeral=True, content="Successfully set the message")
+        
+        # Setup the callbacks
+        channel_select.callback = send_modal
+        modal.on_submit = set_message
+        await interaction.response.send_message(view=view, ephemeral=True)
+    
 
 
 async def setup(bot: Bot):
