@@ -32,10 +32,21 @@ class Responder(GroupCog):
             return message == trigger
 
         if matching_type == "strict_contains":
-            return trigger in message.split()
+            length = len(trigger)
+            length_message = len(message)
+
+            for i in range(length_message - 1):
+                if i > 0 and message[i-1] != " ":
+                    continue
+
+                if i + length < length_message and message[i + length] != " ":
+                    continue
+
+                if message[i:i + length] == trigger:
+                    return True
 
         if matching_type == "lenient":
-            return message.lower() in trigger.lower()
+            return trigger.lower() in message.lower()
 
         if matching_type == "regex":
             pattern = re.compile(r'{}'.format(trigger))
