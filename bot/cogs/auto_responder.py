@@ -4,7 +4,6 @@ from math import ceil
 from discord import Interaction, Embed, Message
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
-from fuzzywuzzy import fuzz
 
 from database.auto_responder import AutoRespondDB
 from ui.modals.auto_responder import AutoResponder
@@ -33,14 +32,14 @@ class Responder(GroupCog):
             return message == trigger
 
         if matching_type == "strict_contains":
-            return trigger in message
+            return trigger in message.split()
 
         if matching_type == "lenient":
-            return fuzz.ratio(message.lower(), trigger) >= 90
+            return message.lower() in trigger.lower()
 
         if matching_type == "regex":
             pattern = re.compile(r'{}'.format(trigger))
-            return pattern.match(message.lower()) is not None
+            return pattern.match(message) is not None
 
         return False
 
@@ -90,13 +89,21 @@ class Responder(GroupCog):
             Choice(name="regex", value="regex")
         ]
     )
-    async def add_response(self, interaction: Interaction, response_type: Choice[str], matching_type: Choice[str]):
+    async def add_response(
+        self,
+        interaction: Interaction,
+        response_type: Choice[str],
+        matching_type: Choice[str] = "strict"
+    ):
         """Adds an automated response to a certain message.
 
         :param interaction: Discord interaction.
         :param response_type: The response type.
         :param matching_type: The matching type.
         """
+
+        if isinstance(matching_type, str):
+            matching_type = Choice(name=matching_type, value=matching_type)
 
         modal = AutoResponder(self.db, response_type.value, matching_type.value, self.bot)
         await interaction.response.send_modal(modal)
