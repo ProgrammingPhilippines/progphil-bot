@@ -30,17 +30,17 @@ class Responder(GroupCog):
         """
 
         if matching_type == "strict":
-            return fuzz.ratio(message, trigger) == 100
+            return message == trigger
 
         if matching_type == "strict_contains":
             return trigger in message
 
         if matching_type == "lenient":
-            return fuzz.partial_ratio(message, trigger) >= 80
+            return fuzz.ratio(message.lower(), trigger) >= 90
 
         if matching_type == "regex":
             pattern = re.compile(r'{}'.format(trigger))
-            return pattern.match(message) is not None
+            return pattern.match(message.lower()) is not None
 
         return False
 
@@ -55,7 +55,11 @@ class Responder(GroupCog):
         # If a certain trigger gets matched within the message,
         # Send a response based on the response type.
         for response in auto_resps:
-            if not self.__match(message.content, response["message"], response["matching_type"]):
+            if not self.__match(
+                message.content,
+                response["message"],
+                response["matching_type"]
+            ):
                 continue
 
             channels = await self.db.get_response_channels(response["id"])
