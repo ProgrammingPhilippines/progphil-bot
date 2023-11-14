@@ -147,7 +147,8 @@ class Responder(GroupCog):
                     f"{num}. **{response['message']}**\n"
                     f"```ID: {response['id']}\n"
                     f"Response: {response['response']}\n"
-                    f"Response Type: {response['response_type']}```\n"
+                    f"Response Type: {response['response_type']}\n"
+                    f"Matching Type: {response['matching_type']}```"
                 )
 
             embed.description = description
