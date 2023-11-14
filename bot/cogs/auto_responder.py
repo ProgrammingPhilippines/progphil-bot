@@ -4,7 +4,6 @@ from math import ceil
 from discord import Interaction, Embed, Message
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
-from fuzzywuzzy import fuzz
 
 from database.auto_responder import AutoRespondDB
 from ui.modals.auto_responder import AutoResponder
@@ -19,8 +18,23 @@ class Responder(GroupCog):
     async def cog_load(self) -> None:
         self.db = AutoRespondDB(self.bot.pool)
 
-    @staticmethod
-    def __match(message: str, trigger: str, matching_type: str) -> bool:
+    def __match_string_contains(self, trigger: str, message: str) -> bool:
+        length = len(trigger)
+        length_message = len(message)
+
+        for i in range(length_message - 1):
+            if i > 0 and message[i-1] != " ":
+                continue
+
+            if i + length < length_message and message[i + length] != " ":
+                continue
+
+            if message[i:i + length] == trigger:
+                return True
+
+        return False
+
+    def __match(self, message: str, trigger: str, matching_type: str) -> bool:
         """Checks if the message matches the trigger.
 
         :param message: The message to check.
@@ -30,13 +44,13 @@ class Responder(GroupCog):
         """
 
         if matching_type == "strict":
-            return fuzz.ratio(message, trigger) == 100
+            return message == trigger
 
         if matching_type == "strict_contains":
-            return trigger in message
+            return self.__match_string_contains(trigger, message)
 
         if matching_type == "lenient":
-            return fuzz.partial_ratio(message, trigger) >= 80
+            return trigger.lower() in message.lower()
 
         if matching_type == "regex":
             pattern = re.compile(r'{}'.format(trigger))
@@ -55,7 +69,11 @@ class Responder(GroupCog):
         # If a certain trigger gets matched within the message,
         # Send a response based on the response type.
         for response in auto_resps:
-            if not self.__match(message.content, response["message"], response["matching_type"]):
+            if not self.__match(
+                message.content,
+                response["message"],
+                response["matching_type"]
+            ):
                 continue
 
             channels = await self.db.get_response_channels(response["id"])
@@ -86,13 +104,21 @@ class Responder(GroupCog):
             Choice(name="regex", value="regex")
         ]
     )
-    async def add_response(self, interaction: Interaction, response_type: Choice[str], matching_type: Choice[str]):
+    async def add_response(
+        self,
+        interaction: Interaction,
+        response_type: Choice[str],
+        matching_type: Choice[str] = "strict"
+    ):
         """Adds an automated response to a certain message.
 
         :param interaction: Discord interaction.
         :param response_type: The response type.
         :param matching_type: The matching type.
         """
+
+        if isinstance(matching_type, str):
+            matching_type = Choice(name=matching_type, value=matching_type)
 
         modal = AutoResponder(self.db, response_type.value, matching_type.value, self.bot)
         await interaction.response.send_modal(modal)
