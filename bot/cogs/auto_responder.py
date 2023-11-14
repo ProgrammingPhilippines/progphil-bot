@@ -18,8 +18,23 @@ class Responder(GroupCog):
     async def cog_load(self) -> None:
         self.db = AutoRespondDB(self.bot.pool)
 
-    @staticmethod
-    def __match(message: str, trigger: str, matching_type: str) -> bool:
+    def __match_string_contains(self, trigger: str, message: str) -> bool:
+        length = len(trigger)
+        length_message = len(message)
+
+        for i in range(length_message - 1):
+            if i > 0 and message[i-1] != " ":
+                continue
+
+            if i + length < length_message and message[i + length] != " ":
+                continue
+
+            if message[i:i + length] == trigger:
+                return True
+
+        return False
+
+    def __match(self, message: str, trigger: str, matching_type: str) -> bool:
         """Checks if the message matches the trigger.
 
         :param message: The message to check.
@@ -32,18 +47,7 @@ class Responder(GroupCog):
             return message == trigger
 
         if matching_type == "strict_contains":
-            length = len(trigger)
-            length_message = len(message)
-
-            for i in range(length_message - 1):
-                if i > 0 and message[i-1] != " ":
-                    continue
-
-                if i + length < length_message and message[i + length] != " ":
-                    continue
-
-                if message[i:i + length] == trigger:
-                    return True
+            return self.__match_string_contains(trigger, message)
 
         if matching_type == "lenient":
             return trigger.lower() in message.lower()
