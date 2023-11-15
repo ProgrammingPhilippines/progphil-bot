@@ -13,7 +13,8 @@ def _format_description(data: dict) -> str:
             f"{num}. **{response['message']}**\n"
             f"```ID: {response['id']}\n"
             f"Response: {response['response']}\n"
-            f"Response Type: {response['response_type']}```\n"
+            f"Response Type: {response['response_type']}\n"
+            f"Matching Type: {response['matching_type']}```"
         )
 
     return description
