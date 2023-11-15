@@ -48,18 +48,17 @@ class Welcomer(GroupCog):
         member_flags_after: MemberFlags = after.flags
         
         # Check before and after state of the user's MemberFlags if they finished onboarding
-        if (
-            not member_flags_before.completed_onboarding
-            and member_flags_after.completed_onboarding
-        ):
-            result = await self.db.get_message()
-            if result is None:
-                return
-            # Run the message through the parse method to replace special strings
-            message = self.__parse(result["message"], after)
-            await channel.send(message)
+        # if (
+        #     not member_flags_before.completed_onboarding
+        #     and member_flags_after.completed_onboarding
+        # ):
+        result = await self.db.get_message()
+        if result is None:
+            return
+        # Run the message through the parse method to replace special strings
+        message = self.__parse(result["message"], after)
+        await channel.send(message)
 
-    @is_staff()
     @command(name="configure", description="Configure the welcome message")
     async def configure_welcomer(self,interaction: Interaction):
         # Setup the view with a channel select for the channel where the message is going to be sent
@@ -79,7 +78,7 @@ class Welcomer(GroupCog):
         
         # Save the inputted text into the database
         async def set_message(interaction: Interaction):
-            await self.db.set_message(input.value)
+            await self.db.set_message(message_input.value)
             await interaction.response.send_message(ephemeral=True, content="Successfully set the message")
         
         # Setup the callbacks
