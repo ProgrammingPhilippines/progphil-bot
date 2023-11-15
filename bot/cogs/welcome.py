@@ -79,7 +79,7 @@ class Welcomer(GroupCog):
         
         # Save the inputted text into the database
         async def set_message(interaction: Interaction):
-            await self.db.set_message(input.value)
+            await self.db.set_message(message_input.value)
             await interaction.response.send_message(ephemeral=True, content="Successfully set the message")
         
         # Setup the callbacks
