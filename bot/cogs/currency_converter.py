@@ -82,13 +82,12 @@ class Converter(GroupCog):
 
         converted_amount = data["result"]
 
-        amount = float(amount) if "." in amount else int(amount)
         decimal_places = 2
 
-        formatted_from = f"{round(amount,decimal_places):,} {from_currency.upper()}"
+        formatted_from = f"{round(float(amount),decimal_places):,} {from_currency.upper()}"
         formatted_to = f"{round(converted_amount,decimal_places):,} {to_currency.upper()}"
         await ctx.send(
-            f"The exchange rate for {formatted_from} is {formatted_to}."
+            f"The exchange rate for {formatted_from} is around {formatted_to}."
         )
 
     @prefixed_command(usage="<currency>", help="Get a list of supported currencies.")
