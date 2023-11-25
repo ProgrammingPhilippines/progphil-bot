@@ -177,9 +177,15 @@ class HelpSolver(GroupCog):
 
         tag = ctx.channel.parent.get_tag(tag_id)
 
-        await ctx.channel.add_tags(tag, reason="Solved")
+        name = f"[SOLVED] {ctx.channel.name}"
+
+        if len(name) > 100:
+            name = name[:97] + "..."
+
         await ctx.channel.send(embed=embed)
-        await ctx.channel.edit(name=f"[SOLVED] {ctx.channel.name}", locked=True)
+        await ctx.channel.edit(locked=True)
+        await ctx.channel.add_tags(tag, reason="Solved")
+        await ctx.channel.edit(name=name)
 
     @command(name="configure", description="Configure the feature.")
     async def configure(self, interaction: Interaction):
