@@ -84,8 +84,16 @@ class PersistentSolverView(View):
                     message += f" Thanks to {mentions_str}"
 
         tag = thread.parent.get_tag(settings["tag_id"])
-        await thread.add_tags(tag, reason="Solved")
-        await thread.edit(name=f"[SOLVED] {thread.name}", locked=True)
+
+        name = f"[SOLVED] {thread.name}"
+
+        if len(name) > 100:
+            name = name[:97] + "..."
+
         await thread.send(message)
+        await thread.edit(locked=True)
+        await thread.add_tags(tag, reason="Solved")
+        await thread.edit(name=name)
+        
         await self.db.close_view(thread.id)
         self.stop()
