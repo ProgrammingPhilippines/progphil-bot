@@ -2,7 +2,15 @@
 
 import asyncio
 
-from discord import Embed, Guild, ForumChannel, Interaction, Thread
+from discord import (
+    Embed,
+    Forbidden,
+    Guild,
+    ForumChannel,
+    Interaction,
+    Thread,
+    Message
+)
 from discord.ext.commands.context import Context
 from discord.ui import View, Select
 from discord.app_commands import command
@@ -113,6 +121,22 @@ class HelpSolver(GroupCog):
 
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
+        async def try_send() -> Message:
+            for _ in range(5):  # max of 5 retries
+                try:
+                    return await thread.send(
+                        "Mark this post as Solved!",
+                        view=PersistentSolverView(
+                            thread.id,
+                            thread.owner_id,
+                            self.views_db,
+                            self.tag_db,
+                            self.forum,
+                        )
+                    )
+                except Forbidden:
+                    pass
+
         config = await self.config.get_config("dev_help")
 
         if not config["config_status"]:
@@ -129,16 +153,10 @@ class HelpSolver(GroupCog):
         if thread.parent_id != self.forum.id:
             return
 
-        bot_message = await thread.send(
-            "Mark this post as Solved!",
-            view=PersistentSolverView(
-                thread.id,
-                thread.owner_id,
-                self.views_db,
-                self.tag_db,
-                self.forum,
-            )
-        )
+        bot_message = await try_send()
+
+        if not bot_message:
+            return
 
         await bot_message.pin()
         await self.views_db.add_view(thread.id, bot_message.id, thread.owner.id)
