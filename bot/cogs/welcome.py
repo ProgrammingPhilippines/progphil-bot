@@ -8,6 +8,8 @@ from database.welcome import WelcomeDB
 
 from utils.decorators import is_staff
 
+from datetime import datetime, timedelta, timezone
+
 class Welcomer(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -47,10 +49,13 @@ class Welcomer(GroupCog):
         member_flags_before: MemberFlags = before.flags
         member_flags_after: MemberFlags = after.flags
         
-        # Check before and after state of the user's MemberFlags if they finished onboarding
         if (
-            not member_flags_before.completed_onboarding
-            and member_flags_after.completed_onboarding
+            # Check before and after state of the user's MemberFlags if they finished onboarding
+           (not member_flags_before.completed_onboarding
+            and member_flags_after.completed_onboarding)
+            # Check if they onboarded within 1 day of joining
+            and after.joined_at != None
+            and  after.joined_at >= datetime.now(timezone.utc) - timedelta(day=1) 
         ):
             result = await self.db.get_message()
             if result is None:
