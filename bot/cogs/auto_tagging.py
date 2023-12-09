@@ -35,34 +35,6 @@ class ForumAssist(GroupCog):
         self.db = PostAssistDB(self.bot.pool)
         self.config = Config(self.bot.pool)
 
-    async def attempt_send(
-        self,
-        thread: Thread,
-        thread_msg: PartialMessage,
-        message: str,
-        attempt: int = 0
-    ):
-        """Attempts to send a message to the thread.
-
-        Will retry everytime it fails until 5 tries.
-
-        :param thread: The thread to send to
-        :param thread_msg: The thread message
-        :param message: The message to send
-        :param attempt: Starting attempt number"""
-
-        if attempt > 5:
-            return
-
-        try:
-            await thread_msg.pin()
-
-            if message:
-                await thread.send(message)
-
-        except (HTTPException, Forbidden):
-            await self.attempt_send(thread, thread_msg, message, attempt + 1)
-
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
         config = await self.config.get_config("auto_tagging")
@@ -81,8 +53,20 @@ class ForumAssist(GroupCog):
 
         thread_msg = thread.get_partial_message(thread.id)
 
-        if reply:
-            await self.attempt_send(thread, thread_msg, reply)
+        # Sometimes the pinning and reply fails 
+        # when the thread is created and the bot 
+        # tries to reply before the author's first message gets sent.
+        # So we try at a maximum of 5 times to pin and reply.
+        for _ in range(5):
+            try:
+                await thread_msg.pin()
+
+                if reply:
+                    await thread.send(reply)
+                    break
+
+            except (Forbidden, HTTPException):
+                pass
 
         if tags and tag_message:
             message = ""
