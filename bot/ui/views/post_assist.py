@@ -116,6 +116,7 @@ class ConfigurationPagination(View):
     @button(label="Previous")
     async def previous(self, interaction: Interaction, button: Button):
         self.page -= 1
+        self.next.disabled = False
 
         if self.page == 0:
             button.disabled = True
@@ -128,9 +129,10 @@ class ConfigurationPagination(View):
     @button(label="Next")
     async def next(self, interaction: Interaction, button: Button):
         self.page += 1
-        self.previous.disabled = True
+        self.previous.disabled = False
 
-        if self.page == self.max_len:
+        if self.page >= self.max_len:
+            self.page = self.max_len - 1
             button.disabled = True
 
         await interaction.response.edit_message(
@@ -148,12 +150,13 @@ def format_data(data: dict, guild: Guild, getter: Callable):
 
     for tag in tags:
         entity = getter(guild, tag)
-        tag_mentions.append(f"{entity.name} - {tag['entity_type'].title()}\n")
+        tag_mentions.append(f"{entity.name} [{tag['entity_type'].title()}]\n")
 
     tag_mentions_str = '\t'.join(tag_mentions)
 
     message = (
-        f"```Forum: {forum.name}\n"
+        f"```Configuration ID: {data['id']}\n"
+        f"Forum: {forum.name}\n"
         f"Reply: {reply}\n"
         f"Tags: \n\t{tag_mentions_str}\n"
         f"Tag Message: {tag_message}\n```"

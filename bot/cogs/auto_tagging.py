@@ -165,15 +165,20 @@ class ForumAssist(GroupCog):
         """Views all PPH entries."""
 
         result = await self.db.list_configurations()
-        first, *remaining = result
 
-        view = ConfigurationPagination(remaining, _getter)
+        if not result:
+            return await interaction.response.send_message(
+                "There are no configurations.",
+                ephemeral=True
+            )
+
+        view = ConfigurationPagination(result, _getter)
         view.previous.disabled = True
 
-        if not remaining:
+        if not result[1:]:
             view.next.disabled = True
 
-        await interaction.response.send_message(format_data(first, interaction.guild, _getter), view=view)
+        await interaction.response.send_message(format_data(result[0], interaction.guild, _getter), view=view)
         await view.wait()
 
     @is_staff()
