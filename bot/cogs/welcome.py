@@ -55,7 +55,7 @@ class Welcomer(GroupCog):
             and member_flags_after.completed_onboarding)
             # Check if they onboarded within 1 day of joining
             and after.joined_at != None
-            and  after.joined_at >= datetime.now(timezone.utc) - timedelta(day=1) 
+            and  after.joined_at >= datetime.now(timezone.utc) - timedelta(days=1) 
         ):
             result = await self.db.get_message()
             if result is None:
