@@ -1,10 +1,8 @@
 from discord import (
-    Embed,
     Forbidden,
     Guild,
     HTTPException,
     Interaction,
-    PartialMessage,
     Thread,
     Member,
     Role
@@ -12,53 +10,32 @@ from discord import (
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from database.auto_tag import AutoTagDB
+from database.post_assist import PostAssistDB
 from database.config_auto import Config
 from utils.decorators import is_staff
-from ui.views.auto_tag import TaggingSelection
+from ui.views.post_assist import (
+    ConfigurePostAssist,
+    ConfigurationPagination,
+    format_data,
+)
 
 
 def _getter(guild: Guild, entry: dict) -> Member | Role:
     """Gets the object type and returns it."""
 
-    if entry["obj_type"] == "role":
+    if entry["entity_type"] == "role":
         getter = guild.get_role
     else:
         getter = guild.get_member
 
-    return getter(entry["obj_id"])
+    return getter(entry["entity_id"])
 
 
-class Tagging(GroupCog):
+class ForumAssist(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.db = AutoTagDB(self.bot.pool)
+        self.db = PostAssistDB(self.bot.pool)
         self.config = Config(self.bot.pool)
-
-    async def attempt_send(
-        self,
-        thread: Thread,
-        thread_msg: PartialMessage,
-        message: str,
-        attempt: int = 0
-    ):
-        """Attempts to send a message to the thread.
-
-        Will retry everytime it fails until 5 tries.
-
-        :param thread: The thread to send to
-        :param thread_msg: The thread message
-        :param message: The message to send
-        :param attempt: Starting attempt number"""
-
-        if attempt > 5:
-            return
-
-        try:
-            await thread_msg.pin()
-            await thread.send(message)
-        except (HTTPException, Forbidden):
-            await self.attempt_send(thread, thread_msg, message, attempt + 1)
 
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
@@ -67,16 +44,41 @@ class Tagging(GroupCog):
         if not config["config_status"]:
             return
 
-        entry = await self.db.get_entry(thread.parent.id)
+        entry = await self.db.config_by_forum(thread.parent.id)
 
         if not entry:
             return
 
-        message = f"{_getter(thread.guild, entry).mention}\n{entry['c_message']}\n\n"
+        reply = await self.db.get_reply(entry["id"])
+        tags = await self.db.get_tags(entry["id"])
+        tag_message = await self.db.get_tag_message(entry["id"])
 
         thread_msg = thread.get_partial_message(thread.id)
 
-        await self.attempt_send(thread, thread_msg, message)
+        # Sometimes the pinning and reply fails 
+        # when the thread is created and the bot 
+        # tries to reply before the author's first message gets sent.
+        # So we try at a maximum of 5 times to pin and reply.
+        for _ in range(5):
+            try:
+                await thread_msg.pin()
+
+                if reply:
+                    await thread.send(reply)
+
+                break
+            except (Forbidden, HTTPException):
+                pass
+
+        if tags and tag_message:
+            message = ""
+
+            for tag in tags:
+                message += f"{_getter(thread.guild, tag).mention}\n"
+
+            message += tag_message
+
+            await thread.send(message)
 
     @is_staff()
     @command(name="toggle", description="Toggles the auto tagging.")
@@ -96,38 +98,63 @@ class Tagging(GroupCog):
         )
 
     @is_staff()
-    @command(name="manage", description="Add/Edit an auto tag.")
-    async def manage_entries(self, interaction: Interaction):
+    @command(name="new", description="Add a new configuration.")
+    async def create_new(self, interaction: Interaction):
         """Adds an entry to the database."""
 
-        view = TaggingSelection(self.db)
-        await interaction.response.send_message(view=view, ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+
+        view = ConfigurePostAssist()
+        await interaction.followup.send(
+            "Configure Post Assist",
+            view=view,
+            ephemeral=True
+        )
         await view.wait()
 
-        entry = view.selected
+        forum = view.forum
+        reply = view.custom_msg
+        tags = view.tag_list
+        tag_message = view.tag_message
 
-        if not view.selected:
+        if await self.db.config_by_forum(forum):
+            return await interaction.followup.send(
+                "There is already a configuration for this forum.",
+                ephemeral=True
+            )
+
+        if not (view.tag_list or view.custom_msg):
+            return await interaction.followup.send(
+                "You must provide either tags or a custom message.",
+                ephemeral=True
+            )
+
+        if view.finished:
+            await interaction.followup.send("Success!", ephemeral=True)
+            await self.db.add_configuration(
+                forum_id=forum,
+                entities=tags,
+                entity_tag_message=tag_message,
+                reply=reply
+            )
             return
 
-        if isinstance(entry, Member):
-            obj_type = "user"
-        elif isinstance(entry, Role):
-            obj_type = "role"
-
-        await self.db.upsert_entry(entry.id, obj_type, view.forum, view.custom_msg)
+        await interaction.followup.send("Cancelled.", ephemeral=True)
 
     @is_staff()
-    @command(name="remove", description="Removes an auto tag.")
-    @describe(entry_id="The entry's ID. (do /tagging view to check their corresponding IDs.)")
-    async def remove_entry(self, interaction: Interaction, entry_id: int):
+    @command(name="delete", description="Deletes a configuration.")
+    @describe(config_id="The configuration ID")
+    async def delete(self, interaction: Interaction, config_id: int):
         """Removes an entry from the database.
 
-        :param entry_id: The entry's ID from the database. (not the obj_id.)"""
+        :param config_id: The configuration ID from the database.
+        """
 
-        if await self.db.remove_entry(entry_id):
-            message = f"Successfully removed entry with ID: {entry_id}"
+        if await self.db.get_config(config_id):
+            message = f"Successfully removed entry with ID: {config_id}"
+            await self.db.delete_configuration(config_id)
         else:
-            message = f"Auto Tag with ID: {entry_id} may not exist."
+            message = f"Configuration ID: {config_id} may not exist."
 
         await interaction.response.send_message(
             message,
@@ -135,32 +162,83 @@ class Tagging(GroupCog):
         )
 
     @is_staff()
-    @command(name="all", description="Views all auto tags.")
-    async def view_auto_tags(self, interaction: Interaction):
+    @command(name="list", description="Views all configurations.")
+    async def view_all(self, interaction: Interaction):
         """Views all PPH entries."""
 
-        entry = await self.db.view_entries()
-        embed = Embed(description="**All PPH Auto Tags.**\n\n")
+        result = await self.db.list_configurations()
 
-        if not entry:
-            embed.description += "None yet..."
-
-        for entry in entry:
-            # Use the defined getted to get the entry type.
-            obj = _getter(interaction.guild, entry)
-            forum = interaction.guild.get_channel(entry['forum_id'])
-            embed.description += (
-                f"`ID:` {entry['id']} - {obj.mention}\n"
-                f"`Forum:` {forum.mention if forum else 'Not Found'}\n"
-                f"`Type:` {entry['obj_type'].title()}\n"
-                f"`Message`: {entry['c_message']}\n\n"
+        if not result:
+            return await interaction.response.send_message(
+                "There are no configurations.",
+                ephemeral=True
             )
 
+        view = ConfigurationPagination(result, _getter)
+        view.previous.disabled = True
+
+        if not result[1:]:
+            view.next.disabled = True
+
         await interaction.response.send_message(
-            embed=embed,
-            ephemeral=True
+            format_data(result[0], interaction.guild, _getter),
+            view=view,
         )
+        await view.wait()
+
+    @is_staff()
+    @command(name="edit", description="Edits a configuration.")
+    @describe(config_id="The configuration ID")
+    async def edit(self, interaction: Interaction, config_id: int):
+        """Edits an entry from the database.
+
+        :param config_id: The configuration ID from the database.
+        """
+
+        config = await self.db.get_config(config_id)
+
+        if not config:
+            return await interaction.response.send_message(
+                f"Configuration ID: {config_id} may not exist.",
+                ephemeral=True
+            )
+
+        tag_message = await self.db.get_tag_message(config_id)
+        custom_message = await self.db.get_reply(config_id)
+
+        view = ConfigurePostAssist(
+            forum=config["forum_id"],
+            tag_message=tag_message,
+            custom_msg=custom_message
+        )
+
+        await interaction.response.send_message(view=view)
+        await view.wait()
+
+        forum = view.forum
+        reply = view.custom_msg
+        tags = view.tag_list
+        tag_message = view.tag_message
+
+        if not (view.tag_list or view.custom_msg):
+            return await interaction.followup.send(
+                "You must provide either tags or a custom message.",
+                ephemeral=True
+            )
+
+        if view.finished:
+            await interaction.followup.send("Success!", ephemeral=True)
+            await self.db.update_configuration(
+                id=config_id,
+                forum_id=forum,
+                entities=tags,
+                entity_tag_message=tag_message,
+                reply=reply
+            )
+            return
+
+        await interaction.followup.send("Cancelled.", ephemeral=True)
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(Tagging(bot))
+    await bot.add_cog(ForumAssist(bot))
