@@ -1,10 +1,8 @@
 from discord import (
-    Embed,
     Forbidden,
     Guild,
     HTTPException,
     Interaction,
-    PartialMessage,
     Thread,
     Member,
     Role
@@ -15,7 +13,11 @@ from discord.ext.commands import Bot, Cog, GroupCog
 from database.post_assist import PostAssistDB
 from database.config_auto import Config
 from utils.decorators import is_staff
-from ui.views.post_assist import ConfigurePostAssist, ConfigurationPagination, format_data
+from ui.views.post_assist import (
+    ConfigurePostAssist,
+    ConfigurationPagination,
+    format_data,
+)
 
 
 def _getter(guild: Guild, entry: dict) -> Member | Role:
@@ -63,8 +65,8 @@ class ForumAssist(GroupCog):
 
                 if reply:
                     await thread.send(reply)
-                    break
 
+                break
             except (Forbidden, HTTPException):
                 pass
 
@@ -178,7 +180,10 @@ class ForumAssist(GroupCog):
         if not result[1:]:
             view.next.disabled = True
 
-        await interaction.response.send_message(format_data(result[0], interaction.guild, _getter), view=view)
+        await interaction.response.send_message(
+            format_data(result[0], interaction.guild, _getter),
+            view=view,
+        )
         await view.wait()
 
     @is_staff()
