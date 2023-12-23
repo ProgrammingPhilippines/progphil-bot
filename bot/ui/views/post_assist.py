@@ -1,8 +1,16 @@
 from typing import Callable
-from textwrap import dedent
 
 from discord import Interaction, ButtonStyle, ChannelType, TextStyle, Member, Guild
-from discord.ui import View, Modal, Button, TextInput, ChannelSelect, MentionableSelect, select, button
+from discord.ui import (
+    View, 
+    Modal,
+    Button,
+    TextInput,
+    ChannelSelect,
+    MentionableSelect,
+    select,
+    button,
+)
 
 
 class ConfigurePostAssist(View):
@@ -41,7 +49,7 @@ class PostAssistMessage(Modal, title="Post Assist Message"):
             default=self.config_class.custom_msg
         )
 
-        super().__init__(timeout=512)
+        super().__init__()
         self.add_item(self.message)
 
     async def on_submit(self, interaction: Interaction) -> None:
