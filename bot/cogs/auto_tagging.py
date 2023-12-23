@@ -195,10 +195,11 @@ class ForumAssist(GroupCog):
         :param config_id: The configuration ID from the database.
         """
 
+        await interaction.response.defer(ephemeral=True)
         config = await self.db.get_config(config_id)
 
         if not config:
-            return await interaction.response.send_message(
+            return await interaction.followup.send(
                 f"Configuration ID: {config_id} may not exist.",
                 ephemeral=True
             )
@@ -212,7 +213,7 @@ class ForumAssist(GroupCog):
             custom_msg=custom_message
         )
 
-        await interaction.response.send_message(view=view)
+        await interaction.followup.send(view=view, ephemeral=True)
         await view.wait()
 
         forum = view.forum
