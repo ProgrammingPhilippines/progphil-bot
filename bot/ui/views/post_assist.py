@@ -20,7 +20,7 @@ class ConfigurePostAssist(View):
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
         self.finished = False
-        super().__init__()
+        super().__init__(timeout=480)
 
     @select(cls=ChannelSelect, placeholder="Select forum...", channel_types=[ChannelType.forum])
     async def select_forum(self, interaction: Interaction, selection: ChannelSelect):
@@ -49,7 +49,7 @@ class PostAssistMessage(Modal, title="Post Assist Message"):
             default=self.config_class.custom_msg
         )
 
-        super().__init__()
+        super().__init__(timeout=480)
         self.add_item(self.message)
 
     async def on_submit(self, interaction: Interaction) -> None:
@@ -63,7 +63,7 @@ class PostAssistTags(View):
     def __init__(self, config_class: ConfigurePostAssist):
         self.config_class = config_class
         self.selection = []
-        super().__init__()
+        super().__init__(timeout=480)
 
     @select(cls=MentionableSelect, placeholder="Select member/roles...", max_values=25)
     async def select_entities(self, interaction: Interaction, selection: MentionableSelect):
@@ -103,7 +103,7 @@ class PostAssistTagMessage(Modal, title="Set Tag Message"):
             default=self.config_class.tag_message
         )
 
-        super().__init__()
+        super().__init__(timeout=480)
         self.add_item(self.message)
 
     async def on_submit(self, interaction: Interaction) -> None:
@@ -119,7 +119,7 @@ class ConfigurationPagination(View):
         self.getter = getter
         self.page = 1
         self.max_len = len(data)
-        super().__init__()
+        super().__init__(timeout=480)
 
     @button(label="Previous")
     async def previous(self, interaction: Interaction, button: Button):
