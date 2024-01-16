@@ -11,14 +11,14 @@ from discord.ext.commands import (
     BadArgument,
     MissingRequiredArgument,
     UnexpectedQuoteError,
-    InvalidEndOfQuotedStringError
+    InvalidEndOfQuotedStringError,
 )
 from discord.app_commands import (
     AppCommandError,
     CheckFailure,
     MissingRole,
     MissingPermissions,
-    CommandOnCooldown
+    CommandOnCooldown,
 )
 
 from config import GuildInfo
@@ -28,7 +28,9 @@ error_map = {
     MissingPermissions: "You are missing the required permissions to use this command.",
     CheckFailure: "You are not allowed to use this command.",
     CommandNotFound: "This command was not found.",
-    CommandOnCooldown: "This command is on cooldown. Try again in {error.retry_after:.2f} seconds.",
+    CommandOnCooldown: (
+        "This command is on cooldown. Try again in {error.retry_after:.2f} seconds."
+    ),
     BadArgument: "Invalid argument passed correct usage:\n```{ctx.command.usage}```",
     MissingRequiredArgument: "Missing required argument:\n```{ctx.command.usage}```",
 }  # note: some of these errors are not yet implemented in the bot
@@ -40,7 +42,9 @@ class ErrorHandler(Cog):
         self.error_message = "An error occurred."
         bot.tree.error(coro=self.__dispatch_to_app_command_handler)
 
-    async def __dispatch_to_app_command_handler(self, interaction: Interaction, error: AppCommandError):
+    async def __dispatch_to_app_command_handler(
+        self, interaction: Interaction, error: AppCommandError
+    ):
         self.bot.dispatch("app_command_error", interaction, error)
 
     @Cog.listener()
@@ -54,15 +58,22 @@ class ErrorHandler(Cog):
 
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
 
-        error_message = error_map.get(type(error), self.error_message)  # gets the error message from the error map
+        error_message = error_map.get(
+            type(error), self.error_message
+        )  # gets the error message from the error map
 
         if type(error) not in error_map:
-            await log_channel.send(f"An error occurred in the app command handler:\n```{error}```")
-            await log_channel.send(
-                f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))[:1950]}```"
+            trace = "".join(
+                traceback.format_exception(None, error, error.__traceback__)
             )
+            await log_channel.send(
+                f"An error occurred in the app command handler:\n```{error}```"
+            )
+            await log_channel.send(f"Traceback:\n```{trace[:1950]}```")
 
-        error_message = error_message.format(error=error)  # formats the error message if it has a format string
+        error_message = error_message.format(
+            error=error
+        )  # formats the error message if it has a format string
 
         if interaction.response.is_done():
             await interaction.followup.send(error_message, ephemeral=True)
@@ -78,18 +89,28 @@ class ErrorHandler(Cog):
         :param error: Error
         """
 
-        if isinstance(error, (UnexpectedQuoteError, InvalidEndOfQuotedStringError, CtxCheckFailure)):
+        if isinstance(
+            error,
+            (
+                UnexpectedQuoteError,
+                InvalidEndOfQuotedStringError,
+                CtxCheckFailure,
+            ),
+        ):
             return
 
         log_channel = self.bot.get_channel(GuildInfo.log_channel)
-
         error_message = error_map.get(type(error), self.error_message)
 
         if type(error) not in error_map:
-            await log_channel.send(f"An error occurred in the command handler:\n```{error}```")
-            await log_channel.send(
-                f"Traceback:\n```{''.join(traceback.format_exception(None, error, error.__traceback__))[:1950]}```"
+            trace = "".join(
+                traceback.format_exception(None, error, error.__traceback__)
             )
+
+            await log_channel.send(
+                f"An error occurred in the command handler:\n```{error}```"
+            )
+            await log_channel.send(f"Traceback:\n```{trace[:1950]}```")
 
         error_message = error_message.format(error=error, ctx=ctx)
 
