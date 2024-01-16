@@ -1,12 +1,4 @@
-from discord import (
-    Forbidden,
-    Guild,
-    HTTPException,
-    Interaction,
-    Thread,
-    Member,
-    Role
-)
+from discord import Forbidden, Guild, HTTPException, Interaction, Thread, Member, Role
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -55,8 +47,8 @@ class ForumAssist(GroupCog):
 
         thread_msg = thread.get_partial_message(thread.id)
 
-        # Sometimes the pinning and reply fails 
-        # when the thread is created and the bot 
+        # Sometimes the pinning and reply fails
+        # when the thread is created and the bot
         # tries to reply before the author's first message gets sent.
         # So we try at a maximum of 5 times to pin and reply.
         for _ in range(5):
@@ -85,16 +77,13 @@ class ForumAssist(GroupCog):
     async def toggle_config(self, interaction: Interaction):
         """Toggles auto tagging."""
 
-        toggle_map = {
-            True: "ON",
-            False: "OFF"
-        }
+        toggle_map = {True: "ON", False: "OFF"}
 
         toggle = await self.config.toggle_config("auto_tagging")
 
         await interaction.response.send_message(
             f"Turned {toggle_map[toggle]} Auto Tagging.",
-            ephemeral=True
+            ephemeral=True,
         )
 
     @is_staff()
@@ -106,9 +95,7 @@ class ForumAssist(GroupCog):
 
         view = ConfigurePostAssist()
         await interaction.followup.send(
-            "Configure Post Assist",
-            view=view,
-            ephemeral=True
+            "Configure Post Assist", view=view, ephemeral=True
         )
         await view.wait()
 
@@ -120,13 +107,13 @@ class ForumAssist(GroupCog):
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
                 "There is already a configuration for this forum.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         if not (view.tag_list or view.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         if view.finished:
@@ -135,7 +122,7 @@ class ForumAssist(GroupCog):
                 forum_id=forum,
                 entities=tags,
                 entity_tag_message=tag_message,
-                reply=reply
+                reply=reply,
             )
             return
 
@@ -156,10 +143,7 @@ class ForumAssist(GroupCog):
         else:
             message = f"Configuration ID: {config_id} may not exist."
 
-        await interaction.response.send_message(
-            message,
-            ephemeral=True
-        )
+        await interaction.response.send_message(message, ephemeral=True)
 
     @is_staff()
     @command(name="list", description="Views all configurations.")
@@ -171,7 +155,7 @@ class ForumAssist(GroupCog):
         if not result:
             return await interaction.response.send_message(
                 "There are no configurations.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         view = ConfigurationPagination(result, _getter)
@@ -183,6 +167,7 @@ class ForumAssist(GroupCog):
         await interaction.response.send_message(
             format_data(result[0], interaction.guild, _getter),
             view=view,
+            ephemeral=True,
         )
         await view.wait()
 
@@ -201,7 +186,7 @@ class ForumAssist(GroupCog):
         if not config:
             return await interaction.followup.send(
                 f"Configuration ID: {config_id} may not exist.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         tag_message = await self.db.get_tag_message(config_id)
@@ -210,7 +195,7 @@ class ForumAssist(GroupCog):
         view = ConfigurePostAssist(
             forum=config["forum_id"],
             tag_message=tag_message,
-            custom_msg=custom_message
+            custom_msg=custom_message,
         )
 
         await interaction.followup.send(view=view, ephemeral=True)
@@ -224,7 +209,7 @@ class ForumAssist(GroupCog):
         if not (view.tag_list or view.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         if view.finished:
@@ -234,7 +219,7 @@ class ForumAssist(GroupCog):
                 forum_id=forum,
                 entities=tags,
                 entity_tag_message=tag_message,
-                reply=reply
+                reply=reply,
             )
             return
 
