@@ -41,6 +41,7 @@ class PersistentSolverView(View):
 
     @button(label="Solved!", style=ButtonStyle.green, custom_id="solved")
     async def solved(self, interaction: Interaction, button: Button):
+        self.stop()
         await interaction.response.defer()
 
         settings = await self.tag_db.get()
@@ -104,13 +105,11 @@ class PersistentSolverView(View):
         if len(name) > 100:
             name = name[:97] + "..."
 
-        await thread.send(message)
-        await thread.edit(locked=True)
+        await thread.edit(locked=True, name=name)
         await thread.add_tags(tag, reason="Solved")
-        await thread.edit(name=name)
+        await thread.send(message)
 
         await self.db.close_view(thread.id)
-        self.stop()
 
     async def on_error(
         self,

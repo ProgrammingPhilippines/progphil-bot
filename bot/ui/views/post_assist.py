@@ -2,7 +2,7 @@ from typing import Callable
 
 from discord import Interaction, ButtonStyle, ChannelType, TextStyle, Member, Guild
 from discord.ui import (
-    View, 
+    View,
     Modal,
     Button,
     TextInput,
@@ -14,7 +14,9 @@ from discord.ui import (
 
 
 class ConfigurePostAssist(View):
-    def __init__(self, forum: int = None, tag_message: str = None, custom_msg: str = None):
+    def __init__(
+        self, forum: int = None, tag_message: str = None, custom_msg: str = None
+    ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
         self.tag_message: str = tag_message
@@ -22,12 +24,16 @@ class ConfigurePostAssist(View):
         self.finished = False
         super().__init__(timeout=480)
 
-    @select(cls=ChannelSelect, placeholder="Select forum...", channel_types=[ChannelType.forum])
+    @select(
+        cls=ChannelSelect,
+        placeholder="Select forum...",
+        channel_types=[ChannelType.forum],
+    )
     async def select_forum(self, interaction: Interaction, selection: ChannelSelect):
         if self.forum and self.forum != selection.values[0].id:
             return await interaction.response.send_message(
                 f"Please select this forum -> {interaction.guild.get_channel(self.forum).mention}.",
-                ephemeral=True
+                ephemeral=True,
             )
 
         self.forum = selection.values[0].id
@@ -46,7 +52,7 @@ class PostAssistMessage(Modal, title="Post Assist Message"):
             max_length=2000,
             style=TextStyle.long,
             required=False,
-            default=self.config_class.custom_msg
+            default=self.config_class.custom_msg,
         )
 
         super().__init__(timeout=480)
@@ -66,26 +72,26 @@ class PostAssistTags(View):
         super().__init__(timeout=480)
 
     @select(cls=MentionableSelect, placeholder="Select member/roles...", max_values=25)
-    async def select_entities(self, interaction: Interaction, selection: MentionableSelect):
+    async def select_entities(
+        self, interaction: Interaction, selection: MentionableSelect
+    ):
         self.selection.extend(selection.values)
 
         await interaction.response.send_message(
-            f"Selected {len(selection.values)} entities.",
-            ephemeral=True
+            f"Selected {len(selection.values)} entities.", ephemeral=True
         )
 
     @button(label="Submit", style=ButtonStyle.green)
     async def submit(self, interaction: Interaction, button: Button):
         self.config_class.tag_list = [
-            (
-                entity.id, "member"
-                if isinstance(entity, Member)
-                else "role"
-            ) for entity in self.selection
+            (entity.id, "member" if isinstance(entity, Member) else "role")
+            for entity in self.selection
         ]
 
         self.stop()
-        modal = PostAssistTagMessage(self.config_class, required=bool(self.config_class.tag_list))
+        modal = PostAssistTagMessage(
+            self.config_class, required=bool(self.config_class.tag_list)
+        )
         await interaction.response.send_modal(modal)
         await modal.wait()
 
@@ -100,7 +106,7 @@ class PostAssistTagMessage(Modal, title="Set Tag Message"):
             max_length=500,
             style=TextStyle.long,
             required=required,
-            default=self.config_class.tag_message
+            default=self.config_class.tag_message,
         )
 
         super().__init__(timeout=480)
@@ -117,7 +123,7 @@ class ConfigurationPagination(View):
     def __init__(self, data: list[dict], getter: Callable):
         self.data = data
         self.getter = getter
-        self.page = 1
+        self.page = 0
         self.max_len = len(data)
         super().__init__(timeout=480)
 
@@ -131,7 +137,7 @@ class ConfigurationPagination(View):
 
         await interaction.response.edit_message(
             content=format_data(self.data[self.page], interaction.guild, self.getter),
-            view=self
+            view=self,
         )
 
     @button(label="Next")
@@ -139,13 +145,13 @@ class ConfigurationPagination(View):
         self.page += 1
         self.previous.disabled = False
 
-        if self.page >= self.max_len:
+        if self.page >= self.max_len - 1:
             self.page = self.max_len - 1
             button.disabled = True
 
         await interaction.response.edit_message(
             content=format_data(self.data[self.page], interaction.guild, self.getter),
-            view=self
+            view=self,
         )
 
 
@@ -160,7 +166,7 @@ def format_data(data: dict, guild: Guild, getter: Callable):
         entity = getter(guild, tag)
         tag_mentions.append(f"{entity.name} [{tag['entity_type'].title()}]\n")
 
-    tag_mentions_str = '\t'.join(tag_mentions)
+    tag_mentions_str = "\t".join(tag_mentions)
 
     message = (
         f"```Configuration ID: {data['id']}\n"
