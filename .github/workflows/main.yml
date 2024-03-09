@@ -4,7 +4,7 @@
 name: Pylint Checks
 
 on:
-  push
+  push:
   workflow_dispatch:
 
 
