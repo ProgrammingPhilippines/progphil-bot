@@ -80,7 +80,9 @@ class ConfigGen(type):
             name = name.lower()
             return CONFIG[cls.key][name]
         except KeyError:
-            print(f"\u001b[31mERROR\u001b[37m: \u001b[33m{name}\u001b[37m was not found in the config file. Did you set it up correctly?")
+            print(
+                f"\u001b[31mERROR\u001b[37m: \u001b[33m{name}\u001b[37m was not found in the config file. Did you set it up correctly?"
+            )
 
 
 # Dataclasses here
@@ -106,6 +108,7 @@ class Database(metaclass=ConfigGen):
     host: str
     user: str
     password: str
+    port: str
 
 
 class API(metaclass=ConfigGen):
