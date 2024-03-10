@@ -4,8 +4,8 @@
 name: Pylint Checks
 
 on:
+  push:
   workflow_dispatch:
-
 
 jobs:
   build:
