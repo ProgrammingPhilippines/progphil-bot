@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.1.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.0.1...v1.1.0) (2024-03-10)
+
+
+### Features
+
+* add forum auto closing ([#135](https://github.com/ProgrammingPhilippines/progphil-bot/issues/135)) ([ce5eff1](https://github.com/ProgrammingPhilippines/progphil-bot/commit/ce5eff15dda5db9e6ba8d846ed7a58c7f71798a5))
+* ignore pinned threads from getting archived ([#175](https://github.com/ProgrammingPhilippines/progphil-bot/issues/175)) ([2dee62c](https://github.com/ProgrammingPhilippines/progphil-bot/commit/2dee62c173265517022edc452e1e6822be641791))
+* update currency formatting ([#161](https://github.com/ProgrammingPhilippines/progphil-bot/issues/161)) ([0ae542a](https://github.com/ProgrammingPhilippines/progphil-bot/commit/0ae542ae790e95f007709af4ae15051b2ab48944))
+
+
+### Bug Fixes
+
+* add missing config value ([#112](https://github.com/ProgrammingPhilippines/progphil-bot/issues/112)) ([44a2672](https://github.com/ProgrammingPhilippines/progphil-bot/commit/44a26729fc439c676f140232ed25855a577125c1))
+* add missing env variable ([#186](https://github.com/ProgrammingPhilippines/progphil-bot/issues/186)) ([a0738aa](https://github.com/ProgrammingPhilippines/progphil-bot/commit/a0738aa0f786eb68fe735da0228c3719cb863800))
+* added try catch block to user dm ([#150](https://github.com/ProgrammingPhilippines/progphil-bot/issues/150)) ([42e0d1e](https://github.com/ProgrammingPhilippines/progphil-bot/commit/42e0d1eae8d8bbd9431dcbe5c9a41ade1f55d1c8))
+* fetch threads if it's not in cache ([#209](https://github.com/ProgrammingPhilippines/progphil-bot/issues/209)) ([e201181](https://github.com/ProgrammingPhilippines/progphil-bot/commit/e201181e9aeaa9aa068b6e1a7823e842ccb38bca))
+* fix matching conditions ([#191](https://github.com/ProgrammingPhilippines/progphil-bot/issues/191)) ([2c918e8](https://github.com/ProgrammingPhilippines/progphil-bot/commit/2c918e8466e07e2a53de594e7de3311f8ba18a33))
+* fixed _format_description ([#193](https://github.com/ProgrammingPhilippines/progphil-bot/issues/193)) ([8abb164](https://github.com/ProgrammingPhilippines/progphil-bot/commit/8abb164ac104e49a0369bee79e7f0b1989796643))
+* fixed error on defining slash words ([#114](https://github.com/ProgrammingPhilippines/progphil-bot/issues/114)) ([73035aa](https://github.com/ProgrammingPhilippines/progphil-bot/commit/73035aa7728c547a148c7645aad1f9c60045ef40))
+* fixed forum cleanup checks ([#137](https://github.com/ProgrammingPhilippines/progphil-bot/issues/137)) ([120d3e1](https://github.com/ProgrammingPhilippines/progphil-bot/commit/120d3e1cf8ca08d358817639848bf867168e742e))
+* fixed quote errors and invalid amount inputs ([#144](https://github.com/ProgrammingPhilippines/progphil-bot/issues/144)) ([1386560](https://github.com/ProgrammingPhilippines/progphil-bot/commit/138656049fb3421ee14002cbee0a1c8cf2bf5d0b))
+* fixed response ([#177](https://github.com/ProgrammingPhilippines/progphil-bot/issues/177)) ([22058ad](https://github.com/ProgrammingPhilippines/progphil-bot/commit/22058adf82bdbdfa814629bb60b905d08ad16aae))
+* fixed solve button by adding retries ([#202](https://github.com/ProgrammingPhilippines/progphil-bot/issues/202)) ([281a914](https://github.com/ProgrammingPhilippines/progphil-bot/commit/281a91462300c6139c77e04e19fef39130df22d0))
+* reverted old formatting to fix locale issues ([#173](https://github.com/ProgrammingPhilippines/progphil-bot/issues/173)) ([9e27853](https://github.com/ProgrammingPhilippines/progphil-bot/commit/9e2785349e2d724015510419a2544aa9083fe617))
+* truncate title ([#199](https://github.com/ProgrammingPhilippines/progphil-bot/issues/199)) ([e50790c](https://github.com/ProgrammingPhilippines/progphil-bot/commit/e50790c3035770312019af2770b6c9f0be18f706))
+
 ## [1.0.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.0.0...v1.0.1) (2023-03-07)
 
 
