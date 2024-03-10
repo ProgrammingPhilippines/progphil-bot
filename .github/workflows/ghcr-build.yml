@@ -63,8 +63,7 @@ jobs:
       - name: Deploy # 2
         run: |
           ls -al
-          railway run
-          railway service labored-gold
+          railway run -s labored-gold -e dev
           railway up
         env:
           RAILWAY_TOKEN: 34e42476-4efb-48f5-96a4-053bf3eabe0d
