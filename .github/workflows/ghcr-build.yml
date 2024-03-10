@@ -67,6 +67,6 @@ jobs:
           railway service labored-gold
           railway up
         env:
-          RAILWAY_TOKEN: 4ba8576b-8137-47c9-8fb8-030cbb223977
+          RAILWAY_TOKEN: 34e42476-4efb-48f5-96a4-053bf3eabe0d
 
             
