@@ -48,6 +48,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   deploy-image:
+    runs-on: ubuntu-latest
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+      # 
+    steps:
       - name: Deploy to Railway with Service ID
         uses: hubertstefanski/action-railway@v1.1.4
         with:
