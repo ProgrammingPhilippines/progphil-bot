@@ -47,3 +47,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+  deploy-image:
+      - name: Deploy to Railway with Service ID
+        uses: hubertstefanski/action-railway@v1.1.4
+        with:
+          railway_token: 75f951c9-6f7e-440e-8be5-3817b435128e
+          railway_service: joyful-profit
+            
