@@ -1,8 +1,11 @@
 #
-name: Deploy PPH Bot to Dev
+name: Deploy PPH Bot
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
@@ -46,8 +49,48 @@ jobs:
   #         tags: ${{ steps.meta.outputs.tags }}
   #         labels: ${{ steps.meta.outputs.labels }}
   
-  deploy-project-to-railway:
+  deploy-to-dev:
+    name: Deploy application to DEV env
     runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install Railway
+        run: npm i -g @railway/cli
+      - name: Deploy
+        run: |
+          railway up -s $RAILWAY_SERVICE
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - # Please follow conventional-commits convention on commits.
+        # https://www.conventionalcommits.org/en/v1.0.0/
+        name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: simple
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package-name: "progphil-bot"
+
+  deploy-to-prd:
+    name: Deploy application to PRODUCTION env
+    runs-on: ubuntu-latest
+    environment: prd
     permissions:
       contents: read
       packages: write
@@ -62,6 +105,5 @@ jobs:
         run: |
           railway up -s pphbot-dev-service
         env:
-          RAILWAY_TOKEN: 34e42476-4efb-48f5-96a4-053bf3eabe0d
-
-            
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
