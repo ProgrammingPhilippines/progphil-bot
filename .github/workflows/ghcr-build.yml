@@ -53,9 +53,19 @@ jobs:
       packages: write
       # 
     steps:
-      - name: Deploy to Railway with Service ID
-        uses: HubertStefanski/action-railway@v1.2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          railway_token: e1a54983-25a0-4166-a2d7-aa4ddb929025
-          railway_service: joyful-profit
+          node-version: 18
+      - name: Install Railway # 1
+        run: npm i -g @railway/cli
+
+      - name: Deploy # 2
+        run: |
+          ls -al
+          railway service labored-gold
+          railway up
+        env:
+          RAILWAY_TOKEN: 4ba8576b-8137-47c9-8fb8-030cbb223977 # 3
+
             
