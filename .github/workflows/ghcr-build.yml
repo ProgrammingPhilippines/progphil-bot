@@ -56,7 +56,7 @@ jobs:
       # 
     steps:
       - name: Deploy to Railway with Service ID
-        uses: hubertstefanski/action-railway@v1.1.4
+        uses: HubertStefanski/action-railway@v1.2
         with:
           railway_token: 75f951c9-6f7e-440e-8be5-3817b435128e
           railway_service: joyful-profit
