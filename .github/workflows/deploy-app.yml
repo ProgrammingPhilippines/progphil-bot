@@ -27,12 +27,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Install Railway
-        run: npm i -g @railway/cli
       - name: Load DEV config
         run: |
-          mv config/dev-config.yml config.yml
+          cp config/dev-config.yml config.yml
           ls -al
+      - name: Install Railway
+        run: npm i -g @railway/cli
       - name: Deploy
         run: |
           railway up -s $RAILWAY_SERVICE
@@ -67,7 +67,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Load config
         run: |
-          mv config/config.yml config.yml
+          cp config/config.yml config.yml
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
@@ -101,7 +101,7 @@ jobs:
           node-version: 18
       - name: Load PRD config
         run: |
-          mv config/config.yml config.yml
+          cp config/config.yml config.yml
       - name: Install Railway
         run: npm i -g @railway/cli
       - name: Deploy
