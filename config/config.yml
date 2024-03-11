@@ -1,5 +1,3 @@
-# Replace with content from dev-config if running on local or in dev server
-
 bot:
   prefix: "!"
   token: !ENV "token"
