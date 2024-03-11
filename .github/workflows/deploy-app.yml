@@ -1,4 +1,4 @@
-#
+
 name: Deploy PPH Bot
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
@@ -15,40 +15,6 @@ env:
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
-  # build-and-push-image:
-  #   runs-on: ubuntu-latest
-  #   # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #     # 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
-  #     - name: Log in to the Container registry
-  #       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
-  #     - name: Extract metadata (tags, labels) for Docker
-  #       id: meta
-  #       uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
-  #       with:
-  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-  #     # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
-  #     # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see "[Usage](https://github.com/docker/build-push-action#usage)" in the README of the `docker/build-push-action` repository.
-  #     # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: ${{ steps.meta.outputs.labels }}
-  
   deploy-to-dev:
     name: Deploy application to DEV env
     runs-on: ubuntu-latest
@@ -63,13 +29,15 @@ jobs:
           node-version: 18
       - name: Install Railway
         run: npm i -g @railway/cli
+      - name: Load DEV config
+        run: |
+          mv config/dev-config.yml config.yml
       - name: Deploy
         run: |
           railway up -s $RAILWAY_SERVICE
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
-
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -77,7 +45,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - # Please follow conventional-commits convention on commits.
         # https://www.conventionalcommits.org/en/v1.0.0/
         name: Create Release
@@ -86,10 +54,41 @@ jobs:
           release-type: simple
           token: ${{ secrets.GITHUB_TOKEN }}
           package-name: "progphil-bot"
-
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    environment: prd
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Load config
+        run: |
+          mv config/config.yml config.yml
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
   deploy-to-prd:
     name: Deploy application to PRODUCTION env
     runs-on: ubuntu-latest
+    needs: release
     environment: prd
     permissions:
       contents: read
@@ -99,6 +98,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+      - name: Load PRD config
+        run: |
+          mv config/config.yml config.yml
       - name: Install Railway
         run: npm i -g @railway/cli
       - name: Deploy
