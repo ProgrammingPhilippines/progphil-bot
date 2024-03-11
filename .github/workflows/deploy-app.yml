@@ -45,7 +45,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Checkout
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
       - # Please follow conventional-commits convention on commits.
         # https://www.conventionalcommits.org/en/v1.0.0/
         name: Create Release
