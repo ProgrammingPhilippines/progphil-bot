@@ -45,7 +45,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - # Please follow conventional-commits convention on commits.
         # https://www.conventionalcommits.org/en/v1.0.0/
         name: Create Release
@@ -64,6 +64,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Load config
+        run: |
+          mv config/config.yml config.yml
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
@@ -95,6 +98,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+      - name: Load PRD config
+        run: |
+          mv config/config.yml config.yml
       - name: Install Railway
         run: npm i -g @railway/cli
       - name: Deploy
