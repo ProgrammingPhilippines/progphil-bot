@@ -32,6 +32,7 @@ jobs:
       - name: Load DEV config
         run: |
           mv config/dev-config.yml config.yml
+          ls -al
       - name: Deploy
         run: |
           railway up -s $RAILWAY_SERVICE
