@@ -36,10 +36,9 @@ jobs:
       - name: Deploy
         run: |
           ls -al
-          railway up -s $RAILWAY_SERVICE
+          railway up -s ${{ vars.RAILWAY_SERVICE }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -107,7 +106,6 @@ jobs:
         run: npm i -g @railway/cli
       - name: Deploy
         run: |
-          railway up -s pphbot-dev-service
+          railway up -s ${{ vars.RAILWAY_SERVICE }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
