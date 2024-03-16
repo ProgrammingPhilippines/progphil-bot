@@ -1,0 +1,111 @@
+
+name: Deploy PPH Bot
+
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
+on:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
+jobs:
+  deploy-to-dev:
+    name: Deploy application to DEV env
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Load DEV config
+        run: |
+          cp config/dev-config.yml config.yml
+          rm .gitignore
+      - name: Install Railway
+        run: npm i -g @railway/cli
+      - name: Deploy
+        run: |
+          ls -al
+          railway up -s ${{ vars.RAILWAY_SERVICE }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - # Please follow conventional-commits convention on commits.
+        # https://www.conventionalcommits.org/en/v1.0.0/
+        name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: simple
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package-name: "progphil-bot"
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    environment: prd
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Load config for release
+        run: cp config/config.yml config.yml
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+  deploy-to-prd:
+    name: Deploy application to PRODUCTION env
+    runs-on: ubuntu-latest
+    needs: release
+    environment: prd
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Load PRD config
+        run: |
+          cp config/config.yml config.yml
+          rm .gitignore
+      - name: Install Railway
+        run: npm i -g @railway/cli
+      - name: Deploy
+        run: |
+          railway up -s ${{ vars.RAILWAY_SERVICE }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
