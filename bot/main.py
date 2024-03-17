@@ -20,7 +20,7 @@ class ProgPhil(Bot):
         super().__init__(
             **kwargs,
             command_prefix=BotConfig.prefix,
-            intents=intents
+            intents=intents,
         )
 
     async def on_ready(self) -> None:
@@ -41,18 +41,20 @@ class ProgPhil(Bot):
         db_name = Database.name
         db_user = Database.user
         db_pw = Database.password
+        db_port = Database.port
 
         # Create a database pool
         self.pool: Pool = await create_pool(
             host=db_host,
             database=db_name,
             user=db_user,
-            password=db_pw
+            password=db_pw,
+            port=db_port,
         )
 
-        url = f"postgresql://{db_user}:{db_pw}@{db_host}/{db_name}"
+        url = f"postgresql://{db_user}:{db_pw}@{db_host}:{db_port}/{db_name}"
         backend = get_backend(url)
-        migrations = read_migrations('./migrations')
+        migrations = read_migrations("./migrations")
         backend.apply_migrations(backend.to_apply(migrations))
 
         # Load every cog inside cogs folder
@@ -67,6 +69,6 @@ class ProgPhil(Bot):
         await self.pool.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     bot = ProgPhil()
     bot.run(BotConfig.token)
