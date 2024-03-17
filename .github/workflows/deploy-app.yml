@@ -42,7 +42,6 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    environment: prd
     permissions: write-all
     steps:
       - name: Checkout
