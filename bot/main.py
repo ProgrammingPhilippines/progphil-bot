@@ -37,7 +37,7 @@ class ProgPhil(Bot):
         db_name = Database.name
         db_user = Database.user
         db_pw = Database.password
-        db_port = Database.port
+        db_port = Database.port or 5432
 
         # Create a database pool
         self.pool: Pool = await create_pool(
