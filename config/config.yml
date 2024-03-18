@@ -8,6 +8,8 @@ database:
   host: !ENV "db_host"
   user: !ENV "db_user"
   password: !ENV "db_pass"
+  port: !ENV "db_port"
+
 
 api:
   api_ninja: !ENV "api_ninja"
