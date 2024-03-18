@@ -1,5 +1,5 @@
 bot:
-  prefix: "!"
+  prefix: "pph-"
   token: !ENV "token"
 
 database:
