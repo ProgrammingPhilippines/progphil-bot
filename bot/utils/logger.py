@@ -77,7 +77,7 @@ def setup_logger(bot: Bot):
             "formatter": "markdown",
         }
         config["formatters"]["markdown"] = {
-            "format": "[%(asctime)s] %(pathname)s %(levelname)s: %(message)s"
+            "format": "```[%(asctime)s] %(pathname)s %(levelname)s: %(message)s```"
         }
         config["loggers"]["discord"] = {
             "level": logging.INFO,
