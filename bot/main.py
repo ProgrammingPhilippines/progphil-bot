@@ -6,6 +6,8 @@ from discord.ext.commands import Bot
 from yoyo import read_migrations, get_backend
 
 from config import BotConfig, Database
+from utils import logger
+from logging import getLogger
 
 
 intents = Intents().all()
@@ -28,7 +30,9 @@ class ProgPhil(Bot):
         for loading databases, etc.
         """
 
-        print(f"{self.user.display_name} running.")
+        logger.setup_logger(self)
+        rootLogger = getLogger('root')
+        rootLogger.info(f"{self.user.display_name} running.")
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
