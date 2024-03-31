@@ -1,9 +1,11 @@
 import logging.config
-from logging import Handler, LogRecord
+from logging import Handler, LogRecord, Logger
 from discord import TextChannel
 from discord.ext.commands import Bot
 import asyncio
 from config import GuildInfo
+import yaml
+import os
 
 
 class DiscordLoggingHandler(Handler):
@@ -29,63 +31,140 @@ class DiscordLoggingHandler(Handler):
         await self.__logChannel.send(log)
 
 
-def setup_logger(bot: Bot):
-    """
-    Sets up logging configuration for the bot, including output to stdout and a Discord text channel.
+class CentralLogger:
 
-    This function should only be called within the bot's `on_ready` function.
+    @staticmethod
+    def __does_logger_exist(logger: str) -> bool:
+        return True if logging.getLogger().manager.loggerDict.get(logger) is not None else False
 
-    Args:
-        bot (Bot): The Discord bot instance.
+    @staticmethod
+    def setup_logger(bot: Bot):
+        """
+        Sets up logging configuration for the bot, including output to stdout and a Discord text channel.
 
-    """
-    config = {
-        "version": 1,
-        "disable_existing_loggers": True,
-        "formatters": {
-            "simple": {
-                "format": "[%(asctime)s] %(pathname)s %(levelname)s: %(message)s"
+        This function should only be called within the bot's `on_ready` function.
+
+        Args:
+            bot (Bot): The Discord bot instance.
+
+        """
+        error = None
+        try:
+            # Use the user defined logger configurations if it is properly setup
+            if not os.path.exists('logger.yml'):
+                error = FileNotFoundError(
+                    'logger.yml not found during logger setup. Using default configurations instead. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for the configuration guide')
+                raise error
+            with open('logger.yml', 'r') as f:
+                config = yaml.safe_load(f.read())
+                if config is None:
+                    error = ValueError(
+                        'logger.yml file is empty. Using default configurations instead. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for the configuration guide')
+                    raise error
+        except:
+            # Load config with default configurations
+            config = {
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {
+                    "simple": {
+                        "format": "[%(asctime)s] %(pathname)s %(levelname)s: %(message)s"
+                    }
+                },
+                "handlers": {
+                    "stdout": {
+                        "class": "logging.StreamHandler",
+                        "formatter": "simple",
+                        "level": logging.DEBUG,
+                        "stream": "ext://sys.stdout"
+                    },
+                },
+                "loggers": {
+                    "console": {
+                        "level": logging.DEBUG,
+                        "handlers": ["stdout"]
+                    },
+                    "all": {
+                        "level": logging.DEBUG,
+                        "handlers": ["stdout"]
+                    }
+                }
             }
-        },
-        "handlers": {
-            "stdout": {
-                "class": "logging.StreamHandler",
-                "formatter": "simple",
-                "level": logging.DEBUG,
-                "stream": "ext://sys.stdout"
-            },
-        },
-        "loggers": {
-            "root": {
-                "level": logging.INFO,
-                "handlers": ["stdout"]
-            },
-            "console": {
-                "level": logging.INFO,
-                "handlers": ["stdout"]
-            },
-        }
-    }
+        channel = bot.get_channel(GuildInfo.log_channel)
+        try:
+            # This will error if the logger.yml file is present but configured incorrectly
+            if isinstance(channel, TextChannel) or channel is not None:
+                config["handlers"]["discord"] = {
+                    "()": "utils.logger.DiscordLoggingHandler",
+                    "messageChannel": (channel),
+                    "level": logging.DEBUG,
+                    "formatter": "markdown",
+                }
+                config["formatters"]["markdown"] = {
+                    "format": "```[%(asctime)s] %(pathname)s %(levelname)s: %(message)s```"
+                }
+                config["loggers"]["discord"] = {
+                    "level": logging.WARNING,
+                    "handlers": ["discord"]
+                }
+                config["loggers"]["all"]["handlers"].append("discord")
 
-    # Checks if the discord logging channel is declared and is a text channel
-    channel = bot.get_channel(GuildInfo.log_channel)
-    if isinstance(channel, TextChannel) or channel is not None:
-        config["handlers"]["discord"] = {
-            "()": "utils.logger.DiscordLoggingHandler",
-            "messageChannel": (channel),
-            "level": logging.DEBUG,
-            "formatter": "markdown",
-        }
-        config["formatters"]["markdown"] = {
-            "format": "```[%(asctime)s] %(pathname)s %(levelname)s: %(message)s```"
-        }
-        config["loggers"]["discord"] = {
-            "level": logging.INFO,
-            "handlers": ["discord"]
-        }
-        config["loggers"]["root"]["handlers"].append("discord")
-    logging.config.dictConfig(config=config)
-    if not isinstance(channel, TextChannel) or channel is None:
-        root_logger = logging.getLogger('root')
-        root_logger.info(
-            "Discord logger is not declared or is using a non text channel. Please place a text channel's ID in the config.yml file")
+                logging.config.dictConfig(config=config)
+
+            else:
+                logging.config.dictConfig(config=config)
+                all_logger = CentralLogger.get_logger_all()
+                all_logger.warning(
+                    "Discord logger was not configured in config.yml or is using a non text channel. Please place a text channel's ID in the config.yml file")
+        except:
+            error = ValueError(
+                "logger.yml is configured incorrectly. Using default configuration instead. Please see the docs at https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for the configuration guide")
+            config = {
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {
+                    "simple": {
+                        "format": "[%(asctime)s] %(pathname)s %(levelname)s: %(message)s"
+                    }
+                },
+                "handlers": {
+                    "stdout": {
+                        "class": "logging.StreamHandler",
+                        "formatter": "simple",
+                        "level": logging.DEBUG,
+                        "stream": "ext://sys.stdout"
+                    },
+                },
+                "loggers": {
+                    "console": {
+                        "level": logging.DEBUG,
+                        "handlers": ["stdout"]
+                    },
+                    "all": {
+                        "level": logging.DEBUG,
+                        "handlers": ["stdout"]
+                    }
+                }
+            }
+            logging.config.dictConfig(config=config)
+        finally:
+            if error:
+                logger = CentralLogger.get_logger_all()
+                logger.warn(error)
+
+    @staticmethod
+    def get_logger_all() -> Logger:
+        return logging.getLogger('all')
+
+    @staticmethod
+    def get_logger_discord() -> Logger | None:
+        if (CentralLogger.__does_logger_exist('discord')):
+            return logging.getLogger('discord')
+        else:
+            logger = CentralLogger.get_logger_all()
+            logger.error(
+                "Discord logger was not configured in config.yml or is using a non text channel. Please place a text channel's ID in the config.yml file")
+
+    @staticmethod
+    def get_logger_console() -> Logger:
+        return logging.getLogger('console')
