@@ -6,12 +6,13 @@ from discord.ext.commands import Bot
 from yoyo import read_migrations, get_backend
 
 from config import BotConfig, Database
-from utils import logger
+from utils.logger import CentralLogger
 from logging import getLogger
 
 
 intents = Intents().all()
-intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
+# pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
+intents.dm_messages = False
 
 
 class ProgPhil(Bot):
@@ -30,9 +31,9 @@ class ProgPhil(Bot):
         for loading databases, etc.
         """
 
-        logger.setup_logger(self)
-        rootLogger = getLogger('root')
-        rootLogger.info(f"{self.user.display_name} running.")
+        CentralLogger.setup_logger(self)
+        allLogger = CentralLogger.get_logger_all()
+        allLogger.info(f"{self.user.display_name} running.")
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
