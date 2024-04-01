@@ -103,11 +103,12 @@ class CentralLogger:
                 config["formatters"]["markdown"] = {
                     "format": "```[%(asctime)s] %(pathname)s %(levelname)s: %(message)s```"
                 }
-                config["loggers"]["discord"] = {
-                    "level": logging.WARNING,
+                config["loggers"]["discord_text_channel"] = {
+                    "level": logging.INFO,
                     "handlers": ["discord"]
                 }
-                config["loggers"]["all"]["handlers"].append("discord")
+                config["loggers"]["all"]["handlers"].append(
+                    "discord")
 
                 logging.config.dictConfig(config=config)
 
@@ -117,6 +118,7 @@ class CentralLogger:
                 all_logger.warning(
                     "Discord logger was not configured in config.yml or is using a non text channel. Please place a text channel's ID in the config.yml file")
         except:
+            # If exception happens while configuring the discord logger, logger.yml is probably wrong so use default config instead
             error = ValueError(
                 "logger.yml is configured incorrectly. Using default configuration instead. Please see the docs at https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for the configuration guide")
             config = {
@@ -147,6 +149,11 @@ class CentralLogger:
                 }
             }
             logging.config.dictConfig(config=config)
+        else:
+            logger = CentralLogger.get_logger_all()
+            logger.info(
+                "Successfully configured logger with user defined configurations.")
+
         finally:
             if error:
                 logger = CentralLogger.get_logger_all()
@@ -157,13 +164,12 @@ class CentralLogger:
         return logging.getLogger('all')
 
     @staticmethod
-    def get_logger_discord() -> Logger | None:
-        if (CentralLogger.__does_logger_exist('discord')):
-            return logging.getLogger('discord')
+    def get_logger_discord() -> Logger:
+        # If the discord logger isnt available, return "all" logger
+        if (CentralLogger.__does_logger_exist('discord_text_channel')):
+            return logging.getLogger('discord_text_channel')
         else:
-            logger = CentralLogger.get_logger_all()
-            logger.error(
-                "Discord logger was not configured in config.yml or is using a non text channel. Please place a text channel's ID in the config.yml file")
+            return logging.getLogger('all')
 
     @staticmethod
     def get_logger_console() -> Logger:
