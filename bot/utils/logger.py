@@ -111,6 +111,9 @@ class CentralLogger:
                     "discord")
 
                 logging.config.dictConfig(config=config)
+                logger = CentralLogger.get_logger_all()
+                logger.info(
+                    'Successfully configured discord text channel for logging')
 
             else:
                 logging.config.dictConfig(config=config)
@@ -150,9 +153,10 @@ class CentralLogger:
             }
             logging.config.dictConfig(config=config)
         else:
-            logger = CentralLogger.get_logger_all()
-            logger.info(
-                "Successfully configured logger with user defined configurations.")
+            if error is None:
+                logger = CentralLogger.get_logger_all()
+                logger.info(
+                    "Successfully configured logger with user defined configurations.")
 
         finally:
             if error:
