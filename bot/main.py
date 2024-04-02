@@ -32,7 +32,7 @@ class ProgPhil(Bot):
 
         CentralLogger.setup_logger(self)
 
-        CentralLogger.info('f"{self.user.display_name} running."')
+        CentralLogger.info(f"{self.user.display_name} running.")
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
