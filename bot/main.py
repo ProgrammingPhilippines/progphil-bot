@@ -32,8 +32,8 @@ class ProgPhil(Bot):
         """
 
         CentralLogger.setup_logger(self)
-        all_logger = CentralLogger.get_logger_all()
-        all_logger.info(f"{self.user.display_name} running.")
+
+        CentralLogger.info('pph is running')
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""

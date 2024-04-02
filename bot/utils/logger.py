@@ -111,15 +111,14 @@ class CentralLogger:
                     "discord")
 
                 logging.config.dictConfig(config=config)
-                logger = CentralLogger.get_logger_all()
-                logger.info(
-                    'Successfully configured discord text channel for logging')
+                CentralLogger.info(
+                    'Successfully configured discord text channel for logging', True)
 
             else:
                 logging.config.dictConfig(config=config)
-                all_logger = CentralLogger.get_logger_all()
-                all_logger.warning(
+                CentralLogger.warning(
                     "Discord logger was not configured in config.yml or is using a non text channel. Please place a text channel's ID in the config.yml file")
+
         except:
             # If exception happens while configuring the discord logger, logger.yml is probably wrong so use default config instead
             error = ValueError(
@@ -154,27 +153,89 @@ class CentralLogger:
             logging.config.dictConfig(config=config)
         else:
             if error is None:
-                logger = CentralLogger.get_logger_all()
-                logger.info(
+                CentralLogger.info(
                     "Successfully configured logger with user defined configurations.")
 
         finally:
             if error:
-                logger = CentralLogger.get_logger_all()
-                logger.warn(error)
+                CentralLogger.warning(error)
 
     @staticmethod
-    def get_logger_all() -> Logger:
+    def __get_logger_all() -> Logger:
         return logging.getLogger('all')
 
     @staticmethod
-    def get_logger_discord() -> Logger:
+    def __get_logger_discord() -> Logger | None:
         # If the discord logger isnt available, return "all" logger
         if (CentralLogger.__does_logger_exist('discord_text_channel')):
             return logging.getLogger('discord_text_channel')
-        else:
-            return logging.getLogger('all')
+        return
 
     @staticmethod
-    def get_logger_console() -> Logger:
+    def __get_logger_console() -> Logger:
         return logging.getLogger('console')
+
+    @staticmethod
+    def debug(msg: object, log_on_discord: bool = False):
+        console_logger = CentralLogger.__get_logger_console()
+        console_logger.debug(msg)
+
+        if log_on_discord:
+            discord_logger = CentralLogger.__get_logger_discord()
+            if (discord_logger):
+                discord_logger.debug(msg)
+            else:
+                console_logger.error(
+                    "Tried using discord text channel logger while it wasn't configured properly. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for proper configuration directions")
+
+    @staticmethod
+    def info(msg: object, log_on_discord: bool = False):
+        console_logger = CentralLogger.__get_logger_console()
+        console_logger.info(msg)
+
+        if log_on_discord:
+            discord_logger = CentralLogger.__get_logger_discord()
+            if (discord_logger):
+                discord_logger.info(msg)
+            else:
+                console_logger.error(
+                    "Tried using discord text channel logger while it wasn't configured properly. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for proper configuration directions")
+
+    @staticmethod
+    def warning(msg: object, log_on_discord: bool = False):
+        console_logger = CentralLogger.__get_logger_console()
+        console_logger.warning(msg)
+
+        if log_on_discord:
+            discord_logger = CentralLogger.__get_logger_discord()
+            if (discord_logger):
+                discord_logger.warning(msg)
+            else:
+                console_logger.error(
+                    "Tried using discord text channel logger while it wasn't configured properly. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for proper configuration directions")
+
+    @staticmethod
+    def error(msg: object, log_on_discord: bool = False):
+        console_logger = CentralLogger.__get_logger_console()
+        console_logger.error(msg)
+
+        if log_on_discord:
+            discord_logger = CentralLogger.__get_logger_discord()
+            if (discord_logger):
+                discord_logger.error(msg)
+            else:
+                console_logger.error(
+                    "Tried using discord text channel logger while it wasn't configured properly. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for proper configuration directions")
+
+    @staticmethod
+    def critical(msg: object, log_on_discord: bool = False):
+        console_logger = CentralLogger.__get_logger_console()
+        console_logger.critical(msg)
+
+        if log_on_discord:
+            discord_logger = CentralLogger.__get_logger_discord()
+            if (discord_logger):
+                discord_logger.critical(msg)
+            else:
+                console_logger.error(
+                    "Tried using discord text channel logger while it wasn't configured properly. See https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide for proper configuration directions")
