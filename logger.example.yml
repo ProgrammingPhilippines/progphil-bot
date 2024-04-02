@@ -11,6 +11,7 @@ handlers:
     stream: ext://sys.stdout
 loggers:
   console:
+    level: INFO
     handlers: [stdout]
   all:
     level: INFO
