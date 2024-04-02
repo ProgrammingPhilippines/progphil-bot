@@ -7,7 +7,6 @@ from yoyo import read_migrations, get_backend
 
 from config import BotConfig, Database
 from utils.logger import CentralLogger
-from logging import getLogger
 
 
 intents = Intents().all()
