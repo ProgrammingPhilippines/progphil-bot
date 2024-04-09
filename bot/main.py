@@ -1,4 +1,5 @@
 import os
+from utils.logging.discord_handler import init
 
 from asyncpg import Pool, create_pool
 from discord import Intents
@@ -27,6 +28,8 @@ class ProgPhil(Bot):
         This can get invoked multiple times, use :meth:`setup_hook()` instead
         for loading databases, etc.
         """
+
+        init(self)
 
         print(f"{self.user.display_name} running.")
 
