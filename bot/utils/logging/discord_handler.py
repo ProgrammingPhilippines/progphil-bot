@@ -1,4 +1,4 @@
-from logging import Handler, LogRecord
+from logging import Handler, LogRecord, NOTSET
 from discord.ext.commands import Bot
 from config import LoggerConfig
 
@@ -14,6 +14,7 @@ def init(bot: Bot):
 class DiscordHandler(Handler):
     
     def __init__(self):
+        super().__init__(level=NOTSET)
         print(f'Initializing DiscordHandler for channel {_logChannel}')
 
     def emit(self, record: LogRecord) -> None:
