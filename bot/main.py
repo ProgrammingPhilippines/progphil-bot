@@ -34,7 +34,7 @@ class ProgPhil(Bot):
         init(self)
         self.logger=getLogger(__file__)
 
-        print(f"{self.user.display_name} running.")
+        self.logger.info(f"{self.user.display_name} running.")
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
@@ -64,7 +64,6 @@ class ProgPhil(Bot):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
 
-        self.logger.info('Successfully initialized PPH Bot')
         await self.tree.sync()
 
     async def close(self):
