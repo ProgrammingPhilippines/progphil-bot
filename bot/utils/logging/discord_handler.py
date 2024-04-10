@@ -22,4 +22,4 @@ class DiscordHandler(Handler):
 
     async def async_emit(self, record: LogRecord):
         log = self.format(record)
-        await _logChannel.send(log)
+        await _logChannel.send(f'```{log}```')
