@@ -1,5 +1,5 @@
 import os
-from utils.logging.discord_handler import init
+from utils.logger.discord_handler import init
 
 from asyncpg import Pool, create_pool
 from discord import Intents

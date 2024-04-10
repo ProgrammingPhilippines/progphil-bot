@@ -1,11 +1,10 @@
 import logging.config
-import discord_handler
 
 from logging import Formatter, StreamHandler
 from config import LoggerConfig
+from discord_handler import DiscordHandler
 
-
-_discord_handler=discord_handler.DiscordHandler()
+_discord_handler=DiscordHandler()
 logging.basicConfig(level=logging.getLevelName(LoggerConfig.log_level))
 
 # [2024-03-19 21:35:00] [INFO] [filepath.py] Sample log XYZ 
