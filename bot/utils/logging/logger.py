@@ -2,7 +2,7 @@ import logging.config
 
 from logging import Formatter, StreamHandler
 from config import LoggerConfig
-from utils.logger.discord_handler import DiscordHandler
+from utils.logging.discord_handler import DiscordHandler
 
 _discord_handler=DiscordHandler()
 logging.basicConfig(level=logging.getLevelName(LoggerConfig.log_level))

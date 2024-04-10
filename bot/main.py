@@ -1,5 +1,7 @@
 import os
-from utils.logger.discord_handler import init
+
+from utils.logging.discord_handler import init
+from utils.logging.logger import getLogger
 
 from asyncpg import Pool, create_pool
 from discord import Intents
@@ -30,6 +32,7 @@ class ProgPhil(Bot):
         """
 
         init(self)
+        self.logger=getLogger(__file__)
 
         print(f"{self.user.display_name} running.")
 
@@ -61,6 +64,7 @@ class ProgPhil(Bot):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
 
+        self.logger.info('Successfully initialized PPH Bot')
         await self.tree.sync()
 
     async def close(self):
