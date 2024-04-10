@@ -109,3 +109,9 @@ class API(metaclass=ConfigGen):
     key = "api"
 
     api_ninja: str
+
+class LoggerConfig(metaclass=ConfigGen):
+    key = "logger"
+
+    log_channel: int
+    log_level: str
