@@ -56,11 +56,11 @@ class ProgPhil(Bot):
 
         url = f"postgresql://{db_user}:{db_pw}@{db_host}:{db_port}/{db_name}"
         backend = get_backend(url)
-        migrations = read_migrations("./migrations")
+        migrations = read_migrations("../migrations")
         backend.apply_migrations(backend.to_apply(migrations))
 
         # Load every cog inside cogs folder
-        for cog in os.listdir("bot/cogs"):
+        for cog in os.listdir("cogs/"):
             if cog[-3:] == ".py":
                 await self.load_extension(f"cogs.{cog[:-3]}")
 

@@ -24,7 +24,7 @@ def _load_env(loader: yaml.Loader, node: yaml.Node) -> str:
 
 yaml.SafeLoader.add_constructor("!ENV", _load_env)
 
-with open("config.yml", "r") as CONFIG:
+with open("../config/config.yml", "r") as CONFIG:
     CONFIG = yaml.safe_load(CONFIG)
 
 

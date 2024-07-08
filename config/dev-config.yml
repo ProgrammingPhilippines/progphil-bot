@@ -20,4 +20,4 @@ guild:
 
 logger:
   log_channel: 1084008856633491557
-  log_level: 'INFO'
+  log_level: 'DEBUG'
