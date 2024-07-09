@@ -1,4 +1,5 @@
 import os
+from asyncio import CancelledError
 
 from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
@@ -75,6 +76,7 @@ class ProgPhil(Bot):
         await self.pool.close()
 
     async def launch(self):
+        # use .start to avoid blocking the event loop so we can use async on main
         await self.start(self.config.bot.token, reconnect=True)
 
 
@@ -83,6 +85,10 @@ def get_dir_content(path: str) -> list[str]:
 
 
 def migrate_db(db: Database) -> None:
+    """
+    Will loop through migrations/ folder and attempt to run migration to the database.
+    :param db: database config
+    """
     url = f"postgresql://{db.user}:{db.password}@{db.host}:{db.port or 5432}/{db.name}"
     backend = get_backend(url)
     migrations = read_migrations("../../migrations")
@@ -105,4 +111,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # run main function forever
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot exiting...")
