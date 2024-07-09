@@ -11,7 +11,6 @@ from discord import (
     Thread,
     Message
 )
-from discord.ext.commands.context import Context
 from discord.ui import View, Select
 from discord.app_commands import command
 from discord.ext.commands import Bot, Cog, Context, GroupCog, command as prefixed_command

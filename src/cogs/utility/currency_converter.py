@@ -12,7 +12,6 @@ from discord.ext.commands import (
 from discord.app_commands import command
 
 from src.data.admin.config_auto import Config
-from src.bot.config import GuildInfo
 from src.ui.views.currency_converter import CurrencyConverterPagination
 from src.utils.decorators import is_staff
 
@@ -75,7 +74,7 @@ class Converter(GroupCog):
         data = response.json()
 
         if response.status_code != 200 or not data["success"]:
-            channel = self.bot.get_channel(GuildInfo.log_channel)
+            channel = self.bot.get_channel(self.bot.config.guild.log_channel)
             await channel.send(f"An error occurred in the currency converter:\n```{data}```")
             await ctx.send("Sorry, I could not convert that currency.")
             return

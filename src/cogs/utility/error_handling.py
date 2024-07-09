@@ -21,8 +21,6 @@ from discord.app_commands import (
     CommandOnCooldown,
 )
 
-from src.bot.config import GuildInfo
-
 error_map = {
     MissingRole: "You are missing the role {error.missing_role} to use this command.",
     MissingPermissions: "You are missing the required permissions to use this command.",
@@ -56,7 +54,7 @@ class ErrorHandler(Cog):
         :param error: Error
         """
 
-        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+        log_channel = self.bot.get_channel(self.bot.config.guild.log_channel)
 
         error_message = error_map.get(
             type(error), self.error_message

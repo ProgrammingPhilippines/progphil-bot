@@ -13,7 +13,6 @@ from discord.app_commands import command, describe
 
 from src.data.admin.config_auto import Config
 from src.data.trivia import TriviaDB
-from src.bot.config import API, GuildInfo
 from src.utils.decorators import is_staff
 from src.utils.utils import validate_time
 
@@ -86,7 +85,7 @@ class Trivia(GroupCog):
             int(self.sched["channel_id"])
         )  # Gets the trivia channel
 
-        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+        log_channel = self.bot.get_channel(self.bot.config.guild.log_channel)
 
         response = requests.get(
             "https://api.api-ninjas.com/v1/facts",
