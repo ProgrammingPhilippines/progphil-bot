@@ -21,7 +21,7 @@ psycopg2-binary = "^2.9.5"
 cryptography = "^42.0.8"
 python-levenshtein = "^0.25.1"
 setuptools = "^70.1.0"
-
+pydantic = "^2.8.0"
 
 [build-system]
 requires = ["poetry-core"]
