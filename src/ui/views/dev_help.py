@@ -2,8 +2,8 @@ from discord import ButtonStyle, Interaction, ForumChannel
 from discord.ui import View, Button, Select, button
 from discord.ui.item import Item
 
-from src.bot.config import GuildInfo
-from src.data.forum.dev_help import DevHelpViewsDB, DevHelpTagDB
+from ...bot.config import GuildInfo
+from ...data.forum.dev_help import DevHelpViewsDB, DevHelpTagDB
 
 
 class PersistentSolverView(View):

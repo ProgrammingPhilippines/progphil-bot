@@ -3,10 +3,10 @@ from discord.app_commands import command
 from discord.ui import Modal, TextInput, ChannelSelect, View
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from src.data.admin.settings import Settings
-from src.data.welcome import WelcomeDB
+from ...data.admin.settings import Settings
+from ...data.welcome import WelcomeDB
 
-from src.utils.decorators import is_staff
+from ...utils.decorators import is_staff
 
 from datetime import datetime, timedelta, timezone
 

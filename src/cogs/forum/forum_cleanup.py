@@ -10,10 +10,10 @@ from discord.ui import Modal, TextInput, View, Select
 from discord.utils import utcnow
 from discord.ext.commands import Bot, GroupCog
 
-from src.data.admin.config_auto import Config
-from src.data.forum.forum_cleanup import ForumCleanupDB
-from src.utils.decorators import is_staff
-from src.ui.views.forum_picker import ForumPicker
+from ...data.admin.config_auto import Config
+from ...data.forum.forum_cleanup import ForumCleanupDB
+from ...utils.decorators import is_staff
+from ...ui.views.forum_picker import ForumPicker
 
 
 DAY_HR = 24

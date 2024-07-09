@@ -1,8 +1,8 @@
 import logging.config
 
 from logging import Formatter, StreamHandler, Handler, Logger
-from src.bot.config import LoggerConfig
-from src.utils.logging.discord_handler import DiscordHandler
+from ...bot.config import LoggerConfig
+from ...utils.logging.discord_handler import DiscordHandler
 
 # logging.basicConfig(level=logging.getLevelName(LoggerConfig.log_level))
 

@@ -2,8 +2,8 @@ from discord import Interaction
 from discord.ui import View, Select, Button, button
 from discord.ext.commands import Cog
 
-from src.data.admin.config_auto import Config
-from src.ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
+from ...data.admin.config_auto import Config
+from ...ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
 
 
 class PersistentAnonView(View):

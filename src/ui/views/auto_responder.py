@@ -1,6 +1,6 @@
 from typing import List, Any
 
-from src.data.auto_responder import AutoRespondDB
+from ...data.auto_responder import AutoRespondDB
 from discord import Embed, Interaction, TextChannel, ChannelType
 from discord.ui import View, Button, button, ChannelSelect
 

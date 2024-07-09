@@ -15,11 +15,11 @@ from discord.ui import View, Select
 from discord.app_commands import command
 from discord.ext.commands import Bot, Cog, Context, GroupCog, command as prefixed_command
 
-from src.data.forum.dev_help import DevHelpTagDB, DevHelpViewsDB
-from src.data.admin.config_auto import Config
-from src.data.admin.settings import Settings
-from src.utils.decorators import is_staff
-from src.ui.views.dev_help import PersistentSolverView
+from ...data.forum.dev_help import DevHelpTagDB, DevHelpViewsDB
+from ...data.admin.config_auto import Config
+from ...data.admin.settings import Settings
+from ...utils.decorators import is_staff
+from ...ui.views.dev_help import PersistentSolverView
 
 
 def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:

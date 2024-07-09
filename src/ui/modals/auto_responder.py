@@ -2,8 +2,8 @@ from discord import Interaction, TextStyle
 from discord.ext.commands import Bot
 from discord.ui import Modal, TextInput
 
-from src.data.auto_responder import AutoRespondDB
-from src.ui.views.auto_responder import AutoResponderSelect
+from ...data.auto_responder import AutoRespondDB
+from ...ui.views.auto_responder import AutoResponderSelect
 
 
 class AutoResponder(Modal, title="Auto Responder"):
