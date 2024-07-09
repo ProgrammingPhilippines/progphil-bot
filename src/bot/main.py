@@ -4,6 +4,7 @@ from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
 from logging import Logger
 from discord.ext.commands import Bot
+import asyncio
 
 from asyncpg import Pool, create_pool
 from discord import Intents
@@ -20,7 +21,7 @@ class ProgPhil(Bot):
     logger: Logger
     pool: Pool
 
-    def __init__(self, cfg: BotConfig, bot_logger: BotLogger, **kwargs):
+    def __init__(self, pool: Pool, cfg: BotConfig, bot_logger: BotLogger, **kwargs):
         bot_cfg = cfg.bot
         super().__init__(
             **kwargs,
@@ -29,6 +30,7 @@ class ProgPhil(Bot):
         )
         self.logger = bot_logger.get_logger(__file__)
         self.config = cfg
+        self.pool = pool
 
     async def on_ready(self) -> None:
         """Invoked when the bot finish setting up
@@ -42,10 +44,6 @@ class ProgPhil(Bot):
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
-        db_config = self.config.database
-        self.pool = pool = await create_pool(host=db_config.host, database=db_config.name, user=db_config.user,
-                               password=db_config.password, port=db_config.port)
-
         # Load every cog inside cogs folder
         admin_cogs = get_dir_content("../cogs/admin")
         forum_cogs = get_dir_content("../cogs/forum")
@@ -76,8 +74,8 @@ class ProgPhil(Bot):
         await super().close()
         await self.pool.close()
 
-    def launch(self):
-        self.run(self.config.bot.token)
+    async def launch(self):
+        await self.start(self.config.bot.token, reconnect=True)
 
 
 def get_dir_content(path: str) -> list[str]:
@@ -91,17 +89,20 @@ def migrate_db(db: Database) -> None:
     backend.apply_migrations(backend.to_apply(migrations))
 
 
-def main():
+async def main():
     config = get_config("../../config/config.yml")
     logger_config = config.logger
-    db_config = config.database
-
     logger = BotLogger(logger_config)
+
+    db_config = config.database
+    pool = await create_pool(host=db_config.host, database=db_config.name, user=db_config.user,
+                               password=db_config.password, port=db_config.port)
+
     migrate_db(db_config)
 
-    bot = ProgPhil(config, logger)
-    bot.launch()
+    bot = ProgPhil(pool, config, logger)
+    await bot.launch()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
