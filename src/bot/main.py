@@ -1,5 +1,4 @@
 import os
-from asyncio import CancelledError
 
 from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
@@ -11,18 +10,18 @@ from asyncpg import Pool, create_pool
 from discord import Intents
 from yoyo import read_migrations, get_backend
 
-from src.bot.config import Database, BotConfig, get_config
+from src.bot.config import Database, Config, get_config
 
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
 
 
 class ProgPhil(Bot):
-    config: BotConfig
+    config: Config
     logger: Logger
     pool: Pool
 
-    def __init__(self, pool: Pool, cfg: BotConfig, bot_logger: BotLogger, **kwargs):
+    def __init__(self, pool: Pool, cfg: Config, bot_logger: BotLogger, **kwargs):
         bot_cfg = cfg.bot
         super().__init__(
             **kwargs,
@@ -66,8 +65,6 @@ class ProgPhil(Bot):
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
         for cog in cogs:
-            if cog.startswith("currency"):
-                continue
             if cog.endswith(".py"):
                 await self.load_extension(f"src.cogs.{module}.{cog[:-3]}")
 
