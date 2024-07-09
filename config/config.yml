@@ -3,7 +3,6 @@ bot:
   token: !ENV "token"
 
 database:
-  database:
   name: !ENV "db_name"
   host: !ENV "db_host"
   user: !ENV "db_user"
