@@ -13,10 +13,11 @@ from discord.app_commands import command
 from src.data.admin.config_auto import Config
 from src.ui.views.define_word import DefineWordPagination
 from src.utils.decorators import is_staff
-from src.interface.progphil import IProgPhilBot
+from discord.ext.commands import Bot
+
 
 class Define(GroupCog):
-    def __init__(self, bot: IProgPhilBot):
+    def __init__(self, bot: Bot):
         self.bot = bot
         self.config = Config(self.bot.pool)
 
@@ -105,5 +106,5 @@ class Define(GroupCog):
         return formatted_data
 
 
-async def setup(bot: IProgPhilBot):
+async def setup(bot: Bot):
     await bot.add_cog(Define(bot))

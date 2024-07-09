@@ -3,25 +3,25 @@ import os
 from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
 from logging import Logger
+from discord.ext.commands import Bot
 
 from asyncpg import Pool, create_pool
 from discord import Intents
 from yoyo import read_migrations, get_backend
 
-from src.bot.config import Database, Config
-from src.interface.progphil import IProgPhilBot
+from src.bot.config import Database, BotConfig, get_config
 
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
 
 
-class ProgPhil(IProgPhilBot):
-    config: Config
+class ProgPhil(Bot):
+    config: BotConfig
     logger: Logger
     pool: Pool
 
-    def __init__(self, cfg: Config, bot_logger: BotLogger, **kwargs):
-        bot_cfg = cfg.bot()
+    def __init__(self, cfg: BotConfig, bot_logger: BotLogger, **kwargs):
+        bot_cfg = cfg.bot
         super().__init__(
             **kwargs,
             command_prefix=bot_cfg.prefix,
@@ -42,11 +42,9 @@ class ProgPhil(IProgPhilBot):
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
-        db_cfg = self.config.database()
-
-        pool = await create_pool(host=db_cfg.host, database=db_cfg.name, user=db_cfg.user,
-                               password=db_cfg.password, port=db_cfg.port)
-        self.pool = pool
+        db_config = self.config.database
+        self.pool = pool = await create_pool(host=db_config.host, database=db_config.name, user=db_config.user,
+                               password=db_config.password, port=db_config.port)
 
         # Load every cog inside cogs folder
         admin_cogs = get_dir_content("../cogs/admin")
@@ -69,6 +67,8 @@ class ProgPhil(IProgPhilBot):
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
         for cog in cogs:
+            if cog.startswith("currency"):
+                continue
             if cog.endswith(".py"):
                 await self.load_extension(f"src.cogs.{module}.{cog[:-3]}")
 
@@ -77,7 +77,7 @@ class ProgPhil(IProgPhilBot):
         await self.pool.close()
 
     def launch(self):
-        self.run(self.config.bot().token)
+        self.run(self.config.bot.token)
 
 
 def get_dir_content(path: str) -> list[str]:
@@ -92,12 +92,11 @@ def migrate_db(db: Database) -> None:
 
 
 def main():
-    config = Config()
-    db_config = config.database()
-    logger_config = config.logger()
+    config = get_config("../../config/config.yml")
+    logger_config = config.logger
+    db_config = config.database
 
     logger = BotLogger(logger_config)
-
     migrate_db(db_config)
 
     bot = ProgPhil(config, logger)

@@ -1,6 +1,6 @@
 from discord import Interaction, app_commands
 
-from src.interface.progphil import IProgPhilBot
+from discord.ext.commands import Bot
 
 
 def is_staff():
@@ -16,8 +16,8 @@ def is_staff():
             await interaction.response.send_message(f'Banned {member}')
     ```
     """
-    async def predicate(interaction: Interaction[IProgPhilBot]) -> bool:
-        guild_config = interaction.client.config.guild()
+    async def predicate(interaction: Interaction[Bot]) -> bool:
+        guild_config = interaction.client.config.guild
         staff = False
 
         for id_ in guild_config.staff_roles:

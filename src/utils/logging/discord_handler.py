@@ -1,5 +1,5 @@
 from logging import Handler, LogRecord, NOTSET
-from src.interface.progphil import IProgPhilBot
+from discord.ext.commands import Bot
 
 import asyncio
 
@@ -7,9 +7,9 @@ import asyncio
 _logChannel = None
 
 
-def init(bot: IProgPhilBot):
+def init(bot: Bot):
     global _logChannel
-    _logChannel = bot.get_channel(bot.config.guild().log_channel)
+    _logChannel = bot.get_channel(bot.config.guild.log_channel)
 
 
 class DiscordHandler(Handler):
