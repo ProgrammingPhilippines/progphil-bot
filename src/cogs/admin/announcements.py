@@ -4,8 +4,9 @@ import discord
 from discord.ext.commands import Bot, Cog
 from discord.app_commands import Choice, choices, command, describe
 
-from ui.modals.announcement import Announcement
-from utils.decorators import is_staff
+from src.ui.modals.announcement import Announcement
+from src.utils.decorators import is_staff
+from src.interface.progphil import IProgPhilBot
 
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
@@ -22,7 +23,7 @@ def is_allowed(attachment: discord.Attachment):
 
 
 class Announcements(Cog):
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: IProgPhilBot):
         self.bot = bot
 
     @is_staff()

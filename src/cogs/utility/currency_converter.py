@@ -11,10 +11,10 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from database.config_auto import Config
-from config import GuildInfo
-from ui.views.currency_converter import CurrencyConverterPagination
-from utils.decorators import is_staff
+from src.data.admin.config_auto import Config
+from src.bot.config import GuildInfo
+from src.ui.views.currency_converter import CurrencyConverterPagination
+from src.utils.decorators import is_staff
 
 
 class Converter(GroupCog):

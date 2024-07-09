@@ -2,7 +2,6 @@ import traceback
 
 from discord import Interaction
 from discord.ext.commands import (
-    Bot,
     Cog,
     CheckFailure as CtxCheckFailure,
     CommandError,
@@ -21,7 +20,8 @@ from discord.app_commands import (
     CommandOnCooldown,
 )
 
-from config import GuildInfo
+from src.bot.config import GuildInfo
+from src.interface.progphil import IProgPhilBot
 
 error_map = {
     MissingRole: "You are missing the role {error.missing_role} to use this command.",
@@ -37,7 +37,7 @@ error_map = {
 
 
 class ErrorHandler(Cog):
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: IProgPhilBot):
         self.bot = bot
         self.error_message = "An error occurred."
         bot.tree.error(coro=self.__dispatch_to_app_command_handler)
@@ -99,7 +99,7 @@ class ErrorHandler(Cog):
         ):
             return
 
-        log_channel = self.bot.get_channel(GuildInfo.log_channel)
+        log_channel = self.bot.get_channel(self.bot.config.guild().log_channel)
         error_message = error_map.get(type(error), self.error_message)
 
         if type(error) not in error_map:
@@ -117,5 +117,5 @@ class ErrorHandler(Cog):
         await ctx.send(error_message, delete_after=5)
 
 
-async def setup(bot: Bot):
+async def setup(bot: IProgPhilBot):
     await bot.add_cog(ErrorHandler(bot))

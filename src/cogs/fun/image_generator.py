@@ -7,9 +7,9 @@ from discord import Embed
 from discord.ext.commands import Bot, Context, GroupCog, command as prefixed_command
 from discord.app_commands import command
 
-from database.config_auto import Config
-from ui.views.define_word import DefineWordPagination
-from utils.decorators import is_staff
+from src.data.admin.config_auto import Config
+# from src.ui.views.define_word import DefineWordPagination
+from src.utils.decorators import is_staff
 
 
 class ImageGen(GroupCog):

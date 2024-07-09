@@ -4,20 +4,19 @@ import requests
 import discord
 from discord import Embed
 from discord.ext.commands import (
-    Bot,
     Context,
     GroupCog,
     command as prefixed_command
 )
 from discord.app_commands import command
 
-from database.config_auto import Config
-from ui.views.define_word import DefineWordPagination
-from utils.decorators import is_staff
-
+from src.data.admin.config_auto import Config
+from src.ui.views.define_word import DefineWordPagination
+from src.utils.decorators import is_staff
+from src.interface.progphil import IProgPhilBot
 
 class Define(GroupCog):
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: IProgPhilBot):
         self.bot = bot
         self.config = Config(self.bot.pool)
 
@@ -106,5 +105,5 @@ class Define(GroupCog):
         return formatted_data
 
 
-async def setup(bot: Bot):
+async def setup(bot: IProgPhilBot):
     await bot.add_cog(Define(bot))

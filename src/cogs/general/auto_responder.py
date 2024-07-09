@@ -5,10 +5,10 @@ from discord import Interaction, Embed, Message
 from discord.app_commands import Choice, command, describe, choices
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from database.auto_responder import AutoRespondDB
-from ui.modals.auto_responder import AutoResponder
-from ui.views.auto_responder import AutoResponderPagination
-from utils.decorators import is_staff
+from src.data.auto_responder import AutoRespondDB
+from src.ui.modals.auto_responder import AutoResponder
+from src.ui.views.auto_responder import AutoResponderPagination
+from src.utils.decorators import is_staff
 
 
 class Responder(GroupCog):

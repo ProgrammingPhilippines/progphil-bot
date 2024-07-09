@@ -5,12 +5,12 @@ from discord.app_commands import Choice, command, describe, choices
 from discord.ui import View, Select
 from discord.ext.commands import Bot, GroupCog
 
-from database.anonymous_posting import AnonymousPostingDB
-from database.config_auto import Config
-from utils.decorators import is_staff
-from ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
-from ui.views.forum_picker import ForumPicker
-from ui.views.anon_posting import PersistentAnonView
+from src.data.forum.anonymous_posting import AnonymousPostingDB
+from src.data.admin.config_auto import Config
+from src.utils.decorators import is_staff
+from src.ui.modals.anonymous_posting import AnonymousPost, AnonymousReply
+from src.ui.views.forum_picker import ForumPicker
+from src.ui.views.anon_posting import PersistentAnonView
 
 
 SALT = os.getenv('salt')
