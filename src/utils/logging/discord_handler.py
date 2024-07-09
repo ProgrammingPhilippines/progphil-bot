@@ -1,0 +1,26 @@
+from logging import Handler, LogRecord, NOTSET
+from src.interface.progphil import IProgPhilBot
+
+import asyncio
+
+
+_logChannel = None
+
+
+def init(bot: IProgPhilBot):
+    global _logChannel
+    _logChannel = bot.get_channel(bot.config.guild().log_channel)
+
+
+class DiscordHandler(Handler):
+    
+    def __init__(self):
+        super().__init__(level=NOTSET)
+        print(f'Initializing DiscordHandler for channel {_logChannel}')
+
+    def emit(self, record: LogRecord) -> None:
+        asyncio.create_task(self.async_emit(record))
+
+    async def async_emit(self, record: LogRecord):
+        log = self.format(record)
+        await _logChannel.send(f'```{log}```')
