@@ -7,7 +7,7 @@ from discord import (
 )
 from discord.ui import Modal, TextInput
 
-from ui.views.announcement import AnnouncementView
+from src.ui.views.announcement import AnnouncementView
 
 
 def _unique(iterable: list) -> list:

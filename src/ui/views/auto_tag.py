@@ -17,7 +17,7 @@ from discord.ui import (
     select
 )
 
-from database.auto_tag import AutoTagDB
+from src.data.forum.auto_tag import AutoTagDB
 
 
 class TaggingSelection(View):
