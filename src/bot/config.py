@@ -2,7 +2,7 @@ import os
 
 import dotenv
 import yaml
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 import json
 
 
@@ -34,7 +34,7 @@ class LoggerConfig(BaseModel):
     log_level: str
 
 
-class BotConfig(BaseModel):
+class Config(BaseModel):
     bot: BotConfig
     database: Database
     logger: LoggerConfig
@@ -42,13 +42,13 @@ class BotConfig(BaseModel):
     guild: GuildInfo
 
 
-def get_config(path: str) -> BotConfig:
+def get_config(path: str) -> Config:
     dotenv.load_dotenv()
     yaml.SafeLoader.add_constructor("!ENV", _load_env)
 
     with open(path) as config:
         yaml_config = yaml.safe_load(config)
-        bot_cfg = BotConfig.model_validate_json(json.dumps(yaml_config))
+        bot_cfg = Config.model_validate_json(json.dumps(yaml_config))
 
         return bot_cfg
 
