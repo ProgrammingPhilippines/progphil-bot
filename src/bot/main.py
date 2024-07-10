@@ -44,6 +44,7 @@ class ProgPhil(Bot):
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
+
         # Load every cog inside cogs folder
         admin_cogs = get_dir_content("../cogs/admin")
         forum_cogs = get_dir_content("../cogs/forum")
@@ -60,7 +61,7 @@ class ProgPhil(Bot):
         await self.tree.sync()
 
     async def load_cogs(self, module: str, cogs: list[str]) -> None:
-        """
+        """Load cog files as extension to the bot.
         :param module: must match the directory name under cogs/
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
@@ -73,11 +74,16 @@ class ProgPhil(Bot):
         await self.pool.close()
 
     async def launch(self):
-        # use .start to avoid blocking the event loop so we can use async on main
+        """ProgPhil instance starter.
+        Use .start to avoid blocking the event loop so we can use async on main
+        """
         await self.start(self.config.bot.token, reconnect=True)
 
 
 def get_dir_content(path: str) -> list[str]:
+    """This returns all the contents(files or directories) from the specified path.
+    :param path: path to directory
+    """
     return os.listdir(path)
 
 

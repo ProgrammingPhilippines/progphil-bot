@@ -12,12 +12,14 @@ class BotConfig(BaseModel):
 
 
 class GuildInfo(BaseModel):
+    """Holds all guild-related configurations."""
     staff_roles: list[int]
     dev_help_forum: int
     log_channel: int
 
 
 class Database(BaseModel):
+    """Holds the database configurations."""
     name: str
     host: str
     user: str
@@ -26,6 +28,7 @@ class Database(BaseModel):
 
 
 class API(BaseModel):
+    """Holds the api third-party configurations, like secret keys."""
     api_ninja: str
 
 
@@ -35,6 +38,7 @@ class LoggerConfig(BaseModel):
 
 
 class Config(BaseModel):
+    """Base class to hold all config for the project to use."""
     bot: BotConfig
     database: Database
     logger: LoggerConfig
@@ -43,6 +47,9 @@ class Config(BaseModel):
 
 
 def get_config(path: str) -> Config:
+    """Parses a yaml config from the specified path.
+    :param path: The path of the yaml config file.
+    """
     dotenv.load_dotenv()
     yaml.SafeLoader.add_constructor("!ENV", _load_env)
 
