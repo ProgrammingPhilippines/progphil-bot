@@ -31,4 +31,4 @@ RUN poetry config virtualenvs.create false \
 COPY . /progphil-bot
 
 # Run the bot
-CMD ["poetry", "run", "python", "bot/main.py"]
+CMD ["poetry", "run", "python", "src/bot/main.py"]
