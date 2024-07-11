@@ -4,6 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["Jedddy <jedbalita25@gmail.com>"]
 readme = "README.md"
+packages = [
+    {include = "src"},
+    {include = "bot", from = "src"},
+    {include = "cogs", from = "src"},
+    {include = "*", from = "src/bot"}
+]
 
 [tool.poetry.dependencies]
 python = "^3.10.14"
@@ -22,6 +28,9 @@ cryptography = "^42.0.8"
 python-levenshtein = "^0.25.1"
 setuptools = "^70.1.0"
 pydantic = "^2.8.0"
+
+[tool.poetry.scripts]
+progphil = "main:run"
 
 [build-system]
 requires = ["poetry-core"]
