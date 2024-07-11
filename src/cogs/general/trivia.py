@@ -11,10 +11,10 @@ from discord.ext import tasks
 from discord.ext.commands import Bot, GroupCog
 from discord.app_commands import command, describe
 
-from ...data.admin.config_auto import Config
-from ...data.trivia import TriviaDB
-from ...utils.decorators import is_staff
-from ...utils.utils import validate_time
+from src.data.admin.config_auto import Config
+from src.data.trivia import TriviaDB
+from src.utils.decorators import is_staff
+from src.utils.utils import validate_time
 
 
 class Trivia(GroupCog):

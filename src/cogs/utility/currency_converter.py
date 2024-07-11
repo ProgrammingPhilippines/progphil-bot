@@ -11,9 +11,9 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from ...data.admin.config_auto import Config
-from ...ui.views.currency_converter import CurrencyConverterPagination
-from ...utils.decorators import is_staff
+from src.data.admin.config_auto import Config
+from src.ui.views.currency_converter import CurrencyConverterPagination
+from src.utils.decorators import is_staff
 
 
 class Converter(GroupCog):

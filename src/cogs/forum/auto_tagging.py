@@ -2,10 +2,10 @@ from discord import Forbidden, Guild, HTTPException, Interaction, Thread, Member
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from ...data.forum.post_assist import PostAssistDB
-from ...data.admin.config_auto import Config
-from ...utils.decorators import is_staff
-from ...ui.views.post_assist import (
+from src.data.forum.post_assist import PostAssistDB
+from src.data.admin.config_auto import Config
+from src.utils.decorators import is_staff
+from src.ui.views.post_assist import (
     ConfigurePostAssist,
     ConfigurationPagination,
     format_data,

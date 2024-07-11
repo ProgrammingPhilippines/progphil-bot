@@ -7,8 +7,8 @@ from discord import Embed
 from discord.ext.commands import Bot, Context, GroupCog, command as prefixed_command
 from discord.app_commands import command
 
-from ...data.admin.config_auto import Config
-from ...utils.decorators import is_staff
+from src.data.admin.config_auto import Config
+from src.utils.decorators import is_staff
 
 
 class ImageGen(GroupCog):

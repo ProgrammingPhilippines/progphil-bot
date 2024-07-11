@@ -2,6 +2,8 @@ import os
 
 from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
+from src.bot.config import Database, Config, get_config
+
 from logging import Logger
 from discord.ext.commands import Bot
 import asyncio
@@ -10,7 +12,6 @@ from asyncpg import Pool, create_pool
 from discord import Intents
 from yoyo import read_migrations, get_backend
 
-from src.bot.config import Database, Config, get_config
 
 intents = Intents().all()
 intents.dm_messages = False  # pycharm showing a warning Intents' object attribute 'dm_messages' is read-only
@@ -46,11 +47,11 @@ class ProgPhil(Bot):
         """This method only gets called ONCE, load stuff here."""
 
         # Load every cog inside cogs folder
-        admin_cogs = get_dir_content("../cogs/admin")
-        forum_cogs = get_dir_content("../cogs/forum")
-        fun_cogs = get_dir_content("../cogs/fun")
-        general_cogs = get_dir_content("../cogs/general")
-        utility_cogs = get_dir_content("../cogs/utility")
+        admin_cogs = get_dir_content("./src/cogs/admin")
+        forum_cogs = get_dir_content("./src/cogs/forum")
+        fun_cogs = get_dir_content("./src/cogs/fun")
+        general_cogs = get_dir_content("./src/cogs/general")
+        utility_cogs = get_dir_content("./src/cogs/utility")
 
         await self.load_cogs("admin", admin_cogs)
         await self.load_cogs("forum", forum_cogs)
@@ -66,6 +67,8 @@ class ProgPhil(Bot):
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
         for cog in cogs:
+            if cog.startswith("__init__") or cog.startswith("currency"):
+                continue
             if cog.endswith(".py"):
                 await self.load_extension(f"src.cogs.{module}.{cog[:-3]}")
 
@@ -75,7 +78,7 @@ class ProgPhil(Bot):
 
     async def launch(self):
         """ProgPhil instance starter.
-        Use .start to avoid blocking the event loop so we can use async on main
+        Use .start to avoid blocking the event loop, so we can use async on main
         """
         await self.start(self.config.bot.token, reconnect=True)
 
@@ -99,7 +102,7 @@ def migrate_db(db: Database) -> None:
 
 
 async def main():
-    config = get_config("../../config/config.yml")
+    config = get_config("config/config.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
 
@@ -113,7 +116,7 @@ async def main():
     await bot.launch()
 
 
-if __name__ == "__main__":
+def run():
     # run main function forever
     try:
         asyncio.run(main())

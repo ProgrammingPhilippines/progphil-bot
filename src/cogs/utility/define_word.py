@@ -10,9 +10,9 @@ from discord.ext.commands import (
 )
 from discord.app_commands import command
 
-from ...data.admin.config_auto import Config
-from ...ui.views.define_word import DefineWordPagination
-from ...utils.decorators import is_staff
+from src.data.admin.config_auto import Config
+from src.ui.views.define_word import DefineWordPagination
+from src.utils.decorators import is_staff
 from discord.ext.commands import Bot
 
 
