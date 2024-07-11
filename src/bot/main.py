@@ -107,8 +107,14 @@ async def main():
     logger = BotLogger(logger_config)
 
     db_config = config.database
-    pool = await create_pool(host=db_config.host, database=db_config.name, user=db_config.user,
-                               password=db_config.password, port=db_config.port)
+    dsn = 'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
+        user=db_config.user,
+        password=db_config.password,
+        host=db_config.host,
+        port=db_config.port,
+        database=db_config.name,
+    )
+    pool = await create_pool(dsn)
 
     migrate_db(db_config)
 
