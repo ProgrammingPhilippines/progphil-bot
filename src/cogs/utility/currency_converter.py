@@ -21,12 +21,16 @@ class Converter(GroupCog):
         self.bot = bot
         self.config = Config(self.bot.pool)
 
-        symbols = requests.get(
-            "https://api.apilayer.com/currency_data/list",
-            headers={"apiKey": os.environ["currency_api_key"]}
-        ).json()["currencies"]
+        try:
+            symbols = requests.get(
+                "https://api.apilayer.com/currency_data/list",
+                headers={"apiKey": os.environ["currency_api_key"]}
+            ).json()["currencies"]
 
-        self.symbols = [(symbol, symbols[symbol]) for symbol in symbols]
+            self.symbols = [(symbol, symbols[symbol]) for symbol in symbols]
+        except Exception as e:
+            self.bot.logger.info("Something went wrong while fetching currencies", e)
+            self.symbols = []
 
     def is_valid(self, amount: str):
         return amount.isdigit() or amount.count(".") == 1
