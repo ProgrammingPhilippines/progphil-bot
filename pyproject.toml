@@ -4,23 +4,33 @@ version = "0.1.0"
 description = ""
 authors = ["Jedddy <jedbalita25@gmail.com>"]
 readme = "README.md"
+packages = [
+    {include = "src"},
+    {include = "bot", from = "src"},
+    {include = "cogs", from = "src"},
+    {include = "*", from = "src/bot"}
+]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-discord-py = "^2.1.0"
-python-dotenv = "^0.21.0"
+python = "^3.10.14"
+discord-py = "^2.4.0"
+python-dotenv = "^1.0.1"
 pyyaml = "^6.0"
-flake8 = "^6.0.0"
-asyncpg = "^0.27.0"
+flake8 = "^7.1.0"
+asyncpg = "^0.29.0"
 requests = "^2.28.2"
 yoyo-migrations = "^8.2.0"
 psycopg2 = "^2.9.5"
 cloudscraper = "^1.2.69"
-bs4 = "^0.0.1"
+bs4 = "^0.0.2"
 psycopg2-binary = "^2.9.5"
-cryptography = "^40.0.2"
-python-levenshtein = "^0.21.1"
+cryptography = "^42.0.8"
+python-levenshtein = "^0.25.1"
+setuptools = "^70.1.0"
+pydantic = "^2.8.0"
 
+[tool.poetry.scripts]
+progphil = "main:run"
 
 [build-system]
 requires = ["poetry-core"]
