@@ -3,7 +3,6 @@ bot:
   token: !ENV "token"
 
 database:
-  database:
   name: !ENV "db_name"
   host: !ENV "db_host"
   user: !ENV "db_user"
@@ -12,9 +11,13 @@ database:
 
 
 api:
-  api_ninja: !ENV "api_ninja"
+  api_ninja: !ENV "api_ninja_key"
 
 guild:
   staff_roles: [ 748554755265134635 ]
   dev_help_forum: 1020260384638259210
   log_channel: 1084008856633491557
+
+logger:
+  log_channel: 1084008856633491557
+  log_level: "INFO"

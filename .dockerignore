@@ -1,7 +1,6 @@
 # Ignored Files
 # -----------------------
 .git
-*.md
 .cache
 *.txt
 .gitignore

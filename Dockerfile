@@ -21,14 +21,19 @@ RUN pip install -U pip \
     && pip install setuptools>=65.5.1
 ENV PATH="${PATH}:/root/.poetry/bin"
 
-# Install Poetry dependencies
 WORKDIR /progphil-bot
-COPY poetry.lock pyproject.toml ./
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev
 
-# Copy source code
-COPY . /progphil-bot
+COPY pyproject.toml poetry.lock ./
+COPY src ./src
+COPY migrations ./migrations
+COPY config ./config
+COPY README.md ./
+
+# Install Poetry dependencies
+RUN poetry config virtualenvs.create false \
+     && poetry install --no-dev
+
+COPY . .
 
 # Run the bot
-CMD ["poetry", "run", "python", "bot/main.py"]
+CMD ["poetry", "run", "progphil"]
