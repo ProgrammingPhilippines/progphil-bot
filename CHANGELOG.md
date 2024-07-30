@@ -7,6 +7,11 @@
 
 * add default value to port ([#225](https://github.com/ProgrammingPhilippines/progphil-bot/issues/225)) ([cbebe91](https://github.com/ProgrammingPhilippines/progphil-bot/commit/cbebe9193b9096cebb66538338787a673f95eeee))
 
+### Chores
+
+* codebase cleanup ([#237](https://github.com/ProgrammingPhilippines/progphil-bot/pull/234)) ([6a748e1](https://github.com/ProgrammingPhilippines/progphil-bot/commit/6a748e1c3f1d9c78cf50a95b4523d7c5462d3ae8))
+* remove pph-rphoto command  ([#240](https://github.com/ProgrammingPhilippines/progphil-bot/pull/240)) ([9d328db](https://github.com/ProgrammingPhilippines/progphil-bot/commit/9d328dbba1c2b832b6c4149351cf45fca3f511a0))
+
 ## [1.1.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.0.1...v1.1.0) (2024-03-17)
 
 
