@@ -64,8 +64,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Load config for release
-        run: yes | cp -rf config/config.yml config/config.yml
+      - name: Cleanup config
+        run: rm config/dev-config.yml
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
@@ -97,9 +97,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Load PRD config
+      - name: Cleanup dev config
         run: |
-          yes | cp -rf config/config.yml config/config.yml
+          rm config/dev-config.yml
           rm .gitignore
       - name: Install Railway
         run: npm i -g @railway/cli
