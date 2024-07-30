@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.1.0...v1.1.1) (2024-07-30)
+
+
+### Bug Fixes
+
+* add default value to port ([#225](https://github.com/ProgrammingPhilippines/progphil-bot/issues/225)) ([cbebe91](https://github.com/ProgrammingPhilippines/progphil-bot/commit/cbebe9193b9096cebb66538338787a673f95eeee))
+
 ## [1.1.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.0.1...v1.1.0) (2024-03-17)
 
 
