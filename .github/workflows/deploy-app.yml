@@ -99,7 +99,6 @@ jobs:
           node-version: 18
       - name: Load PRD config
         run: |
-          cp config/config.yml config/config.yml
           rm .gitignore
       - name: Install Railway
         run: npm i -g @railway/cli
