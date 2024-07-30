@@ -25,7 +25,6 @@ class Converter(GroupCog):
             "https://api.apilayer.com/currency_data/list",
             headers={"apiKey": os.environ["currency_api_key"]}
         ).json()["currencies"]
-
         self.symbols = [(symbol, symbols[symbol]) for symbol in symbols]
 
     def is_valid(self, amount: str):
