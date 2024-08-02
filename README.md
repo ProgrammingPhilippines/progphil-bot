@@ -15,26 +15,33 @@ Follow these instructions to set up the bot on your Discord server.
 
 ### Prerequisites
 
-In order to use the bot, you'll need the following tools:
+Required tools/programs used for development:
 
 - python 3.8 or later (check your version with ``python --version``)
-- poetry (install with ``pip3 install poetry`` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer).
+- poetry (install with ``pip3 install poetry`` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer)).
 
 ### Installation
 
 1. Create a new Discord application on the [Discord Developer Portal](https://discord.com/developers/applications) and set the required permissions for the bot.
 2. Grab the secret token for the bot from the "Bot" tab of your Discord application.
-3. Clone the repository
+3. After setting up your bot in the discord portal it's time to clone the repository.
 ```
 git clone https://github.com/ProgrammingPhilippines/progphil-bot
 ```
-4. Install the dependencies
+4. After you clone the repository, go to the project and install the dependencies using the command below:
 ```
 cd progphil-bot
 
 poetry install
 ```
+5. Create a .env file and make sure to add all necessary envrinment variables, see `.env.example` file
+6. If you haven't encounter any conflict or errors when intalling dependencies, then the bot is now ready; run the bot using the command below:
+```
+poetry run progphil
+```
+Congrats! If you want to contribute to this project read the [Development](/#Development) section.
 
+### Development
 Read the [Development Guide](https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide) for an in-depth look at the development process and guidelines for contributing to the ProgPhil Bot project.
 
 # Contributing
