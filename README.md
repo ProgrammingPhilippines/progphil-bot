@@ -49,7 +49,7 @@ Read the [Development Guide](https://github.com/ProgrammingPhilippines/progphil-
 
 Want to contribute to the project? Check out the [available issues](https://github.com/ProgrammingPhilippines/progphil-bot/issues) and start coding!
 
-1. Fork the repository.
+1. To start contributing, you can either fork the repository to work on your own copy, contact an admin to request joining the development team, or open a new feature request to propose your idea. Be sure to check out the available issues for existing tasks.
 2. Create your feature branch.
 3. Commit your changes `git commit -m "you amazing commit"`.
 4. Push the branch `git push -u origin your-feature-branch`.
