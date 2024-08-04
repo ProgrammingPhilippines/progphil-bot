@@ -34,8 +34,9 @@ cd progphil-bot
 
 poetry install
 ```
-5. Create a .env file and make sure to add all necessary envrinment variables, see `.env.example` file
-6. If you haven't encounter any conflict or errors when intalling dependencies, then the bot is now ready; run the bot using the command below:
+5. Create a .env file and make sure to add all necessary envrinment variables, see `.env.example` file.
+6. If you encounter an error when installing dependencies(e.g., incompatible dependency version), try updating/downgrading the dependency version and try to install again and see if that resolves the issue. 
+7. The bot is now ready; run the bot using the command below:
 ```
 poetry run progphil
 ```
