@@ -15,33 +15,41 @@ Follow these instructions to set up the bot on your Discord server.
 
 ### Prerequisites
 
-In order to use the bot, you'll need the following tools:
+Required tools/programs used for development:
 
 - python 3.8 or later (check your version with ``python --version``)
-- poetry (install with ``pip3 install poetry`` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer).
+- poetry (install with ``pip3 install poetry`` or by using the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer)).
 
 ### Installation
 
 1. Create a new Discord application on the [Discord Developer Portal](https://discord.com/developers/applications) and set the required permissions for the bot.
 2. Grab the secret token for the bot from the "Bot" tab of your Discord application.
-3. Clone the repository
+3. After setting up your bot in the discord portal it's time to clone the repository.
 ```
 git clone https://github.com/ProgrammingPhilippines/progphil-bot
 ```
-4. Install the dependencies
+4. After you clone the repository, go to the project and install the dependencies using the command below:
 ```
 cd progphil-bot
 
 poetry install
 ```
+5. Create a .env file and make sure to add all necessary envrinment variables, see `.env.example` file.
+6. If you encounter an error when installing dependencies(e.g., incompatible dependency version), try updating/downgrading the dependency version and try to install again and see if that resolves the issue. 
+7. The bot is now ready; run the bot using the command below:
+```
+poetry run progphil
+```
+Congrats! If you want to contribute to this project read the [Development](/#Development) section.
 
+### Development
 Read the [Development Guide](https://github.com/ProgrammingPhilippines/progphil-bot/wiki/Development-Guide) for an in-depth look at the development process and guidelines for contributing to the ProgPhil Bot project.
 
 # Contributing
 
 Want to contribute to the project? Check out the [available issues](https://github.com/ProgrammingPhilippines/progphil-bot/issues) and start coding!
 
-1. Fork the repository.
+1. To start contributing, you can either fork the repository to work on your own copy, contact an admin to request joining the development team, or open a new feature request to propose your idea. Be sure to check out the available issues for existing tasks.
 2. Create your feature branch.
 3. Commit your changes `git commit -m "you amazing commit"`.
 4. Push the branch `git push -u origin your-feature-branch`.
