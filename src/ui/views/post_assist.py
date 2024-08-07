@@ -14,22 +14,6 @@ from discord.ui import (
 )
 
 
-class EditPostAssist(Modal, title="Edit Post Assist"):
-    name = TextInput(
-        label="Name",
-        placeholder="Enter name here...",
-        min_length=1,
-        max_length=100,
-        style=TextStyle.short,
-        required=True,
-    )
-
-    async def on_submit(self, interaction: Interaction) -> None:
-        await interaction.response.send_message(
-            "Successfully edited post assist.", ephemeral=True
-        )
-
-
 class PostAssistState():
     def __init__(
         self,
