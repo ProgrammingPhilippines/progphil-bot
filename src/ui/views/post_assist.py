@@ -1,21 +1,41 @@
 from typing import Callable
 
-from discord import Interaction, ButtonStyle, ChannelType, TextStyle, Member, Guild
+from discord import Interaction, ButtonStyle
+from discord import TextStyle, Member, Guild
 from discord.ui import (
     View,
     Modal,
     Button,
     TextInput,
-    ChannelSelect,
     MentionableSelect,
     select,
     button,
 )
 
 
+class EditPostAssist(Modal, title="Edit Post Assist"):
+    name = TextInput(
+        label="Name",
+        placeholder="Enter name here...",
+        min_length=1,
+        max_length=100,
+        style=TextStyle.short,
+        required=True,
+    )
+
+    async def on_submit(self, interaction: Interaction) -> None:
+        await interaction.response.send_message(
+            "Successfully edited post assist.", ephemeral=True
+        )
+
+
 class ConfigurePostAssist(View):
     def __init__(
-        self, forum: int = None, tag_message: str = None, custom_msg: str = None
+        self,
+        forum: int = None,
+        tag_message: str = None,
+        custom_msg: str = None,
+        interaction: Interaction = None,
     ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
@@ -24,19 +44,10 @@ class ConfigurePostAssist(View):
         self.finished = False
         super().__init__(timeout=480)
 
-    @select(
-        cls=ChannelSelect,
-        placeholder="Select forum...",
-        channel_types=[ChannelType.forum],
+    @button(
+        label="Click to open modal",
     )
-    async def select_forum(self, interaction: Interaction, selection: ChannelSelect):
-        if self.forum and self.forum != selection.values[0].id:
-            return await interaction.response.send_message(
-                f"Please select this forum -> {interaction.guild.get_channel(self.forum).mention}.",
-                ephemeral=True,
-            )
-
-        self.forum = selection.values[0].id
+    async def open_modal(self, interaction: Interaction, button: Button):
         modal = PostAssistMessage(self)
         await interaction.response.send_modal(modal)
         await modal.wait()
@@ -71,7 +82,9 @@ class PostAssistTags(View):
         self.selection = []
         super().__init__(timeout=480)
 
-    @select(cls=MentionableSelect, placeholder="Select member/roles...", max_values=25)
+    @select(cls=MentionableSelect,
+            placeholder="Select member/roles...",
+            max_values=25)
     async def select_entities(
         self, interaction: Interaction, selection: MentionableSelect
     ):
@@ -136,7 +149,9 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page], interaction.guild, self.getter),
+            content=format_data(self.data[self.page],
+                                interaction.guild,
+                                self.getter),
             view=self,
         )
 
@@ -150,7 +165,9 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page], interaction.guild, self.getter),
+            content=format_data(self.data[self.page],
+                                interaction.guild,
+                                self.getter),
             view=self,
         )
 

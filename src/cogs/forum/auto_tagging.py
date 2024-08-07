@@ -1,4 +1,5 @@
-from discord import Forbidden, Guild, HTTPException, Interaction, Thread, Member, Role
+from discord import Forbidden, Guild, HTTPException
+from discord import Interaction, Thread, Member, Role
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -10,6 +11,8 @@ from src.ui.views.post_assist import (
     ConfigurationPagination,
     format_data,
 )
+
+AUTHOR_PLACEHOLDER = "[[@author]]"
 
 
 def _getter(guild: Guild, entry: dict) -> Member | Role:
@@ -46,6 +49,11 @@ class ForumAssist(GroupCog):
         tag_message = await self.db.get_tag_message(entry["id"])
 
         thread_msg = thread.get_partial_message(thread.id)
+
+        if AUTHOR_PLACEHOLDER in reply:
+            self.bot.logger.info("author placeholder detected")
+            reply = reply.replace(AUTHOR_PLACEHOLDER,
+                                  thread_msg.thread.owner.mention)
 
         # Sometimes the pinning and reply fails
         # when the thread is created and the bot
@@ -188,12 +196,13 @@ class ForumAssist(GroupCog):
                 f"Configuration ID: {config_id} may not exist.",
                 ephemeral=True,
             )
-
+        forum_id = config["forum_id"]
         tag_message = await self.db.get_tag_message(config_id)
         custom_message = await self.db.get_reply(config_id)
 
         view = ConfigurePostAssist(
-            forum=config["forum_id"],
+            forum=forum_id,
+            interaction=interaction,
             tag_message=tag_message,
             custom_msg=custom_message,
         )
@@ -201,7 +210,6 @@ class ForumAssist(GroupCog):
         await interaction.followup.send(view=view, ephemeral=True)
         await view.wait()
 
-        forum = view.forum
         reply = view.custom_msg
         tags = view.tag_list
         tag_message = view.tag_message
@@ -216,7 +224,7 @@ class ForumAssist(GroupCog):
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.update_configuration(
                 id=config_id,
-                forum_id=forum,
+                forum_id=forum_id,
                 entities=tags,
                 entity_tag_message=tag_message,
                 reply=reply,
