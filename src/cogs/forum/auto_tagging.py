@@ -1,5 +1,5 @@
 from discord import Forbidden, Guild, HTTPException
-from discord import Interaction, Thread, Member, Role
+from discord import Interaction, Thread, Member, Role, ClientUser, User
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -200,10 +200,21 @@ class ForumAssist(GroupCog):
         forum_id = config["forum_id"]
         tag_message = await self.db.get_tag_message(config_id)
         custom_message = await self.db.get_reply(config_id)
-        config_class  = ConfigurePostAssist(
+        tags = await self.db.get_tags(config_id)
+        existing_tags: list[Role] | list[Member] = []
+
+        for tag in tags:
+            tag_id = tag["entity_id"]
+            if tag["entity_type"] == "role":
+                existing_tags.append(interaction.guild.get_role(tag_id))
+            elif tag["entity_type"] == "member":
+                existing_tags.append(interaction.guild.get_member(tag_id))
+
+        config_class = ConfigurePostAssist(
             forum=forum_id,
             tag_message=tag_message,
             custom_msg=custom_message,
+            existing_tags=existing_tags
         )
 
         modal = PostAssistMessage(config_class)

@@ -1,7 +1,7 @@
 from typing import Callable
 
 from discord import Interaction, ButtonStyle
-from discord import TextStyle, Member, Guild
+from discord import TextStyle, Member, Guild, Role
 from discord.ui import (
     View,
     Modal,
@@ -35,9 +35,11 @@ class ConfigurePostAssist():
         forum: int = None,
         tag_message: str = None,
         custom_msg: str = None,
+        existing_tags: list[Role] | list[Member] = None
     ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
+        self.existing_tags: list[Role] | list[Member] = existing_tags
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
         self.finished = False
@@ -68,9 +70,13 @@ class PostAssistMessage(Modal, title="Post Assist Message"):
 
 class PostAssistTags(View):
     def __init__(self, config_class: ConfigurePostAssist):
-        self.config_class = config_class
-        self.selection = []
         super().__init__(timeout=480)
+
+        self.config_class = config_class
+        self.selection = [tag for tag in self.config_class.existing_tags]
+
+        select_menu = [item for item in self.children if isinstance(item, MentionableSelect)][0]
+        select_menu.default_values = self.config_class.existing_tags
 
     @select(cls=MentionableSelect,
             placeholder="Select member/roles...",
@@ -78,10 +84,10 @@ class PostAssistTags(View):
     async def select_entities(
         self, interaction: Interaction, selection: MentionableSelect
     ):
-        self.selection.extend(selection.values)
+        self.selection = [tag for tag in selection.values]
 
         await interaction.response.send_message(
-            f"Selected {len(selection.values)} entities.", ephemeral=True
+            f"Selected {len(self.selection)} entities.", ephemeral=True
         )
 
     @button(label="Submit", style=ButtonStyle.green)
