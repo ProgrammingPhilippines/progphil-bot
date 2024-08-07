@@ -114,8 +114,6 @@ class ForumAssist(GroupCog):
         tags = view.options.tag_list
         tag_message = view.options.tag_message
 
-        print(f"Forum: {forum}, Reply: {reply}; Tags: {tags}, Tag Message: {tag_message}")
-
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
                 "There is already a configuration for this forum.",
