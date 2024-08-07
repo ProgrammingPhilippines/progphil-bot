@@ -1,50 +1,80 @@
 from typing import Callable
 
-from discord import Interaction, ButtonStyle, ChannelType, TextStyle, Member, Guild
+from discord import Interaction, ButtonStyle, ChannelType
+from discord import TextStyle, Member, Guild, Role
 from discord.ui import (
     View,
     Modal,
     Button,
     TextInput,
-    ChannelSelect,
     MentionableSelect,
+    ChannelSelect,
     select,
     button,
 )
 
 
-class ConfigurePostAssist(View):
+class PostAssistState():
     def __init__(
-        self, forum: int = None, tag_message: str = None, custom_msg: str = None
+        self,
+        forum: int = None,
+        tag_message: str = None,
+        custom_msg: str = None,
+        existing_tags: list[Role] | list[Member] = [],
+        finished: bool = False,
     ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
+        self.existing_tags: list[Role] | list[Member] = existing_tags or []
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
-        self.finished = False
+        self.finished = finished
+
+
+class ConfigurePostAssist(View):
+    def __init__(
+        self,
+        forum: int = None,
+        tag_message: str = None,
+        custom_msg: str = None
+    ):
         super().__init__(timeout=480)
+        self.state = PostAssistState(
+            forum=forum,
+            tag_message=tag_message,
+            custom_msg=custom_msg,
+            existing_tags=[],
+        )
 
     @select(
         cls=ChannelSelect,
         placeholder="Select forum...",
         channel_types=[ChannelType.forum],
     )
-    async def select_forum(self, interaction: Interaction, selection: ChannelSelect):
-        if self.forum and self.forum != selection.values[0].id:
+    async def select_forum(
+        self,
+        interaction: Interaction,
+        selection: ChannelSelect
+    ):
+        if self.state.forum and self.state.forum != selection.values[0].id:
             return await interaction.response.send_message(
-                f"Please select this forum -> {interaction.guild.get_channel(self.forum).mention}.",
+                f"Please select this forum -> {interaction.guild.get_channel(self.state.forum).mention}.",
                 ephemeral=True,
             )
 
-        self.forum = selection.values[0].id
-        modal = PostAssistMessage(self)
+        self.state.forum = selection.values[0].id
+        modal = PostAssistMessage(self.state)
         await interaction.response.send_modal(modal)
         await modal.wait()
 
+        await self.stop()
+
 
 class PostAssistMessage(Modal, title="Post Assist Message"):
-    def __init__(self, config_class: ConfigurePostAssist):
-        self.config_class = config_class
+    def __init__(self, options: PostAssistState):
+        super().__init__(timeout=480)
+
+        self.state = options
         self.message = TextInput(
             label="Post Assist Message",
             placeholder="Enter message here...",
@@ -52,53 +82,60 @@ class PostAssistMessage(Modal, title="Post Assist Message"):
             max_length=2000,
             style=TextStyle.long,
             required=False,
-            default=self.config_class.custom_msg,
+            default=self.state.custom_msg,
         )
-
-        super().__init__(timeout=480)
         self.add_item(self.message)
 
     async def on_submit(self, interaction: Interaction) -> None:
-        self.config_class.custom_msg = self.message.value
-        view = PostAssistTags(self.config_class)
+        self.state.custom_msg = self.message.value
+        view = PostAssistTags(self.state)
         await interaction.response.send_message(view=view, ephemeral=True)
         await view.wait()
 
 
 class PostAssistTags(View):
-    def __init__(self, config_class: ConfigurePostAssist):
-        self.config_class = config_class
-        self.selection = []
+    def __init__(self, options: PostAssistState):
         super().__init__(timeout=480)
 
-    @select(cls=MentionableSelect, placeholder="Select member/roles...", max_values=25)
+        self.state = options
+        self.selection = [tag for tag in self.state.existing_tags]
+
+        select_menu = [item for item in
+                       self.children if isinstance(item, MentionableSelect)][0]
+        select_menu.default_values = self.state.existing_tags
+
+    @select(cls=MentionableSelect,
+            placeholder="Select member/roles...",
+            max_values=25)
     async def select_entities(
         self, interaction: Interaction, selection: MentionableSelect
     ):
-        self.selection.extend(selection.values)
+        self.selection = [tag for tag in selection.values]
 
         await interaction.response.send_message(
-            f"Selected {len(selection.values)} entities.", ephemeral=True
+            f"Selected {len(self.selection)} entities.", ephemeral=True
         )
 
     @button(label="Submit", style=ButtonStyle.green)
     async def submit(self, interaction: Interaction, button: Button):
-        self.config_class.tag_list = [
+        self.state.tag_list = [
             (entity.id, "member" if isinstance(entity, Member) else "role")
             for entity in self.selection
         ]
 
-        self.stop()
         modal = PostAssistTagMessage(
-            self.config_class, required=bool(self.config_class.tag_list)
+            self.state, required=bool(self.state.tag_list)
         )
         await interaction.response.send_modal(modal)
         await modal.wait()
+        self.stop()
 
 
 class PostAssistTagMessage(Modal, title="Set Tag Message"):
-    def __init__(self, config_class: ConfigurePostAssist, required: bool):
-        self.config_class = config_class
+    def __init__(self, options: PostAssistState, required: bool):
+        super().__init__(timeout=480)
+
+        self.state = options
         self.message = TextInput(
             label="Post Assist Tag Message",
             placeholder="Enter message here...",
@@ -106,17 +143,16 @@ class PostAssistTagMessage(Modal, title="Set Tag Message"):
             max_length=500,
             style=TextStyle.long,
             required=required,
-            default=self.config_class.tag_message,
+            default=self.state.tag_message,
         )
 
-        super().__init__(timeout=480)
         self.add_item(self.message)
 
     async def on_submit(self, interaction: Interaction) -> None:
-        self.config_class.tag_message = self.message.value
+        self.state.tag_message = self.message.value
         await interaction.response.send_message("Success...", ephemeral=True)
-        self.config_class.stop()
-        self.config_class.finished = True
+        self.state.finished = True
+        self.stop()
 
 
 class ConfigurationPagination(View):
@@ -136,7 +172,9 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page], interaction.guild, self.getter),
+            content=format_data(self.data[self.page],
+                                interaction.guild,
+                                self.getter),
             view=self,
         )
 
@@ -150,7 +188,9 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page], interaction.guild, self.getter),
+            content=format_data(self.data[self.page],
+                                interaction.guild,
+                                self.getter),
             view=self,
         )
 
