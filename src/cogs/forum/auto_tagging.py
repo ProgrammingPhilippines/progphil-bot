@@ -10,7 +10,7 @@ from src.ui.views.post_assist import (
     ConfigurePostAssist,
     ConfigurationPagination,
     PostAssistMessage,
-    PostAssistOptions,
+    PostAssistState,
     format_data,
 )
 
@@ -109,10 +109,10 @@ class ForumAssist(GroupCog):
         )
         await view.wait()
 
-        forum = view.options.forum
-        reply = view.options.custom_msg
-        tags = view.options.tag_list
-        tag_message = view.options.tag_message
+        forum = view.state.forum
+        reply = view.state.custom_msg
+        tags = view.state.tag_list
+        tag_message = view.state.tag_message
 
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
@@ -120,13 +120,13 @@ class ForumAssist(GroupCog):
                 ephemeral=True,
             )
 
-        if not (view.options.tag_list or view.options.custom_msg):
+        if not (view.state.tag_list or view.state.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if view.options.finished:
+        if view.state.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.add_configuration(
                 forum_id=forum,
@@ -211,28 +211,28 @@ class ForumAssist(GroupCog):
             elif tag["entity_type"] == "member":
                 existing_tags.append(interaction.guild.get_member(tag_id))
 
-        options = PostAssistOptions(
+        state = PostAssistState(
             forum=forum_id,
             tag_message=tag_message,
             custom_msg=custom_message,
             existing_tags=existing_tags
         )
 
-        modal = PostAssistMessage(options)
+        modal = PostAssistMessage(state)
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        reply = modal.options.custom_msg
-        tags = modal.options.tag_list
-        tag_message = modal.options.tag_message
+        reply = modal.state.custom_msg
+        tags = modal.state.tag_list
+        tag_message = modal.state.tag_message
 
-        if not (modal.options.tag_list or modal.options.custom_msg):
+        if not (modal.state.tag_list or modal.state.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if modal.options.finished:
+        if modal.state.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.update_configuration(
                 id=config_id,
