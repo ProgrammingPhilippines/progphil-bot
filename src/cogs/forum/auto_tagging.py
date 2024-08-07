@@ -1,5 +1,5 @@
 from discord import Forbidden, Guild, HTTPException
-from discord import Interaction, Thread, Member, Role, ClientUser, User
+from discord import Interaction, Thread, Member, Role
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -10,6 +10,7 @@ from src.ui.views.post_assist import (
     ConfigurePostAssist,
     ConfigurationPagination,
     PostAssistMessage,
+    PostAssistOptions,
     format_data,
 )
 
@@ -108,10 +109,12 @@ class ForumAssist(GroupCog):
         )
         await view.wait()
 
-        forum = view.forum
-        reply = view.custom_msg
-        tags = view.tag_list
-        tag_message = view.tag_message
+        forum = view.options.forum
+        reply = view.options.custom_msg
+        tags = view.options.tag_list
+        tag_message = view.options.tag_message
+
+        print(f"Forum: {forum}, Reply: {reply}; Tags: {tags}, Tag Message: {tag_message}")
 
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
@@ -119,13 +122,13 @@ class ForumAssist(GroupCog):
                 ephemeral=True,
             )
 
-        if not (view.tag_list or view.custom_msg):
+        if not (view.options.tag_list or view.options.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if view.finished:
+        if view.options.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.add_configuration(
                 forum_id=forum,
@@ -210,28 +213,28 @@ class ForumAssist(GroupCog):
             elif tag["entity_type"] == "member":
                 existing_tags.append(interaction.guild.get_member(tag_id))
 
-        config_class = ConfigurePostAssist(
+        options = PostAssistOptions(
             forum=forum_id,
             tag_message=tag_message,
             custom_msg=custom_message,
             existing_tags=existing_tags
         )
 
-        modal = PostAssistMessage(config_class)
+        modal = PostAssistMessage(options)
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        reply = modal.config_class.custom_msg
-        tags = modal.config_class.tag_list
-        tag_message = modal.config_class.tag_message
+        reply = modal.options.custom_msg
+        tags = modal.options.tag_list
+        tag_message = modal.options.tag_message
 
-        if not (modal.config_class.tag_list or modal.config_class.custom_msg):
+        if not (modal.options.tag_list or modal.options.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if modal.config_class.finished:
+        if modal.options.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.update_configuration(
                 id=config_id,
