@@ -29,28 +29,18 @@ class EditPostAssist(Modal, title="Edit Post Assist"):
         )
 
 
-class ConfigurePostAssist(View):
+class ConfigurePostAssist():
     def __init__(
         self,
         forum: int = None,
         tag_message: str = None,
         custom_msg: str = None,
-        interaction: Interaction = None,
     ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
         self.finished = False
-        super().__init__(timeout=480)
-
-    @button(
-        label="Click to open modal",
-    )
-    async def open_modal(self, interaction: Interaction, button: Button):
-        modal = PostAssistMessage(self)
-        await interaction.response.send_modal(modal)
-        await modal.wait()
 
 
 class PostAssistMessage(Modal, title="Post Assist Message"):
@@ -101,12 +91,12 @@ class PostAssistTags(View):
             for entity in self.selection
         ]
 
-        self.stop()
         modal = PostAssistTagMessage(
             self.config_class, required=bool(self.config_class.tag_list)
         )
         await interaction.response.send_modal(modal)
         await modal.wait()
+        self.stop()
 
 
 class PostAssistTagMessage(Modal, title="Set Tag Message"):
@@ -128,8 +118,8 @@ class PostAssistTagMessage(Modal, title="Set Tag Message"):
     async def on_submit(self, interaction: Interaction) -> None:
         self.config_class.tag_message = self.message.value
         await interaction.response.send_message("Success...", ephemeral=True)
-        self.config_class.stop()
         self.config_class.finished = True
+        self.stop()
 
 
 class ConfigurationPagination(View):

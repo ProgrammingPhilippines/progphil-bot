@@ -9,6 +9,7 @@ from src.utils.decorators import is_staff
 from src.ui.views.post_assist import (
     ConfigurePostAssist,
     ConfigurationPagination,
+    PostAssistMessage,
     format_data,
 )
 
@@ -188,7 +189,7 @@ class ForumAssist(GroupCog):
         :param config_id: The configuration ID from the database.
         """
 
-        await interaction.response.defer(ephemeral=True)
+        # await interaction.response.defer(ephemeral=True)
         config = await self.db.get_config(config_id)
 
         if not config:
@@ -199,28 +200,27 @@ class ForumAssist(GroupCog):
         forum_id = config["forum_id"]
         tag_message = await self.db.get_tag_message(config_id)
         custom_message = await self.db.get_reply(config_id)
-
-        view = ConfigurePostAssist(
+        config_class  = ConfigurePostAssist(
             forum=forum_id,
-            interaction=interaction,
             tag_message=tag_message,
             custom_msg=custom_message,
         )
 
-        await interaction.followup.send(view=view, ephemeral=True)
-        await view.wait()
+        modal = PostAssistMessage(config_class)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
 
-        reply = view.custom_msg
-        tags = view.tag_list
-        tag_message = view.tag_message
+        reply = modal.config_class.custom_msg
+        tags = modal.config_class.tag_list
+        tag_message = modal.config_class.tag_message
 
-        if not (view.tag_list or view.custom_msg):
+        if not (modal.config_class.tag_list or modal.config_class.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if view.finished:
+        if modal.config_class.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.update_configuration(
                 id=config_id,
