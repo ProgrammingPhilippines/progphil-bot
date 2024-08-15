@@ -6,6 +6,7 @@ from discord.app_commands import Choice, choices, command, describe
 
 from src.ui.modals.announcement import Announcement
 from src.utils.decorators import is_staff
+from logging import Logger
 
 
 ALLOWED_EXT = ["gif", "png", "jpeg", "jpg"]
@@ -24,6 +25,7 @@ def is_allowed(attachment: discord.Attachment):
 class Announcements(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.logger: Logger = bot.logger
 
     @is_staff()
     @command(name="shout",
@@ -48,7 +50,7 @@ class Announcements(Cog):
             ephemeral=True
         )
         await channel.send(message)
-        
+        self.logger.info(f"A shout was made by {interaction.user} in {channel.name}")
 
     @is_staff()
     @command(name="announce",
@@ -95,9 +97,10 @@ class Announcements(Cog):
             # If the user picked yes
             mention = mention.value
 
-        announcement = Announcement(photo, channel,  submission_type.value, mention)
+        announcement = Announcement(photo, channel,  submission_type.value, mention, self.logger)
         await interaction.response.send_modal(announcement)
         await announcement.wait()
+        self.logger.info(f"A announcement was made by {interaction.user} in {channel.name}")
 
 
 async def setup(bot: Bot):
