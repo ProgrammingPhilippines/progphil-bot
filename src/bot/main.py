@@ -1,10 +1,10 @@
 import os
 
-from src.utils.logging.discord_handler import init
 from src.utils.logging.logger import BotLogger
 from src.bot.config import Database, Config, get_config
+from src.utils.logging.discord_handler import DiscordHandler
 
-from logging import Logger
+from logging import Logger, StreamHandler
 from discord.ext.commands import Bot
 import asyncio
 
@@ -20,6 +20,7 @@ intents.dm_messages = False  # pycharm showing a warning Intents' object attribu
 class ProgPhil(Bot):
     config: Config
     logger: Logger
+    bot_logger: BotLogger
     pool: Pool
 
     def __init__(self, pool: Pool, cfg: Config, bot_logger: BotLogger, **kwargs):
@@ -29,7 +30,8 @@ class ProgPhil(Bot):
             command_prefix=bot_cfg.prefix,
             intents=intents,
         )
-        self.logger = bot_logger.get_logger(__file__)
+        self.bot_logger = bot_logger
+        self.logger = self.bot_logger.get_logger()
         self.config = cfg
         self.pool = pool
 
@@ -39,9 +41,17 @@ class ProgPhil(Bot):
         This can get invoked multiple times, use :meth:`setup_hook()` instead
         for loading databases, etc.
         """
+        bot_logger = self.bot_logger
+        logger_config = self.config.logger
+        log_channel = self.get_channel(logger_config.log_channel)
 
-        init(self)
-        self.logger.info(f"{self.user.display_name} running.")
+        discord_handler = DiscordHandler(log_channel)
+        bot_logger.add_handler(discord_handler)
+
+        logger = bot_logger.get_logger()
+        logger.info(f"{self.user.display_name} running.")
+
+        self.logger = logger
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
@@ -67,7 +77,7 @@ class ProgPhil(Bot):
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
         for cog in cogs:
-            if cog.startswith("__init__"):
+            if cog.startswith("__init__") or cog.startswith("currency"):
                 continue
             if cog.endswith(".py"):
                 await self.load_extension(f"src.cogs.{module}.{cog[:-3]}")
@@ -102,9 +112,10 @@ def migrate_db(db: Database) -> None:
 
 
 async def main():
-    config = get_config("config/config.yml")
+    config = get_config("config/dev-config.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
+    logger.add_handler(StreamHandler())
 
     db_config = config.database
     dsn = 'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
