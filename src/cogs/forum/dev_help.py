@@ -9,7 +9,7 @@ from discord import (
     ForumChannel,
     Interaction,
     Thread,
-    Message
+    Message,
 )
 from discord.ui import View, Select
 from discord.app_commands import command
@@ -20,6 +20,7 @@ from src.data.admin.config_auto import Config
 from src.data.admin.settings import Settings
 from src.utils.decorators import is_staff
 from src.ui.views.dev_help import PersistentSolverView
+from logging import Logger
 
 
 def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
@@ -80,6 +81,7 @@ class HelpSolver(GroupCog):
         self.tag_db = DevHelpTagDB(self.bot.pool)
         self.config = Config(self.bot.pool)
         self.views_db = DevHelpViewsDB(self.bot.pool)
+        self.logger: Logger = self.bot.logger
 
     async def reload_forum(self):
         dev_help = await self.settings.get_setting("dev_help_forum")
@@ -89,6 +91,8 @@ class HelpSolver(GroupCog):
         await self.bot.wait_until_ready()
         await self.reload_forum()
 
+        staff_roles: list[int] = self.bot.config.guild.staff_roles
+
         for view in await self.views_db.get_persistent_views():
             self.bot.add_view(
                 PersistentSolverView(
@@ -96,10 +100,12 @@ class HelpSolver(GroupCog):
                     view["author_id"],
                     self.views_db,
                     self.tag_db,
-                    self.forum
+                    self.forum,
+                    staff_roles,
+                    self.logger,
                 ),
-            message_id=view["message_id"]
-        )
+                message_id=view["message_id"]
+            )
 
     async def cog_load(self):
         asyncio.create_task(self.load())
@@ -120,6 +126,8 @@ class HelpSolver(GroupCog):
 
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
+        staff_roles: list[int] = self.bot.config.guild.staff_roles
+
         async def try_send() -> Message:
             for _ in range(5):  # max of 5 retries
                 try:
@@ -131,6 +139,8 @@ class HelpSolver(GroupCog):
                             self.views_db,
                             self.tag_db,
                             self.forum,
+                            staff_roles,
+                            self.logger,
                         )
                     )
                 except Forbidden:
@@ -184,7 +194,7 @@ class HelpSolver(GroupCog):
         tag_id = settings["tag_id"]
 
         if not tag_id:
-            return  
+            return
 
         description = "This post has been marked as solved."
 
@@ -195,6 +205,8 @@ class HelpSolver(GroupCog):
         tag = ctx.channel.parent.get_tag(tag_id)
 
         name = f"[SOLVED] {ctx.channel.name}"
+
+        self.logger.info(name)
 
         if len(name) > 100:
             name = name[:97] + "..."

@@ -1,5 +1,5 @@
 from discord import Interaction, app_commands
-
+from logging import Logger
 from discord.ext.commands import Bot
 
 
@@ -17,6 +17,7 @@ def is_staff():
     ```
     """
     async def predicate(interaction: Interaction[Bot]) -> bool:
+        logger: Logger = interaction.client.logger
         guild_config = interaction.client.config.guild
         staff = False
 
@@ -26,6 +27,9 @@ def is_staff():
             if role in interaction.user.roles:
                 staff = True
                 break  # Break the loop and continue the comand if the invoker is a staff
+
+        if not staff:
+            logger.info(f'{interaction.user} tried to use a staff command')
 
         return staff
 
