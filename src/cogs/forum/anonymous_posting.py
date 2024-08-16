@@ -30,7 +30,6 @@ class AnonymousPosting(GroupCog, name="anon"):
 
         self.bot.add_view(PersistentAnonView(SALT, self, self.config), message_id=record['message_id'])
 
-
     async def _send_to_logs(
         self,
         message: str,
@@ -272,7 +271,6 @@ class AnonymousPosting(GroupCog, name="anon"):
     @command(name="setbutton", description="Sets the button to this channel.")
     async def set_button(self, interaction: Interaction, message: str | None):
         """Sets the anonymous posting button on the interaction channel"""
-
         default_message = "Post / Reply Anonymously!"
         embed = Embed()
 

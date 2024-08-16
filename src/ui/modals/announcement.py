@@ -8,6 +8,7 @@ from discord import (
 from discord.ui import Modal, TextInput
 
 from ...ui.views.announcement import AnnouncementView
+from logging import Logger
 
 
 def _unique(iterable: list) -> list:
@@ -44,12 +45,14 @@ class Announcement(Modal, title='Announcement'):
             attachment: Attachment,
             channel: TextChannel,
             submission_type: str,
-            mention: str = None
+            mention: str = None,
+            logger: Logger = None
             ):
         self.attachment = attachment
         self.channel = channel
         self.submission_type = submission_type
         self.mention = mention
+        self.logger = logger
         super().__init__()
 
     async def on_submit(self, interaction: Interaction) -> None:

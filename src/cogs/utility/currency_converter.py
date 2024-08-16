@@ -14,12 +14,14 @@ from discord.app_commands import command
 from src.data.admin.config_auto import Config
 from src.ui.views.currency_converter import CurrencyConverterPagination
 from src.utils.decorators import is_staff
+from logging import Logger
 
 
 class Converter(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.config = Config(self.bot.pool)
+        self.logger: Logger = self.bot.logger
 
         symbols = requests.get(
             "https://api.apilayer.com/currency_data/list",
@@ -73,9 +75,8 @@ class Converter(GroupCog):
         data = response.json()
 
         if response.status_code != 200 or not data["success"]:
-            channel = self.bot.get_channel(self.bot.config.guild.log_channel)
-            await channel.send(f"An error occurred in the currency converter:\n```{data}```")
             await ctx.send("Sorry, I could not convert that currency.")
+            self.logger.error(f"Error converting currency: {data}")
             return
 
         converted_amount = data["result"]
@@ -102,6 +103,7 @@ class Converter(GroupCog):
 
         if not config["config_status"]:
             await ctx.send("Sorry, this command is currently disabled.")
+            self.logger.info("Currency Converter is disabled.")
             return
 
         embed = Embed()
@@ -110,7 +112,11 @@ class Converter(GroupCog):
             [f"{symbol[0].upper()} - {symbol[1]}" for count, symbol in enumerate(self.symbols, start=1) if count <= 10]
         )
 
-        view = CurrencyConverterPagination(ctx.author, self.symbols)
+        view = CurrencyConverterPagination(
+            ctx.author,
+            self.symbols,
+            self.logger
+        )
         await ctx.send(embed=embed, view=view)
 
     @is_staff()
@@ -127,6 +133,7 @@ class Converter(GroupCog):
             f"Turned {toggle_map[toggle]} Currency Converter.",
             ephemeral=True
         )
+        self.logger.info(f"Currency Converter is now {toggle_map[toggle]}.")
 
     def _is_supported(self, currency: str) -> bool:
         """

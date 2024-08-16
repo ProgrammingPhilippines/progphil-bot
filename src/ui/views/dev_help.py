@@ -1,9 +1,9 @@
-from discord import ButtonStyle, Interaction, ForumChannel
+from discord import ButtonStyle, Interaction, ForumChannel, Embed
 from discord.ui import View, Button, Select, button
 from discord.ui.item import Item
 
-from src.bot.config import GuildInfo
 from ...data.forum.dev_help import DevHelpViewsDB, DevHelpTagDB
+from ...utils.logging.logger import Logger
 
 
 class PersistentSolverView(View):
@@ -14,12 +14,16 @@ class PersistentSolverView(View):
         db: DevHelpViewsDB,
         tag_db: DevHelpTagDB,
         forum: ForumChannel,
+        staff_roles: list[int],
+        logger: Logger,
     ):
         self.message_id = message_id
         self.author_id = author_id
         self.db = db
         self.tag_db = tag_db
         self.forum = forum
+        self.staff_roles = staff_roles
+        self.logger = logger
         super().__init__(timeout=None)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
@@ -28,13 +32,16 @@ class PersistentSolverView(View):
             interaction.user.guild_permissions.administrator,
             any(
                 interaction.guild.get_role(role) in interaction.user.roles
-                for role in GuildInfo.staff_roles
+                for role in self.staff_roles
             ),
         )
 
         if not any(conditions):
             await interaction.response.send_message(
                 "This isn't for you!", ephemeral=True
+            )
+            self.logger.info(
+                f"User {interaction.user.id} tried to use a view they don't own."
             )
             return False
         return True
@@ -49,6 +56,9 @@ class PersistentSolverView(View):
 
         if not thread:
             thread = await self.forum.guild.fetch_channel(self.message_id)
+            self.logger.info(
+                f"Thread {thread.id} was not found in {self.forum.name}."
+            )
 
         users = {
             (message.author.display_name, message.author.id)
@@ -58,6 +68,7 @@ class PersistentSolverView(View):
         }
 
         message = "This post has been marked as solved."
+        embed = Embed(description=message)
         view = None
 
         if users:
@@ -101,14 +112,14 @@ class PersistentSolverView(View):
         tag = thread.parent.get_tag(settings["tag_id"])
 
         name = f"[SOLVED] {thread.name}"
+        self.logger.info(name)
 
         if len(name) > 100:
             name = name[:97] + "..."
 
         await thread.edit(locked=True, name=name)
         await thread.add_tags(tag, reason="Solved")
-        await thread.send(message)
-
+        await thread.send(embed=embed)
         await self.db.close_view(thread.id)
 
     async def on_error(
@@ -117,9 +128,7 @@ class PersistentSolverView(View):
         error: Exception,
         item: Item,
     ) -> None:
-        log_channel = self.forum.guild.get_channel(GuildInfo.log_channel)
-
         info = f"Thread Message ID: {self.message_id}"
-        await log_channel.send(
+        self.logger.error(
             f"An error occurred while using the solve button:\n```{error}\n{info}```"
         )
