@@ -10,8 +10,6 @@ _formatter = Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s')
 
 
 class BotLogger(object):
-    _stream_handler: Handler
-    _discord_handler: Handler
     logger: Logger
 
     def __init__(self, logger_config: LoggerConfig):
