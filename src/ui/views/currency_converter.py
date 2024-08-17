@@ -2,6 +2,7 @@ from typing import Tuple, List
 
 from discord import Embed, Interaction, ButtonStyle, User
 from discord.ui import View, Button, button
+from logging import Logger
 
 
 class CurrencyConverterPagination(View):
@@ -14,16 +15,19 @@ class CurrencyConverterPagination(View):
     def __init__(
         self,
         user: User,
-        data: List[Tuple[str, str]]
+        data: List[Tuple[str, str]],
+        logger: Logger,
     ):
         self.offset = 0
         self.title = "**Here are the available currencies**\n"
         self.user = user
         self.data = data
+        self.logger = logger
         super().__init__(timeout=180)
 
     async def interaction_check(self, interaction):
         if interaction.user != self.user:
+            self.logger.info(f"{interaction.user} tried to use {self.user}'s view.")
             await interaction.response.send_message(
                 "You do not own this view.",
                 ephemeral=True
