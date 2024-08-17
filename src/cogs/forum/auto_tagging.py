@@ -1,4 +1,5 @@
-from discord import Forbidden, Guild, HTTPException, Interaction, Thread, Member, Role
+from discord import Forbidden, Guild, HTTPException
+from discord import Interaction, Thread, Member, Role
 from discord.app_commands import command, describe
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -8,8 +9,12 @@ from src.utils.decorators import is_staff
 from src.ui.views.post_assist import (
     ConfigurePostAssist,
     ConfigurationPagination,
+    PostAssistMessage,
+    PostAssistState,
     format_data,
 )
+
+AUTHOR_PLACEHOLDER = "[[@author]]"
 
 
 def _getter(guild: Guild, entry: dict) -> Member | Role:
@@ -46,6 +51,10 @@ class ForumAssist(GroupCog):
         tag_message = await self.db.get_tag_message(entry["id"])
 
         thread_msg = thread.get_partial_message(thread.id)
+
+        if AUTHOR_PLACEHOLDER in reply:
+            reply = reply.replace(AUTHOR_PLACEHOLDER,
+                                  thread_msg.thread.owner.mention)
 
         # Sometimes the pinning and reply fails
         # when the thread is created and the bot
@@ -99,10 +108,10 @@ class ForumAssist(GroupCog):
         )
         await view.wait()
 
-        forum = view.forum
-        reply = view.custom_msg
-        tags = view.tag_list
-        tag_message = view.tag_message
+        forum = view.state.forum
+        reply = view.state.custom_msg
+        tags = view.state.tag_list
+        tag_message = view.state.tag_message
 
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
@@ -110,13 +119,13 @@ class ForumAssist(GroupCog):
                 ephemeral=True,
             )
 
-        if not (view.tag_list or view.custom_msg):
+        if not (view.state.tag_list or view.state.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if view.finished:
+        if view.state.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.add_configuration(
                 forum_id=forum,
@@ -180,43 +189,59 @@ class ForumAssist(GroupCog):
         :param config_id: The configuration ID from the database.
         """
 
-        await interaction.response.defer(ephemeral=True)
-        config = await self.db.get_config(config_id)
+        # await interaction.response.defer(ephemeral=True)
+        try:
+            config = await self.db.get_config(config_id)
+            if not config:
+                self.bot.logger.info(
+                    f"Configuration ID: {config_id} may not exist."
+                )
+                return await interaction.response.send_message(
+                    f"Configuration ID: {config_id} may not exist.",
+                    ephemeral=True,
+                )
+        except Exception as e:
+            self.bot.logger.error(e)
 
-        if not config:
-            return await interaction.followup.send(
-                f"Configuration ID: {config_id} may not exist.",
-                ephemeral=True,
-            )
-
+        forum_id = config["forum_id"]
         tag_message = await self.db.get_tag_message(config_id)
         custom_message = await self.db.get_reply(config_id)
+        tags = await self.db.get_tags(config_id)
+        existing_tags: list[Role] | list[Member] = []
 
-        view = ConfigurePostAssist(
-            forum=config["forum_id"],
+        for tag in tags:
+            tag_id = tag["entity_id"]
+            if tag["entity_type"] == "role":
+                existing_tags.append(interaction.guild.get_role(tag_id))
+            elif tag["entity_type"] == "member":
+                existing_tags.append(interaction.guild.get_member(tag_id))
+
+        state = PostAssistState(
+            forum=forum_id,
             tag_message=tag_message,
             custom_msg=custom_message,
+            existing_tags=existing_tags
         )
 
-        await interaction.followup.send(view=view, ephemeral=True)
-        await view.wait()
+        modal = PostAssistMessage(state)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
 
-        forum = view.forum
-        reply = view.custom_msg
-        tags = view.tag_list
-        tag_message = view.tag_message
+        reply = modal.state.custom_msg
+        tags = modal.state.tag_list
+        tag_message = modal.state.tag_message
 
-        if not (view.tag_list or view.custom_msg):
+        if not (modal.state.tag_list or modal.state.custom_msg):
             return await interaction.followup.send(
                 "You must provide either tags or a custom message.",
                 ephemeral=True,
             )
 
-        if view.finished:
+        if modal.state.finished:
             await interaction.followup.send("Success!", ephemeral=True)
             await self.db.update_configuration(
                 id=config_id,
-                forum_id=forum,
+                forum_id=forum_id,
                 entities=tags,
                 entity_tag_message=tag_message,
                 reply=reply,
