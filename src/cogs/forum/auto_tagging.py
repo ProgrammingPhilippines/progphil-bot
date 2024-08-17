@@ -53,7 +53,6 @@ class ForumAssist(GroupCog):
         thread_msg = thread.get_partial_message(thread.id)
 
         if AUTHOR_PLACEHOLDER in reply:
-            self.bot.logger.info("author placeholder detected")
             reply = reply.replace(AUTHOR_PLACEHOLDER,
                                   thread_msg.thread.owner.mention)
 
@@ -191,13 +190,19 @@ class ForumAssist(GroupCog):
         """
 
         # await interaction.response.defer(ephemeral=True)
-        config = await self.db.get_config(config_id)
+        try:
+            config = await self.db.get_config(config_id)
+            if not config:
+                self.bot.logger.info(
+                    f"Configuration ID: {config_id} may not exist."
+                )
+                return await interaction.response.send_message(
+                    f"Configuration ID: {config_id} may not exist.",
+                    ephemeral=True,
+                )
+        except Exception as e:
+            self.bot.logger.error(e)
 
-        if not config:
-            return await interaction.followup.send(
-                f"Configuration ID: {config_id} may not exist.",
-                ephemeral=True,
-            )
         forum_id = config["forum_id"]
         tag_message = await self.db.get_tag_message(config_id)
         custom_message = await self.db.get_reply(config_id)
