@@ -187,8 +187,8 @@ class HelpSolver(GroupCog):
             ephemeral=True
         )
 
+    @is_staff(command_type="prefix")
     @prefixed_command()
-    @is_staff()
     async def solved(self, ctx: Context):
         settings = await self.tag_db.get()
         tag_id = settings["tag_id"]
