@@ -19,7 +19,8 @@ jobs:
   deploy-to-dev:
     needs: pylint-checks
     uses: ./.github/workflows/release-to-dev.yml
-  release:
+  create-release-pr:
+    needs: pylint-checks
     name: Create Release
     runs-on: ubuntu-latest
     permissions: write-all
@@ -37,7 +38,7 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     environment: prd
-    needs: release
+    needs: create-release-pr
     permissions:
       contents: read
       packages: write
@@ -67,6 +68,6 @@ jobs:
   deploy-to-prd:
     if: contains(github.head_ref, 'release-') && contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
     needs: 
-      - release
+      - create-release-pr
       - pylint-checks
     uses: ./.github/workflows/release-to-prd.yml
