@@ -16,9 +16,11 @@ env:
 jobs:
   pylint-checks:
     uses: ./.github/workflows/pylint-checks.yml
+    secrets: inherit 
   deploy-to-dev:
     needs: pylint-checks
     uses: ./.github/workflows/release-to-dev.yml
+    secrets: inherit 
   create-release-pr:
     needs: pylint-checks
     name: Create Release
@@ -71,3 +73,4 @@ jobs:
       - create-release-pr
       - pylint-checks
     uses: ./.github/workflows/release-to-prd.yml
+    secrets: inherit 
