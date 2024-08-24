@@ -2,7 +2,11 @@ from discord import Interaction, ForumChannel
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from src.utils.decorators import is_staff
-from src.data.forum.forum_showcase import ForumShowcase, UpdateForumShowcase, ForumShowcaseDB
+from src.data.forum.forum_showcase import (
+    ForumShowcase,
+    UpdateForumShowcase,
+    ForumShowcaseDB,
+)
 from logging import Logger
 from datetime import datetime, timedelta
 from typing import Literal
@@ -42,31 +46,38 @@ class ForumShowcaseCog(GroupCog):
 
             # TODO: if current time is not yet reached, wait until it is
             sleep_time = showcase.schedule - datetime.now()
-            self.logger.info(f"Waiting {sleep_time.total_seconds()} seconds for showcase {showcase.id}")
+            self.logger.info(
+                f"Waiting {sleep_time.total_seconds()} seconds for showcase {showcase.id}"
+            )
             asyncio.sleep(sleep_time.total_seconds())
 
             for forum in showcase.forums:
-                self.logger.info(f"Showing forum {forum.forum_id} in showcase {showcase.id}")
+                self.logger.info(
+                    f"Showing forum {forum.forum_id} in showcase {showcase.id}"
+                )
                 await self.showcase_threads(forum)
 
             next_schedule = self._calculate_next_schedule(
-                showcase.schedule,
-                showcase.interval
+                showcase.schedule, showcase.interval
             )
             update_showcase_schedule = UpdateForumShowcase(
                 id=showcase.id,
                 schedule=next_schedule,
                 interval=showcase.interval,
                 target_channel=showcase.target_channel,
-                updated_at=datetime.now()
+                status=showcase.status,
+                updated_at=datetime.now(),
             )
-            self.logger.info(f"Updating showcase {showcase.id} schedule to {next_schedule}")
+            self.logger.info(
+                f"Updating showcase {showcase.id} schedule to {next_schedule}"
+            )
             self.forum_showcase_db.update_showcase(update_showcase_schedule)
             showcase.schedule = next_schedule
 
     def _calculate_next_schedule(
-            current_schedule: datetime,
-            interval: Literal["daily", "weekly", "monthly"]
+        self,
+        current_schedule: datetime,
+        interval: Literal["daily", "weekly", "monthly"],
     ) -> datetime:
         if interval == "daily":
             return current_schedule + timedelta(days=1)
@@ -93,45 +104,30 @@ class ForumShowcaseCog(GroupCog):
         self.forum_showcases = showcases
 
     @is_staff()
-    @command(
-        name="add",
-        description="Adds a forum to the showcase"
-    )
+    @command(name="add", description="Adds a forum to the showcase")
     async def add_forum(self, interaction: Interaction):
         pass
 
     @is_staff()
-    @command(
-        name="list",
-        description="List all forums to showcase."
-    )
+    @command(name="list", description="List all forums to showcase.")
     async def list_forum(self, interaction: Interaction):
         pass
 
     @is_staff()
-    @command(
-        name="delete",
-        description="Delete 1 or more forums from the showcase"
-    )
+    @command(name="delete", description="Delete 1 or more forums from the showcase")
     async def delete_forum(self, interaction: Interaction):
         pass
 
     @is_staff()
-    @command(
-        name="config",
-        description="Configure the schedule of a forum."
-    )
+    @command(name="config", description="Configure the schedule of a forum.")
     async def config(self, interaction: Interaction):
         pass
 
     @is_staff()
-    @command(
-        name="toggle",
-        description="Enable/Disable the showcase feature."
-    )
+    @command(name="toggle", description="Enable/Disable the showcase feature.")
     async def toggle(self, interaction: Interaction):
         pass
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(ForumShowcase(bot))
+    await bot.add_cog(ForumShowcaseCog(bot))
