@@ -6,7 +6,7 @@ from logging import Logger
 from typing import Literal
 
 from dateutil.relativedelta import relativedelta
-from discord import Interaction, Thread
+from discord import Interaction, Thread, app_commands
 from discord.app_commands import command
 from discord.ext.commands import Bot, GroupCog
 from discord.ext.tasks import loop
@@ -15,15 +15,16 @@ from src.data.admin.config_auto import Config
 from src.data.forum.forum_showcase import (
     ForumShowcase,
     ForumShowcaseDB,
+    ShowcaseForum,
     UpdateForumShowcase,
 )
-from src.ui.views.forum_showcase import ForumShowcaseAddView
 from src.utils.decorators import is_staff
 
 
 class ForumShowcaseCog(GroupCog, name="forum_showcase"):
     forum_showcase: dict[int, ForumShowcase]
     tasks: dict[int, threading.Thread]
+    first_load: bool
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -33,6 +34,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         self.forum_showcase: ForumShowcase = {}
 
     async def cog_load(self) -> None:
+        self.first_load = True
         await asyncio.create_task(self.init_data())
 
         schedule = self.forum_showcase.schedule
@@ -40,8 +42,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         if not schedule:
             return
 
-        self.logger.info(f"Scheduling forum showcase {self.forum_showcase.id}")
-        self.schedule_showcase.change_interval(hours=schedule.hour)
         self.schedule_showcase.start()
 
     @loop()
@@ -49,6 +49,11 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         config = await self.db_config.get_config("forum_showcase")
 
         if not config["config_status"]:
+            return
+
+        if self.first_load:
+            self.refresh_loop_interval()
+            self.first_load = False
             return
 
         showcase = self.forum_showcase
@@ -62,6 +67,11 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         except Exception as e:
             self.logger.info(f"Error in showcase_threads for {showcase.id}: {e}")
 
+        await self.update_schedule()
+        self.schedule_showcase.restart()
+
+    async def update_schedule(self):
+        showcase = self.forum_showcase
         next_schedule = self._calculate_next_schedule(
             showcase.schedule, showcase.interval
         )
@@ -80,6 +90,14 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         )
         showcase.schedule = next_schedule
 
+    def refresh_loop_interval(self):
+        time = self.forum_showcase.schedule - datetime.now()
+        hours = time.total_seconds() // 3600.0
+        self.logger.info(
+            f"Scheduling forum showcase {self.forum_showcase.id}, {hours} hours from now"
+        )
+        self.schedule_showcase.change_interval(hours=hours)
+
     def _calculate_next_schedule(
         self,
         current_schedule: datetime,
@@ -96,7 +114,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
     async def showcase_threads(self, forum_showcase: ForumShowcase):
         self.logger.info(f"target channel id: {forum_showcase.target_channel}")
-        target_channel = await self.bot.fetch_channel(forum_showcase.target_channel)
+        target_channel = self.bot.get_channel(forum_showcase.target_channel)
 
         if target_channel is None:
             self.logger.info(
@@ -121,21 +139,14 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
             thread = random.choice(threads)
             msg = self._build_response(forum.name, thread)
-            msgs += msg + "\n"
+            msgs += msg
 
         # build message
-        message = f"""
-            Hey, everyone! You might wanna check out these posts from our forums
-
-            {msgs}
-        """
+        message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{msgs}"
         await target_channel.send(message)
 
     def _build_response(self, forum_name: str, thread: Thread):
-        return f"""
-        ### {forum_name}
-        {thread.mention}
-        """
+        return f"### {forum_name}\n{thread.mention}\n"
 
     async def init_data(self):
         data = await self.forum_showcase_db.get_showcases()
@@ -145,31 +156,53 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
     @is_staff()
     @command(name="add", description="Adds a forum to the showcase")
-    async def add_forum(self, interaction: Interaction):
+    async def add_forum(
+        self,
+        interaction: Interaction,
+        forum: str,
+    ):
         # since we only have one showcase, we can just use 1 as the id
         # that was added in the database during migration
         forum_showcase_id = 1
-        existing_forums = await self.forum_showcase_db.get_forums(forum_showcase_id)
-        existing_selections = [
-            self.bot.get_channel(forum.forum_id) for forum in existing_forums
-        ]
-        forum_showcase_add_view = ForumShowcaseAddView(
-            existing_forums=existing_selections,
-            forum_showcase_id=forum_showcase_id,
-            forum_showcase_db=self.forum_showcase_db,
-            logger=self.logger,
+        selected_forum = interaction.guild.get_channel(int(forum))
+
+        now = datetime.now()
+        showcase_forum = ShowcaseForum(
+            forum_id=selected_forum.id,
+            showcase_id=forum_showcase_id,
+            created_at=now,
         )
 
-        await interaction.response.send_message(
-            "Select the forums you want to showcase",
-            view=forum_showcase_add_view,
-            ephemeral=True,
-        )
-        await forum_showcase_add_view.wait()
+        try:
+            await self.forum_showcase_db.add_forum(showcase_forum)
+        except Exception as e:
+            self.logger.error(
+                f"Failed to add forum {showcase_forum.forum_id} to showcase.\n {e}"
+            )
+            await interaction.response.send_message(
+                f"Failed to add forum {showcase_forum.forum_id} to showcase.",
+                ephemeral=True,
+            )
+            return
 
         forum_showcase = self.forum_showcase
-        for forums in forum_showcase_add_view.showcase_forums:
-            forum_showcase.forums.append(forums)
+        forum_showcase.forums.append(showcase_forum)
+        await interaction.response.send_message(
+            f"Added {selected_forum.mention} to showcase.", ephemeral=True
+        )
+
+    @add_forum.autocomplete("forum")
+    async def add_forum_autocomplete(
+        self, interaction: Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        existing_forums = [forum.forum_id for forum in self.forum_showcase.forums]
+        forums = interaction.guild.forums
+
+        return [
+            app_commands.Choice(name=forum.name, value=str(forum.id))
+            for forum in forums
+            if current.lower() in forum.name.lower() and forum.id not in existing_forums
+        ][:25]  # Discord limits autocomplete to 25 choices
 
     @is_staff()
     @command(name="list", description="List all forums to showcase.")
