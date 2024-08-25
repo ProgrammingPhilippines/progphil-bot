@@ -52,7 +52,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             return
 
         if self.first_load:
-            self.refresh_loop_interval()
+            await self.refresh_loop_interval()
             self.first_load = False
             return
 
@@ -68,7 +68,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             self.logger.info(f"Error in showcase_threads for {showcase.id}: {e}")
 
         await self.update_schedule()
-        self.refresh_loop_interval()
+        await self.refresh_loop_interval()
 
     async def update_schedule(self):
         showcase = self.forum_showcase
@@ -90,7 +90,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         )
         showcase.schedule = next_schedule
 
-    def refresh_loop_interval(self):
+    async def refresh_loop_interval(self):
         forum_showcase = self.forum_showcase
         now = datetime.now()
         diff = self.forum_showcase.schedule - now
