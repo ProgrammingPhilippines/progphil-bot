@@ -100,25 +100,35 @@ def get_dir_content(path: str) -> list[str]:
     return os.listdir(path)
 
 
-def migrate_db(db: Database) -> None:
+def migrate_db(db: Database, logger: Logger) -> None:
     """
     Will loop through migrations/ folder and attempt to run migration to the database.
     :param db: database config
     """
     url = f"postgresql://{db.user}:{db.password}@{db.host}:{db.port or 5432}/{db.name}"
-    backend = get_backend(url)
-    migrations = read_migrations("../../migrations")
-    backend.apply_migrations(backend.to_apply(migrations))
+    logger.info(f"Starting database migration with URL: {url}")
+
+    try:
+        backend = get_backend(url)
+        migrations = read_migrations("./migrations/")
+
+        with backend.lock():
+            to_apply = backend.to_apply(migrations)
+            logger.info(f"Found {len(to_apply)} migrations to apply")
+            backend.apply_migrations(to_apply)
+        logger.info("Migration completed successfully")
+    except Exception as e:
+        logger.error(f"Error during migration: {str(e)}")
 
 
 async def main():
-    config = get_config("config/config.yml")
+    config = get_config("config/dev-config-void.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
     logger.add_handler(StreamHandler())
 
     db_config = config.database
-    dsn = 'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
+    dsn = "postgresql://{user}:{password}@{host}:{port}/{database}".format(
         user=db_config.user,
         password=db_config.password,
         host=db_config.host,
@@ -127,7 +137,7 @@ async def main():
     )
     pool = await create_pool(dsn)
 
-    migrate_db(db_config)
+    migrate_db(db_config, logger.get_logger())
 
     bot = ProgPhil(pool, config, logger)
     await bot.launch()
