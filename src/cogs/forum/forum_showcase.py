@@ -1,78 +1,84 @@
-from discord import Interaction, ForumChannel
-from discord.ext.commands import GroupCog, Bot
+import asyncio
+import random
+import threading
+from datetime import datetime
+from logging import Logger
+from typing import Literal
+
+from dateutil.relativedelta import relativedelta
+from discord import Interaction, Thread
 from discord.app_commands import command
-from src.utils.decorators import is_staff
+from discord.ext.commands import Bot, GroupCog
+from discord.ext.tasks import loop
+
+from src.data.admin.config_auto import Config
 from src.data.forum.forum_showcase import (
     ForumShowcase,
-    UpdateForumShowcase,
     ForumShowcaseDB,
+    UpdateForumShowcase,
 )
-from logging import Logger
-from datetime import datetime, timedelta
-from typing import Literal
-import asyncio
+from src.ui.views.forum_showcase import ForumShowcaseAddView
+from src.utils.decorators import is_staff
 
 
-class ForumShowcaseCog(GroupCog):
-    forum_showcases: list[ForumShowcase]
-    tasks: dict[int, asyncio.Task]
+class ForumShowcaseCog(GroupCog, name="forum_showcase"):
+    forum_showcase: dict[int, ForumShowcase]
+    tasks: dict[int, threading.Thread]
 
     def __init__(self, bot: Bot):
         self.bot = bot
         self.forum_showcase_db = ForumShowcaseDB(self.bot.pool)
+        self.db_config = Config(self.bot.pool)
         self.logger: Logger = bot.logger
-        self.forum_showcases: list[ForumShowcase] = None
-        self.tasks = {}
+        self.forum_showcase: ForumShowcase = {}
 
     async def cog_load(self) -> None:
-        asyncio.create_task(self.init_data())
-        showcases = await self.forum_showcase_db.get_showcases()
+        await asyncio.create_task(self.init_data())
 
-        for showcase in showcases:
-            schedule = showcase.schedule
-            if not schedule:
-                return
+        schedule = self.forum_showcase.schedule
 
-            self.logger.info(f"Starting showcase task for {showcase.id}")
-            task = asyncio.create_task(self.schedule_showcase(showcase))
-            self.tasks[showcase.id] = task
+        if not schedule:
+            return
 
-    async def schedule_showcase(self, showcase: ForumShowcase):
-        # infinite loop until task is cancelled
-        while True:
-            if showcase.status == "inactive":
-                self.logger.info(f"Showcase {showcase.id} is inactive, stopping task")
-                return
+        self.logger.info(f"Scheduling forum showcase {self.forum_showcase.id}")
+        self.schedule_showcase.change_interval(hours=schedule.hour)
+        self.schedule_showcase.start()
 
-            # TODO: if current time is not yet reached, wait until it is
-            sleep_time = showcase.schedule - datetime.now()
-            self.logger.info(
-                f"Waiting {sleep_time.total_seconds()} seconds for showcase {showcase.id}"
-            )
-            asyncio.sleep(sleep_time.total_seconds())
+    @loop()
+    async def schedule_showcase(self):
+        config = await self.db_config.get_config("forum_showcase")
 
-            for forum in showcase.forums:
-                self.logger.info(
-                    f"Showing forum {forum.forum_id} in showcase {showcase.id}"
-                )
-                await self.showcase_threads(forum)
+        if not config["config_status"]:
+            return
 
-            next_schedule = self._calculate_next_schedule(
-                showcase.schedule, showcase.interval
-            )
-            update_showcase_schedule = UpdateForumShowcase(
-                id=showcase.id,
-                schedule=next_schedule,
-                interval=showcase.interval,
-                target_channel=showcase.target_channel,
-                status=showcase.status,
-                updated_at=datetime.now(),
-            )
-            self.logger.info(
-                f"Updating showcase {showcase.id} schedule to {next_schedule}"
-            )
-            self.forum_showcase_db.update_showcase(update_showcase_schedule)
-            showcase.schedule = next_schedule
+        showcase = self.forum_showcase
+
+        if showcase.status == "inactive":
+            self.logger.info(f"Showcase {showcase.id} is inactive, stopping task")
+            return
+
+        try:
+            await self.showcase_threads(showcase)
+        except Exception as e:
+            self.logger.info(f"Error in showcase_threads for {showcase.id}: {e}")
+
+        next_schedule = self._calculate_next_schedule(
+            showcase.schedule, showcase.interval
+        )
+        update_showcase_schedule = UpdateForumShowcase(
+            id=showcase.id,
+            schedule=next_schedule,
+            interval=showcase.interval,
+            target_channel=showcase.target_channel,
+            status=showcase.status,
+            updated_at=datetime.now(),
+        )
+
+        await self.forum_showcase_db.update_showcase(update_showcase_schedule)
+        self.logger.info(
+            f"forum showcase {showcase.id} is scheduled to run on {next_schedule}"
+        )
+        showcase.schedule = next_schedule
 
     def _calculate_next_schedule(
         self,
@@ -80,38 +86,101 @@ class ForumShowcaseCog(GroupCog):
         interval: Literal["daily", "weekly", "monthly"],
     ) -> datetime:
         if interval == "daily":
-            return current_schedule + timedelta(days=1)
+            return current_schedule + relativedelta(days=1)
 
         if interval == "weekly":
-            return current_schedule + timedelta(days=7)
+            return current_schedule + relativedelta(weeks=1)
 
         if interval == "monthly":
-            return current_schedule + timedelta(days=30)
+            return current_schedule + relativedelta(months=1)
 
-    async def showcase_threads(self, forum: ForumChannel):
-        # TODO: select threads randomly
-        pass
+    async def showcase_threads(self, forum_showcase: ForumShowcase):
+        self.logger.info(f"target channel id: {forum_showcase.target_channel}")
+        target_channel = await self.bot.fetch_channel(forum_showcase.target_channel)
 
-    async def cancel_task(self, task_id: int):
-        if task_id not in self.tasks:
+        if target_channel is None:
+            self.logger.info(
+                f"target channel not found: {forum_showcase.target_channel}"
+            )
             return
 
-        task = self.tasks.pop(task_id)
-        _ = task.cancel()
+        self.logger.info(f"target channel: {target_channel}")
+        msgs = ""
+
+        for showcase_forum in forum_showcase.forums:
+            forum = self.bot.get_channel(showcase_forum.forum_id)
+
+            if not forum:
+                continue
+
+            threads = forum.threads
+            total_threads = len(threads)
+
+            if total_threads == 0:
+                continue
+
+            thread = random.choice(threads)
+            msg = self._build_response(forum.name, thread)
+            msgs += msg + "\n"
+
+        # build message
+        message = f"""
+            Hey, everyone! You might wanna check out these posts from our forums
+
+            {msgs}
+        """
+        await target_channel.send(message)
+
+    def _build_response(self, forum_name: str, thread: Thread):
+        return f"""
+        ### {forum_name}
+        {thread.mention}
+        """
 
     async def init_data(self):
-        showcases = await self.forum_showcase_db.get_showcases()
-        self.forum_showcases = showcases
+        data = await self.forum_showcase_db.get_showcases()
+        showcase = data[0]
+
+        self.forum_showcase = showcase
 
     @is_staff()
     @command(name="add", description="Adds a forum to the showcase")
     async def add_forum(self, interaction: Interaction):
-        pass
+        # since we only have one showcase, we can just use 1 as the id
+        # that was added in the database during migration
+        forum_showcase_id = 1
+        existing_forums = await self.forum_showcase_db.get_forums(forum_showcase_id)
+        existing_selections = [
+            self.bot.get_channel(forum.forum_id) for forum in existing_forums
+        ]
+        forum_showcase_add_view = ForumShowcaseAddView(
+            existing_forums=existing_selections,
+            forum_showcase_id=forum_showcase_id,
+            forum_showcase_db=self.forum_showcase_db,
+            logger=self.logger,
+        )
+
+        await interaction.response.send_message(
+            "Select the forums you want to showcase",
+            view=forum_showcase_add_view,
+            ephemeral=True,
+        )
+        await forum_showcase_add_view.wait()
+
+        forum_showcase = self.forum_showcase
+        for forums in forum_showcase_add_view.showcase_forums:
+            forum_showcase.forums.append(forums)
 
     @is_staff()
     @command(name="list", description="List all forums to showcase.")
     async def list_forum(self, interaction: Interaction):
-        pass
+        self.logger.info(f"Forum Showcase: {self.forum_showcase.id}")
+
+        forum_showcase = self.forum_showcase
+
+        await interaction.response.send_message(
+            f"Forums to showcase: {forum_showcase.forums}"
+        )
 
     @is_staff()
     @command(name="delete", description="Delete 1 or more forums from the showcase")
