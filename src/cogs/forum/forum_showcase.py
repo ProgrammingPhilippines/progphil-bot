@@ -68,7 +68,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             self.logger.info(f"Error in showcase_threads for {showcase.id}: {e}")
 
         await self.update_schedule()
-        self.schedule_showcase.restart()
+        self.refresh_loop_interval()
 
     async def update_schedule(self):
         showcase = self.forum_showcase
@@ -91,12 +91,34 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         showcase.schedule = next_schedule
 
     def refresh_loop_interval(self):
-        time = self.forum_showcase.schedule - datetime.now()
-        hours = time.total_seconds() // 3600.0
+        forum_showcase = self.forum_showcase
+        now = datetime.now()
+        diff = self.forum_showcase.schedule - now
+
+        # if the time is negative, it means the showcase has already passed
+        if diff.total_seconds() <= 0:
+            next_sched = datetime.now()
+            next_sched = next_sched.replace(
+                hour=forum_showcase.schedule.hour,
+            )
+
+            next_sched = self._calculate_next_schedule(
+                next_sched, forum_showcase.interval
+            )
+
+            diff = next_sched - now
+            # delta = new_schedule - now
+            # self.logger.info(
+            #     f"forum showcase {self.forum_showcase.id}, will rerun on {delta}."
+            # )
+            # seconds = delta.total_seconds()
+            # self.schedule_showcase.change_interval(seconds=seconds)
+
         self.logger.info(
-            f"Scheduling forum showcase {self.forum_showcase.id}, {hours} hours from now"
+            f"forum showcase {self.forum_showcase.id}, will rerun on {diff}."
         )
-        self.schedule_showcase.change_interval(hours=hours)
+        seconds = diff.total_seconds()
+        self.schedule_showcase.change_interval(seconds=seconds)
 
     def _calculate_next_schedule(
         self,
