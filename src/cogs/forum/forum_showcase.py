@@ -6,7 +6,7 @@ from logging import Logger
 from typing import Literal
 
 from dateutil.relativedelta import relativedelta
-from discord import Interaction, Thread, app_commands
+from discord import Embed, Interaction, Thread, app_commands
 from discord.app_commands import command
 from discord.ext.commands import Bot, GroupCog
 from discord.ext.tasks import loop
@@ -61,7 +61,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             return
 
         if self.first_load:
-            await self.refresh_loop_interval()
+            self.refresh_loop_interval()
             self.first_load = False
             return
 
@@ -71,7 +71,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             self.logger.info(f"Error in showcase_threads for {forum_showcase.id}: {e}")
 
         await self.update_schedule()
-        await self.refresh_loop_interval()
+        self.refresh_loop_interval()
 
     async def update_schedule(self):
         forum_showcase = self.forum_showcase
@@ -92,7 +92,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         )
         forum_showcase.schedule = next_schedule
 
-    async def refresh_loop_interval(self):
+    def refresh_loop_interval(self):
         now = datetime.now()
         diff = self.forum_showcase.schedule - now
 
@@ -199,7 +199,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             )
 
             result = await self.forum_showcase_db.add_forum(showcase_forum)
-            self.logger.info(result)
 
             self.forum_showcase.add_forum(result)
             await interaction.response.send_message(
@@ -230,13 +229,31 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
     @is_staff()
     @command(name="list", description="List all forums to showcase.")
     async def list_forum(self, interaction: Interaction):
-        self.logger.info(f"Forum Showcase: {self.forum_showcase.id}")
-
         forum_showcase = self.forum_showcase
 
-        await interaction.response.send_message(
-            f"Forums to showcase: {forum_showcase.forums}"
+        embed = Embed(
+            title="Forum Showcase",
+            description="List of forums to showcase.",
+            color=0x00FF00,
+            timestamp=interaction.created_at,
         )
+        embed.set_author(
+            name=self.bot.user.display_name,
+            icon_url=self.bot.user.display_avatar,
+        )
+
+        for forum in forum_showcase.forums:
+            forum_channel = self.bot.get_channel(forum.forum_id)
+            embed = embed.add_field(
+                name=f"**Forum**: {forum_channel.mention}",
+                value=f"""
+                **ID**: {forum.id}
+                **Added at**: {forum.created_at.date()}
+                """,
+                inline=False,
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @is_staff()
     @command(name="delete", description="Delete 1 or more forums from the showcase")
