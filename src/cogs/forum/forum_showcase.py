@@ -93,7 +93,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         forum_showcase.schedule = next_schedule
 
     async def refresh_loop_interval(self):
-        forum_showcase = self.forum_showcase
         now = datetime.now()
         diff = self.forum_showcase.schedule - now
 
@@ -101,11 +100,17 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         if diff.total_seconds() <= 0:
             next_sched = datetime.now()
             next_sched = next_sched.replace(
-                hour=forum_showcase.schedule.hour,
+                hour=self.forum_showcase.schedule.hour,
+                minute=self.forum_showcase.schedule.minute,
+                second=0,
             )
 
             next_sched = self._calculate_next_schedule(
-                next_sched, forum_showcase.interval
+                next_sched, self.forum_showcase.interval
+            )
+
+            self.logger.info(
+                f"forum showcase {self.forum_showcase.id} is scheduled to run on {next_sched}"
             )
 
             diff = next_sched - now
