@@ -13,15 +13,16 @@ from discord.ext.tasks import loop
 
 from src.data.admin.config_auto import Config
 from src.data.forum.forum_showcase import (
+    AddShowcaseForum,
     ForumShowcase,
     ForumShowcaseDB,
-    ShowcaseForum,
     UpdateForumShowcase,
 )
 from src.utils.decorators import is_staff
 
 
 class ForumShowcaseCog(GroupCog, name="forum_showcase"):
+    forum_showcase_id: int
     forum_showcase: dict[int, ForumShowcase]
     tasks: dict[int, threading.Thread]
     first_load: bool
@@ -31,6 +32,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         self.forum_showcase_db = ForumShowcaseDB(self.bot.pool)
         self.db_config = Config(self.bot.pool)
         self.logger: Logger = bot.logger
+        self.forum_showcase_id = 1
         self.forum_showcase: ForumShowcase = {}
 
     async def cog_load(self) -> None:
@@ -42,13 +44,21 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         if not schedule:
             return
 
+        forum_showcase = self.forum_showcase
+        config = await self.db_config.get_config("forum_showcase")
+
+        if not config["config_status"] or forum_showcase.status == "inactive":
+            return
+
         self.schedule_showcase.start()
 
     @loop()
     async def schedule_showcase(self):
+        forum_showcase = self.forum_showcase
         config = await self.db_config.get_config("forum_showcase")
 
-        if not config["config_status"]:
+        if not config["config_status"] or forum_showcase.status == "inactive":
+            self.logger.info(f"Showcase {forum_showcase.id} is inactive, stopping task")
             return
 
         if self.first_load:
@@ -56,39 +66,33 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             self.first_load = False
             return
 
-        showcase = self.forum_showcase
-
-        if showcase.status == "inactive":
-            self.logger.info(f"Showcase {showcase.id} is inactive, stopping task")
-            return
-
         try:
-            await self.showcase_threads(showcase)
+            await self.showcase_threads(forum_showcase)
         except Exception as e:
-            self.logger.info(f"Error in showcase_threads for {showcase.id}: {e}")
+            self.logger.info(f"Error in showcase_threads for {forum_showcase.id}: {e}")
 
         await self.update_schedule()
         await self.refresh_loop_interval()
 
     async def update_schedule(self):
-        showcase = self.forum_showcase
+        forum_showcase = self.forum_showcase
         next_schedule = self._calculate_next_schedule(
-            showcase.schedule, showcase.interval
+            forum_showcase.schedule, forum_showcase.interval
         )
         update_showcase_schedule = UpdateForumShowcase(
-            id=showcase.id,
+            id=forum_showcase.id,
             schedule=next_schedule,
-            interval=showcase.interval,
-            target_channel=showcase.target_channel,
-            status=showcase.status,
+            interval=forum_showcase.interval,
+            target_channel=forum_showcase.target_channel,
+            status=forum_showcase.status,
             updated_at=datetime.now(),
         )
 
         await self.forum_showcase_db.update_showcase(update_showcase_schedule)
         self.logger.info(
-            f"forum showcase {showcase.id} is scheduled to run on {next_schedule}"
+            f"forum showcase {forum_showcase.id} is scheduled to run on {next_schedule}"
         )
-        showcase.schedule = next_schedule
+        forum_showcase.schedule = next_schedule
 
     async def refresh_loop_interval(self):
         forum_showcase = self.forum_showcase
@@ -107,12 +111,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             )
 
             diff = next_sched - now
-            # delta = new_schedule - now
-            # self.logger.info(
-            #     f"forum showcase {self.forum_showcase.id}, will rerun on {delta}."
-            # )
-            # seconds = delta.total_seconds()
-            # self.schedule_showcase.change_interval(seconds=seconds)
 
         self.logger.info(
             f"forum showcase {self.forum_showcase.id}, will rerun on {diff}."
@@ -183,20 +181,27 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         interaction: Interaction,
         forum: str,
     ):
-        # since we only have one showcase, we can just use 1 as the id
-        # that was added in the database during migration
-        forum_showcase_id = 1
-        selected_forum = interaction.guild.get_channel(int(forum))
-
-        now = datetime.now()
-        showcase_forum = ShowcaseForum(
-            forum_id=selected_forum.id,
-            showcase_id=forum_showcase_id,
-            created_at=now,
-        )
-
         try:
-            await self.forum_showcase_db.add_forum(showcase_forum)
+            selected_forum = interaction.guild.get_channel(int(forum))
+
+            if self.forum_showcase.get_forum(selected_forum.id) is not None:
+                await interaction.response.send_message(
+                    f"Forum {selected_forum.name} is already in the showcase"
+                )
+                return
+
+            showcase_forum = AddShowcaseForum(
+                forum_id=selected_forum.id,
+                showcase_id=self.forum_showcase_id,
+            )
+
+            result = await self.forum_showcase_db.add_forum(showcase_forum)
+            self.logger.info(result)
+
+            self.forum_showcase.add_forum(result)
+            await interaction.response.send_message(
+                f"Added {selected_forum.mention} to showcase.", ephemeral=True
+            )
         except Exception as e:
             self.logger.error(
                 f"Failed to add forum {showcase_forum.forum_id} to showcase.\n {e}"
@@ -205,13 +210,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
                 f"Failed to add forum {showcase_forum.forum_id} to showcase.",
                 ephemeral=True,
             )
-            return
-
-        forum_showcase = self.forum_showcase
-        forum_showcase.forums.append(showcase_forum)
-        await interaction.response.send_message(
-            f"Added {selected_forum.mention} to showcase.", ephemeral=True
-        )
 
     @add_forum.autocomplete("forum")
     async def add_forum_autocomplete(
@@ -239,8 +237,40 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
     @is_staff()
     @command(name="delete", description="Delete 1 or more forums from the showcase")
-    async def delete_forum(self, interaction: Interaction):
-        pass
+    async def delete_forum(self, interaction: Interaction, id: int):
+        try:
+            if self.forum_showcase.get_forum(id) is None:
+                await interaction.response.send_message(
+                    f"Forum with id {id} is not in the showcase", ephemeral=True
+                )
+                return
+
+            await self.forum_showcase_db.delete_forum(id)
+            await interaction.response.send_message(
+                f"Forum {id} has been removed from the forum showcase.",
+                ephemeral=True,
+            )
+            self.forum_showcase.remove_forum(id)
+            self.logger.info(f"total forums: {len(self.forum_showcase.forums)}")
+        except Exception as e:
+            self.logger.info(e)
+            await interaction.response.send_message(f"Failed to delete forum {id}")
+
+    @delete_forum.autocomplete("id")
+    async def delete_forum_autocomplete(
+        self, interaction: Interaction, current: str | None
+    ) -> list[app_commands.Choice[str]]:
+        if current == "" or current is None:
+            return [
+                app_commands.Choice(name=forum.id, value=str(forum.id))
+                for forum in self.forum_showcase.forums
+            ][:25]  # Discord limits autocomplete to 25 choices
+
+        return [
+            app_commands.Choice(name=forum.id, value=str(forum.id))
+            for forum in self.forum_showcase.forums
+            if current.lower() in str(forum.id)
+        ][:25]  # Discord limits autocomplete to 25 choices
 
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
