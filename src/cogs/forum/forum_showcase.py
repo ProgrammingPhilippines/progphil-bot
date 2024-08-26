@@ -44,10 +44,9 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         if not schedule:
             return
 
-        forum_showcase = self.forum_showcase
         config = await self.db_config.get_config("forum_showcase")
 
-        if not config["config_status"] or forum_showcase.status == "inactive":
+        if not config["config_status"]:
             return
 
         self.schedule_showcase.start()
@@ -57,7 +56,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         forum_showcase = self.forum_showcase
         config = await self.db_config.get_config("forum_showcase")
 
-        if not config["config_status"] or forum_showcase.status == "inactive":
+        if not config["config_status"]:
             self.logger.info(f"Showcase {forum_showcase.id} is inactive, stopping task")
             return
 
@@ -84,7 +83,6 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             schedule=next_schedule,
             interval=forum_showcase.interval,
             target_channel=forum_showcase.target_channel,
-            status=forum_showcase.status,
             updated_at=datetime.now(),
         )
 
@@ -280,7 +278,22 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
     async def toggle(self, interaction: Interaction):
-        pass
+        status = await self.db_config.toggle_config("forum_showcase")
+
+        if status:
+            self.schedule_showcase.start()
+            is_running = self.schedule_showcase.is_running()
+            self.logger.info(f"Forum showcase is now enabled={is_running}")
+            await interaction.response.send_message(
+                "Forum showcase is now enabled.", ephemeral=True
+            )
+            return
+
+        self.schedule_showcase.cancel()
+        self.logger.info("Forum showcase is now disabled")
+        await interaction.response.send_message(
+            "Forum showcase is now disabled.", ephemeral=True
+        )
 
 
 async def setup(bot: Bot):
