@@ -7,14 +7,33 @@ from asyncpg import Pool
 class ShowcaseForum(object):
     """Represents a forum that is showcased."""
 
+    id: int
     forum_id: int
     showcase_id: int
     created_at: datetime
 
-    def __init__(self, forum_id: int, showcase_id: int, created_at: datetime):
+    def __init__(
+        self,
+        id: int,
+        forum_id: int,
+        showcase_id: int,
+        created_at: datetime,
+    ):
+        self.id = id
         self.forum_id = forum_id
         self.showcase_id = showcase_id
         self.created_at = created_at
+
+
+class AddShowcaseForum(object):
+    """DTO for adding a forum to the showcase."""
+
+    forum_id: int
+    showcase_id: int
+
+    def __init__(self, forum_id: int, showcase_id: int) -> None:
+        self.forum_id = forum_id
+        self.showcase_id = showcase_id
 
 
 class ForumShowcase(object):
@@ -48,6 +67,23 @@ class ForumShowcase(object):
         self.forums = forums
         self.created_at = created_at
         self.updated_at = updated_at
+
+    def get_forum(self, id: int) -> ShowcaseForum | None:
+        for forum in self.forums:
+            if forum.id == id:
+                return forum
+
+        return
+
+    def add_forum(self, forum: ShowcaseForum):
+        self.forums.append(forum)
+
+    def remove_forum(self, id: int) -> ShowcaseForum | None:
+        for forum in self.forums:
+            if forum.id == id:
+                self.forums.remove(forum)
+                return forum
+        return
 
 
 class UpdateForumShowcase(object):
@@ -125,6 +161,7 @@ class ForumShowcaseDB:
             )
             forums: list[ShowcaseForum] = [
                 ShowcaseForum(
+                    id=record["id"],
                     forum_id=record["forum_id"],
                     showcase_id=record["showcase_id"],
                     created_at=record["created_at"],
@@ -163,50 +200,58 @@ class ForumShowcaseDB:
             except Exception as e:
                 raise e
 
-    async def add_forum(self, forum: ShowcaseForum) -> ShowcaseForum | None:
+    async def add_forum(self, forum: AddShowcaseForum) -> ShowcaseForum:
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            try:
+                record = await conn.fetchrow(
+                    """
+                    INSERT INTO pph_forum_showcase_forum(
+                        forum_id, showcase_id
+                    )
+                    VALUES ($1, $2)
+                    RETURNING *;
+                """,
+                    forum.forum_id,
+                    forum.showcase_id,
+                )
+
+                showcase_forum = ShowcaseForum(
+                    id=record["id"],
+                    forum_id=record["forum_id"],
+                    showcase_id=record["showcase_id"],
+                    created_at=record["created_at"],
+                )
+
+                return showcase_forum
+            except Exception as e:
+                raise e
+
+    async def delete_forum(self, id: int) -> bool:
         async with self._pool.acquire() as conn:
             conn: Pool
 
             try:
                 await conn.execute(
                     """
-                    INSERT INTO pph_forum_showcase_forum(
-                        forum_id, showcase_id
-                    )
-                    VALUES ($1, $2);
-                """,
-                    forum.forum_id,
-                    forum.showcase_id,
-                )
-
-                return forum
-            except Exception as e:
-                raise e
-
-    async def delete_forum(self, forum_id: int) -> ShowcaseForum:
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            try:
-                forum: ShowcaseForum = await conn.execute(
-                    """
                     DELETE FROM pph_forum_showcase_forum
-                    WHERE forum_id = $1
+                    WHERE id = $1
                     RETURNING *;
                 """,
-                    forum_id,
+                    id,
                 )
 
-                return forum
-            except Exception as e:
-                raise e
+                return True
+            except Exception:
+                return False
 
-    async def update_showcase(self, data: UpdateForumShowcase) -> ForumShowcase:
+    async def update_showcase(self, data: UpdateForumShowcase) -> bool:
         async with self._pool.acquire() as conn:
             conn: Pool
 
             try:
-                record = await conn.execute(
+                await conn.execute(
                     """
                     UPDATE pph_forum_showcase
                     SET
@@ -224,37 +269,23 @@ class ForumShowcaseDB:
                     data.id,
                 )
 
-                print(record)
+                return True
+            except Exception:
+                return False
 
-                updated_showcase: ForumShowcase = ForumShowcase(
-                    id=data.id,
-                    target_channel=data.target_channel,
-                    schedule=data.schedule,
-                    interval=data.interval,
-                    status="active",
-                    forums=[],
-                    created_at=datetime.now(),
-                    updated_at=data.updated_at,
-                )
-
-                return updated_showcase
-            except Exception as e:
-                raise e
-
-    async def delete_showcase(self, showcase__id: int):
+    async def delete_showcase(self, showcase__id: int) -> bool:
         async with self._pool.acquire() as conn:
             conn: Pool
 
             try:
-                showcase: ForumShowcase = await conn.execute(
+                await conn.execute(
                     """
                     DELETE FROM pph_forum_showcase
                     WHERE id = $1
-                    RETURNING *;
                 """,
                     showcase__id,
                 )
 
-                return showcase
-            except Exception as e:
-                raise e
+                return True
+            except Exception:
+                return False
