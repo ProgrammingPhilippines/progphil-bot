@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS pph_forum_showcase (
 );
 
 CREATE TABLE IF NOT EXISTS pph_forum_showcase_forum (
-    forum_id BIGINT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    forum_id BIGINT,
     showcase_id SERIAL NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
