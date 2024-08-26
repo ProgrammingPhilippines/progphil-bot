@@ -43,7 +43,6 @@ class ForumShowcase(object):
     target_channel: int
     schedule: datetime
     interval: Literal["daily", "weekly", "monthly"]
-    status: Literal["active", "inactive"]
     forums: list[ShowcaseForum]
     created_at: datetime
     updated_at: datetime
@@ -54,7 +53,6 @@ class ForumShowcase(object):
         target_channel: int,
         schedule: datetime,
         interval: Literal["daily", "weekly", "monthly"],
-        status: Literal["active", "inactive"],
         forums: list[ShowcaseForum],
         created_at: datetime,
         updated_at: datetime,
@@ -63,7 +61,6 @@ class ForumShowcase(object):
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
-        self.status = status
         self.forums = forums
         self.created_at = created_at
         self.updated_at = updated_at
@@ -93,7 +90,6 @@ class UpdateForumShowcase(object):
     target_channel: int
     schedule: datetime
     interval: Literal["daily", "weekly", "monthly"]
-    status: Literal["active", "inactive"]
     updated_at: datetime
 
     def __init__(
@@ -102,14 +98,12 @@ class UpdateForumShowcase(object):
         target_channel: int,
         schedule: datetime,
         interval: Literal["daily", "weekly", "monthly"],
-        status: Literal["active", "inactive"],
         updated_at: datetime,
     ) -> None:
         self.id = id
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
-        self.status = status
         self.updated_at = updated_at
 
 
@@ -134,7 +128,6 @@ class ForumShowcaseDB:
                     target_channel=record["target_channel"],
                     schedule=record["schedule"],
                     interval=record["interval"],
-                    status=record["showcase_status"],
                     forums=[],
                     created_at=record["created_at"],
                     updated_at=record["updated_at"],

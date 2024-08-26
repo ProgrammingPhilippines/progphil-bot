@@ -1,17 +1,14 @@
 --
 --depends: 2_create_configs
 DROP TYPE IF EXISTS forum_showcase_interval;
-DROP TYPE IF EXISTS forum_showcase_status;
 
 CREATE TYPE forum_showcase_interval AS ENUM ('daily', 'weekly', 'monthly');
-CREATE TYPE forum_showcase_status AS ENUM ('active', 'inactive');
 
 CREATE TABLE IF NOT EXISTS pph_forum_showcase (
     id SERIAL PRIMARY KEY,
     target_channel BIGINT NOT NULL,
     schedule TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     interval forum_showcase_interval NOT NULL DEFAULT 'daily',
-    showcase_status forum_showcase_status NOT NULL DEFAULT 'inactive',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
