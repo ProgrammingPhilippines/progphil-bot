@@ -20,6 +20,33 @@ from src.data.forum.forum_showcase import (
 )
 from src.utils.decorators import is_staff
 
+SCHEDULES = [
+    "12 AM",
+    "01 AM",
+    "02 AM",
+    "03 AM",
+    "04 AM",
+    "05 AM",
+    "06 AM",
+    "07 AM",
+    "08 AM",
+    "09 AM",
+    "10 AM",
+    "11 AM",
+    "12 PM",
+    "01 PM",
+    "02 PM",
+    "03 PM",
+    "04 PM",
+    "05 PM",
+    "06 PM",
+    "07 PM",
+    "08 PM",
+    "09 PM",
+    "10 PM",
+    "11 PM",
+]
+
 
 class ForumShowcaseCog(GroupCog, name="forum_showcase"):
     forum_showcase_id: int
@@ -41,7 +68,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
         schedule = self.forum_showcase.schedule
 
-        if not schedule:
+        if not schedule or not self.forum_showcase.target_channel:
             return
 
         config = await self.db_config.get_config("forum_showcase")
@@ -294,8 +321,58 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
-    async def config(self, interaction: Interaction):
-        pass
+    async def config(
+        self, interaction: Interaction, schedule: str, target_channel: str
+    ):
+        try:
+            split = schedule.split(" ")
+            hr_schedule = int(split[0])
+
+            if split[1] == "PM":
+                hr_schedule += 12
+
+            new_schedule = datetime.now().replace(hour=hr_schedule, minute=0, second=0)
+            self.logger.info(
+                f"schedule: {new_schedule}, target_channel: {target_channel}"
+            )
+            self.forum_showcase.schedule = new_schedule
+
+            await self.update_schedule()
+            self.refresh_loop_interval()
+
+            await interaction.response.send_message(
+                f"Forum showcase schedule has been updated to {schedule}.",
+                ephemeral=True,
+            )
+        except ValueError as e:
+            self.logger.info(f"Error: {e}")
+            await interaction.response.send_message(
+                "Invalid schedule format. Please use the format: 'HH AM/PM'",
+                ephemeral=True,
+            )
+            return
+
+    @config.autocomplete("schedule")
+    async def config_schedule_autocomplete(
+        self, interaction: Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        return [
+            app_commands.Choice(name=schedule, value=schedule)
+            for schedule in SCHEDULES
+            if current.lower() in schedule.lower()
+        ][:25]
+
+    @config.autocomplete("target_channel")
+    async def config_target_channel_autocomplete(
+        self, interaction: Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        channels = interaction.guild.channels
+
+        return [
+            app_commands.Choice(name=channel.name, value=str(channel.id))
+            for channel in channels
+            if current.lower() in channel.name.lower()
+        ][:25]
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
