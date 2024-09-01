@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.1.1...v1.2.0) (2024-09-01)
+
+
+### Features
+
+* Improvements on Forum Assist [#235](https://github.com/ProgrammingPhilippines/progphil-bot/issues/235) ([ee05a76](https://github.com/ProgrammingPhilippines/progphil-bot/commit/ee05a76b1872197370c12e69e227efec127e087e))
+
+
+### Bug Fixes
+
+* Disable pph-solved command on non-staff ([1c5e5ec](https://github.com/ProgrammingPhilippines/progphil-bot/commit/1c5e5ecdfce7a9208f3dfde00ad9acd29beac1b4))
+* prod-issue [#243](https://github.com/ProgrammingPhilippines/progphil-bot/issues/243) ([953a3c6](https://github.com/ProgrammingPhilippines/progphil-bot/commit/953a3c6e203e8849959522205f54581855d7712f))
+
 ## [1.1.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.1.0...v1.1.1) (2024-07-30)
 
 
