@@ -27,8 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
-      - run: |
-          echo ${{ github.head_ref }}
+      - name: test
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
       - name: Checkout
         uses: actions/checkout@v4
       - # Please follow conventional-commits convention on commits.
