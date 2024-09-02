@@ -38,7 +38,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           package-name: "progphil-bot"
   build-and-push-image:
-    if: contains(github.head_ref, 'release-') && contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
+    if: contains(github.head_ref, 'release-') 
+    #&& contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: prd
     needs: create-release-pr
@@ -69,7 +70,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   deploy-to-prd:
-    if: contains(github.head_ref, 'release-') && contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
+    if: contains(github.head_ref, 'release-') 
+    #&& contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
     needs: 
       - create-release-pr
       - pylint-checks
