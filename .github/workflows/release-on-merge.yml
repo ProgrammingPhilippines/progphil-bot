@@ -2,8 +2,9 @@
 name: PPH Bot Release on PR Merge
 
 on:
-  pull_request:
-    types: [closed]
+  push:
+  # pull_request:
+  #   types: [closed]
   workflow_dispatch:
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
@@ -26,7 +27,7 @@ jobs:
   create-release-pr:
     name: Create Release Pull Request
     needs: pylint-checks
-    if: ${{ github.event.pull_request.merged == true }}
+    # if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
@@ -37,7 +38,7 @@ jobs:
         name: Create Release
         uses: googleapis/release-please-action@v4
         with:
-          release-type: simple
+          release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
           package-name: "progphil-bot"
   build-and-push-image:
