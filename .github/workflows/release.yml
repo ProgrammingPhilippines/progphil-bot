@@ -47,6 +47,8 @@ jobs:
       contents: read
       packages: write
     steps:
+      - run: |
+          echo ${{ github.head_ref }}
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Cleanup config
