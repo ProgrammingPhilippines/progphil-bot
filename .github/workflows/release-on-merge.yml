@@ -44,7 +44,7 @@ jobs:
           # target-branch: ${{ github.ref_name }}
           # package-name: "progphil-bot"
       - run: |
-          echo ${{ steps.release.outputs }}
+          echo ${{ toJson(steps.release.outputs) }}
   build-and-push-image:
     name: Build docker image for archiving
     needs: create-release-pr
