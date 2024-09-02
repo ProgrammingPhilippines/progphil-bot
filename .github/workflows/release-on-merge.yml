@@ -20,11 +20,13 @@ jobs:
   deploy-to-dev:
     name: Deploy application to DEV env
     needs: pylint-checks
+    if: ${{ github.event.pull_request.merged == true }}
     uses: ./.github/workflows/release-to-dev.yml
     secrets: inherit 
   create-release-pr:
     name: Create Release Pull Request
     needs: pylint-checks
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
