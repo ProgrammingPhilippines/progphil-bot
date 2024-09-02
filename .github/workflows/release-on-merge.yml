@@ -2,6 +2,7 @@
 name: PPH Bot Release on PR Merge
 
 on:
+  push:
   pull_request:
     types: [closed]
 
@@ -14,7 +15,7 @@ env:
 jobs:
   pylint-checks:
     name: Pylint Checks
-    if: ${{ github.event.pull_request.merged == true }}
+    # if: ${{ github.event.pull_request.merged == true }}
     uses: ./.github/workflows/pylint-checks.yml
     secrets: inherit 
   deploy-to-dev:
@@ -26,7 +27,7 @@ jobs:
   create-release-pr:
     name: Create Release Pull Request
     needs: pylint-checks
-    if: ${{ github.event.pull_request.merged == true }}
+    # if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
@@ -35,12 +36,15 @@ jobs:
       - # Please follow conventional-commits convention on commits.
         # https://www.conventionalcommits.org/en/v1.0.0/
         name: Create Release
+        id: release
         uses: googleapis/release-please-action@v4
         with:
           release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
           # target-branch: ${{ github.ref_name }}
           # package-name: "progphil-bot"
+      - run: |
+          echo ${{ steps.release.outputs }}
   build-and-push-image:
     name: Build docker image for archiving
     needs: create-release-pr
