@@ -5,8 +5,8 @@ name: Pylint Checks
 
 on:
   push:
-    branches:
-      - '**'
+    branches-ignore:
+      - main
   workflow_call:
   workflow_dispatch:
 
