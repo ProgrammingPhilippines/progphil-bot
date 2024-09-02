@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - run: |
+          echo ${{ github.head_ref }}
       - name: Checkout
         uses: actions/checkout@v4
       - # Please follow conventional-commits convention on commits.
@@ -47,8 +49,6 @@ jobs:
       contents: read
       packages: write
     steps:
-      - run: |
-          echo ${{ github.head_ref }}
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Cleanup config
