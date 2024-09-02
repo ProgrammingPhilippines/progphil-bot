@@ -1,11 +1,13 @@
 
-name: PPH Bot Release
+name: PPH Bot Release on Merge
 
 on:
-  push:
-    # branches:
-    #   - 'main'
+  # push:
+  #   # branches:
+  #   #   - 'main'
   workflow_dispatch:
+  pull_request:
+    types: [closed]
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -42,8 +44,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           package-name: "progphil-bot"
   build-and-push-image:
-    # if: contains(github.head_ref, 'release-') 
-    #&& contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, 'release-')
     runs-on: ubuntu-latest
     environment: prd
     needs: create-release-pr
