@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.2.0...v1.3.0) (2024-09-02)
+
+
+### Features
+
+* Update release type to python ([d9c40db](https://github.com/ProgrammingPhilippines/progphil-bot/commit/d9c40dbcf73d7d5ed837ca15766871ae79580a9b))
+
 ## [1.2.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.1.1...v1.2.0) (2024-09-01)
 
 
