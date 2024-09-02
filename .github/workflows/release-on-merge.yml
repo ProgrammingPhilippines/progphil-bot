@@ -1,10 +1,9 @@
 
-name: PPH Bot Release
+name: PPH Bot Release on PR Merge
 
 on:
-  push:
-    branches:
-      - 'main'
+  pull_request:
+    types: [closed]
   workflow_dispatch:
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
@@ -15,15 +14,17 @@ env:
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
   pylint-checks:
+    name: Pylint Checks
     uses: ./.github/workflows/pylint-checks.yml
     secrets: inherit 
   deploy-to-dev:
+    name: Deploy application to DEV env
     needs: pylint-checks
     uses: ./.github/workflows/release-to-dev.yml
     secrets: inherit 
   create-release-pr:
+    name: Create Release Pull Request
     needs: pylint-checks
-    name: Create Release
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
@@ -38,10 +39,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           package-name: "progphil-bot"
   build-and-push-image:
-    if: contains(github.head_ref, 'release-') && contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
+    name: Build docker image for archiving
+    needs: create-release-pr
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && contains(github.event.pull_request.head.ref, 'release-')
     runs-on: ubuntu-latest
     environment: prd
-    needs: create-release-pr
     permissions:
       contents: read
       packages: write
@@ -69,9 +71,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   deploy-to-prd:
-    if: contains(github.head_ref, 'release-') && contains(github.base_ref, 'main') && github.event.action == 'closed' && github.event.pull_request.merged == true
+    name: Deploy application to PRODUCTION env
     needs: 
       - create-release-pr
       - pylint-checks
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && contains(github.event.pull_request.head.ref, 'release-')
     uses: ./.github/workflows/release-to-prd.yml
     secrets: inherit 
