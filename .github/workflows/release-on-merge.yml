@@ -40,7 +40,8 @@ jobs:
         with:
           release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
-          package-name: "progphil-bot"
+          target-branch: ${{ github.ref_name }}
+          # package-name: "progphil-bot"
   build-and-push-image:
     name: Build docker image for archiving
     needs: create-release-pr
