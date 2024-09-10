@@ -6,10 +6,20 @@ from logging import Logger
 from typing import Literal
 
 from dateutil.relativedelta import relativedelta
-from discord import Embed, Interaction, Thread, app_commands
+from discord import (
+    ButtonStyle,
+    Embed,
+    Interaction,
+    SelectOption,
+    TextChannel,
+    Thread,
+    app_commands,
+)
+
 from discord.app_commands import command
 from discord.ext.commands import Bot, GroupCog
 from discord.ext.tasks import loop
+from discord.ui import Button, Select, View
 
 from src.data.admin.config_auto import Config
 from src.data.forum.forum_showcase import (
@@ -48,7 +58,7 @@ SCHEDULES = [
 ]
 
 
-class ForumShowcaseCog(GroupCog, name="forum_showcase"):
+class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     forum_showcase_id: int
     forum_showcase: dict[int, ForumShowcase]
     tasks: dict[int, threading.Thread]
@@ -160,6 +170,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             return current_schedule + relativedelta(weeks=1)
 
         if interval == "monthly":
+            current_schedule = current_schedule.replace(day=1)
             return current_schedule + relativedelta(months=1)
 
     async def showcase_threads(self, forum_showcase: ForumShowcase):
@@ -181,7 +192,16 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
             if not forum:
                 continue
 
-            threads = forum.threads
+            # filter the threads that is posted on current month
+            current_month = datetime.now().month
+            current_year = datetime.now().year
+            threads = [
+                thread
+                for thread in forum.threads
+                if thread.created_at.month == current_month
+                and thread.created_at.year == current_year
+            ]
+
             total_threads = len(threads)
 
             if total_threads == 0:
@@ -209,49 +229,76 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
     async def add_forum(
         self,
         interaction: Interaction,
-        forum: str,
     ):
+        async def selection_callback(interaction: Interaction):
+            await interaction.response.send_message("Thanks!", ephemeral=True)
+            view.stop()
+
+        async def cancel_callback(interaction: Interaction):
+            await interaction.response.send_message("Cancelled!", ephemeral=True)
+            view.stop()
+            return
+
+        selected_forums = self.forum_showcase.forums
+
+        view = View(timeout=400)
+        cancel = Button(label="Cancel", style=ButtonStyle.red)
+        cancel.callback = cancel_callback
+
+        selection = Select(placeholder="Select a forum to add")
+        selection.callback = selection_callback
+
+        forum_ids = interaction.guild.forums
+
+        # filter the already selected forums
+        options = [
+            forum
+            for forum in forum_ids
+            if forum.id not in [forum.forum_id for forum in selected_forums]
+        ]
+
+        if len(options) == 0:
+            await interaction.response.send_message(
+                "No more forums to add!", ephemeral=True
+            )
+            return
+
+        for forum in options:
+            selection.add_option(
+                label=forum.name,
+                value=forum.id,
+            )
+
+        view.add_item(selection)
+        view.add_item(cancel)
+
+        await interaction.response.send_message(view=view, ephemeral=True)
+        await view.wait()
+
+        if not selection.values:
+            view.stop()
+            await interaction.followup.send("No selected forums.", ephemeral=True)
+            return
+
+        selected_forum = selection.values[0]
+        forum = self.bot.get_channel(int(selected_forum))
+        showcase_forum = AddShowcaseForum(
+            forum_id=forum.id,
+            showcase_id=self.forum_showcase_id,
+        )
+
         try:
-            selected_forum = interaction.guild.get_channel(int(forum))
-
-            if self.forum_showcase.get_forum(selected_forum.id) is not None:
-                await interaction.response.send_message(
-                    f"Forum {selected_forum.name} is already in the showcase"
-                )
-                return
-
-            showcase_forum = AddShowcaseForum(
-                forum_id=selected_forum.id,
-                showcase_id=self.forum_showcase_id,
-            )
-
             result = await self.forum_showcase_db.add_forum(showcase_forum)
-
             self.forum_showcase.add_forum(result)
-            await interaction.response.send_message(
-                f"Added {selected_forum.mention} to showcase.", ephemeral=True
+
+            await interaction.followup.send(
+                f"Added {forum.mention} to showcase.", ephemeral=True
             )
-        except Exception as e:
-            self.logger.error(
-                f"Failed to add forum {showcase_forum.forum_id} to showcase.\n {e}"
-            )
-            await interaction.response.send_message(
-                f"Failed to add forum {showcase_forum.forum_id} to showcase.",
+        except Exception:
+            await interaction.followup.send(
+                f"Failed to add forum {forum.mention} to showcase.",
                 ephemeral=True,
             )
-
-    @add_forum.autocomplete("forum")
-    async def add_forum_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
-        existing_forums = [forum.forum_id for forum in self.forum_showcase.forums]
-        forums = interaction.guild.forums
-
-        return [
-            app_commands.Choice(name=forum.name, value=str(forum.id))
-            for forum in forums
-            if current.lower() in forum.name.lower() and forum.id not in existing_forums
-        ][:25]  # Discord limits autocomplete to 25 choices
 
     @is_staff()
     @command(name="list", description="List all forums to showcase.")
@@ -321,58 +368,90 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
 
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
-    async def config(
-        self, interaction: Interaction, schedule: str, target_channel: str
-    ):
-        try:
-            split = schedule.split(" ")
-            hr_schedule = int(split[0])
+    async def config(self, interaction: Interaction):
+        selected_schedule = None
+        selected_channel_id = None
 
-            if split[1] == "PM":
-                hr_schedule += 12
+        async def schedule_callback(interaction: Interaction):
+            nonlocal selected_schedule
+            selected_schedule = schedule_select.values[0]
+            await interaction.response.defer()
 
-            new_schedule = datetime.now().replace(hour=hr_schedule, minute=0, second=0)
-            self.logger.info(
-                f"schedule: {new_schedule}, target_channel: {target_channel}"
-            )
-            self.forum_showcase.schedule = new_schedule
+        async def channel_callback(interaction: Interaction):
+            nonlocal selected_channel_id
+            selected_channel_id = int(channel_select.values[0])
+            await interaction.response.defer()
 
-            await self.update_schedule()
-            self.refresh_loop_interval()
+        async def submit_callback(interaction: Interaction):
+            if selected_schedule:
+                self.forum_showcase.schedule = self._parse_schedule(selected_schedule)
+                await self.update_schedule()
+                self.refresh_loop_interval()
+                await interaction.response.send_message(
+                    f"Schedule updated to {selected_schedule}", ephemeral=True
+                )
 
+            if selected_channel_id:
+                self.forum_showcase.target_channel = selected_channel_id
+                channel = self.bot.get_channel(selected_channel_id)
+                await interaction.response.send_message(
+                    f"Target channel set to {channel.mention}", ephemeral=True
+                )
+
+            if not selected_schedule and not selected_channel_id:
+                await interaction.response.send_message(
+                    "No changes were made.", ephemeral=True
+                )
+
+            view.stop()
+
+        async def cancel_callback(interaction: Interaction):
             await interaction.response.send_message(
-                f"Forum showcase schedule has been updated to {schedule}.",
-                ephemeral=True,
+                "Configuration cancelled", ephemeral=True
             )
-        except ValueError as e:
-            self.logger.info(f"Error: {e}")
-            await interaction.response.send_message(
-                "Invalid schedule format. Please use the format: 'HH AM/PM'",
-                ephemeral=True,
-            )
-            return
+            view.stop()
 
-    @config.autocomplete("schedule")
-    async def config_schedule_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
-        return [
-            app_commands.Choice(name=schedule, value=schedule)
-            for schedule in SCHEDULES
-            if current.lower() in schedule.lower()
-        ][:25]
+        view = View(timeout=300)
 
-    @config.autocomplete("target_channel")
-    async def config_target_channel_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
-        channels = interaction.guild.channels
+        schedule_select = Select(
+            placeholder="Select a schedule",
+            options=[SelectOption(label=s, value=s) for s in SCHEDULES],
+        )
+        schedule_select.callback = schedule_callback
 
-        return [
-            app_commands.Choice(name=channel.name, value=str(channel.id))
-            for channel in channels
-            if current.lower() in channel.name.lower()
-        ][:25]
+        channel_select = Select(
+            placeholder="Select a target channel",
+            options=[
+                SelectOption(label=channel.name, value=str(channel.id))
+                for channel in interaction.guild.channels
+                if isinstance(channel, TextChannel)
+            ],
+        )
+        channel_select.callback = channel_callback
+
+        submit_button = Button(label="Submit", style=ButtonStyle.green)
+        submit_button.callback = submit_callback
+
+        cancel_button = Button(label="Cancel", style=ButtonStyle.red)
+        cancel_button.callback = cancel_callback
+
+        view.add_item(schedule_select)
+        view.add_item(channel_select)
+        view.add_item(submit_button)
+        view.add_item(cancel_button)
+
+        await interaction.response.send_message(
+            "Configure forum showcase:", view=view, ephemeral=True
+        )
+
+    def _parse_schedule(self, schedule: str) -> datetime:
+        split = schedule.split(" ")
+        hr_schedule = int(split[0])
+        if split[1] == "PM" and hr_schedule != 12:
+            hr_schedule += 12
+        elif split[1] == "AM" and hr_schedule == 12:
+            hr_schedule = 0
+        return datetime.now().replace(hour=hr_schedule, minute=0, second=0)
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
@@ -380,6 +459,7 @@ class ForumShowcaseCog(GroupCog, name="forum_showcase"):
         status = await self.db_config.toggle_config("forum_showcase")
 
         if status:
+            self.refresh_loop_interval()
             self.schedule_showcase.start()
             is_running = self.schedule_showcase.is_running()
             self.logger.info(f"Forum showcase is now enabled={is_running}")
