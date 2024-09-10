@@ -94,7 +94,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         config = await self.db_config.get_config("forum_showcase")
 
         if not config["config_status"]:
-            self.logger.info(f"Showcase {forum_showcase.id} is inactive, stopping task")
+            self.logger.info(
+                f"[FORUM-SHOWCASE] Showcase {forum_showcase.id} is inactive, stopping task"
+            )
             return
 
         if self.first_load:
@@ -105,7 +107,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         try:
             await self.showcase_threads(forum_showcase)
         except Exception as e:
-            self.logger.info(f"Error in showcase_threads for {forum_showcase.id}: {e}")
+            self.logger.info(
+                f"[FORUM-SHOWCASE] Error in showcase_threads for {forum_showcase.id}: {e}"
+            )
 
         await self.update_schedule()
         self.refresh_loop_interval()
@@ -125,7 +129,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         await self.forum_showcase_db.update_showcase(update_showcase_schedule)
         self.logger.info(
-            f"forum showcase {forum_showcase.id} is scheduled to run on {next_schedule}"
+            f"[FORUM-SHOWCASE] forum showcase {forum_showcase.id} is scheduled to run on {next_schedule}"
         )
         forum_showcase.schedule = next_schedule
 
@@ -147,13 +151,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             )
 
             self.logger.info(
-                f"forum showcase {self.forum_showcase.id} is scheduled to run on {next_sched}"
+                f"[FORUM-SHOWCASE] forum showcase {self.forum_showcase.id} is scheduled to run on {next_sched}"
             )
 
             diff = next_sched - now
 
         self.logger.info(
-            f"forum showcase {self.forum_showcase.id}, will rerun on {diff}."
+            f"[FORUM-SHOWCASE] forum showcase {self.forum_showcase.id}, will rerun on {diff}."
         )
         seconds = diff.total_seconds()
         self.schedule_showcase.change_interval(seconds=seconds)
@@ -174,16 +178,18 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             return current_schedule + relativedelta(months=1)
 
     async def showcase_threads(self, forum_showcase: ForumShowcase):
-        self.logger.info(f"target channel id: {forum_showcase.target_channel}")
+        self.logger.info(
+            f"[FORUM-SHOWCASE] target channel id: {forum_showcase.target_channel}"
+        )
         target_channel = self.bot.get_channel(forum_showcase.target_channel)
 
         if target_channel is None:
             self.logger.info(
-                f"target channel not found: {forum_showcase.target_channel}"
+                f"[FORUM-SHOWCASE] target channel not found: {forum_showcase.target_channel}"
             )
             return
 
-        self.logger.info(f"target channel: {target_channel}")
+        self.logger.info(f"[FORUM-SHOWCASE] target channel: {target_channel}")
         msgs = ""
 
         for showcase_forum in forum_showcase.forums:
@@ -210,6 +216,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             thread = random.choice(threads)
             msg = self._build_response(forum.name, thread)
             msgs += msg
+
+        if msg == "":
+            self.logger.info("[FORUM-SHOWCASE] No threads found for the current month.")
+            return
 
         # build message
         message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{msgs}"
@@ -345,7 +355,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 ephemeral=True,
             )
             self.forum_showcase.remove_forum(id)
-            self.logger.info(f"total forums: {len(self.forum_showcase.forums)}")
+            self.logger.info(
+                f"[FORUM-SHOWCASE] total forums: {len(self.forum_showcase.forums)}"
+            )
         except Exception as e:
             self.logger.info(e)
             await interaction.response.send_message(f"Failed to delete forum {id}")
@@ -376,40 +388,47 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             nonlocal selected_schedule
             selected_schedule = schedule_select.values[0]
             await interaction.response.defer()
+            await interaction.followup.send(
+                f"New schedule is {selected_schedule}", ephemeral=True
+            )
 
         async def channel_callback(interaction: Interaction):
             nonlocal selected_channel_id
             selected_channel_id = int(channel_select.values[0])
             await interaction.response.defer()
+            channel = self.bot.get_channel(selected_channel_id)
+            await interaction.followup.send(
+                f"New target channel is {channel.mention}", ephemeral=True
+            )
 
         async def submit_callback(interaction: Interaction):
             if selected_schedule:
                 self.forum_showcase.schedule = self._parse_schedule(selected_schedule)
                 await self.update_schedule()
                 self.refresh_loop_interval()
-                await interaction.response.send_message(
-                    f"Schedule updated to {selected_schedule}", ephemeral=True
-                )
 
             if selected_channel_id:
                 self.forum_showcase.target_channel = selected_channel_id
-                channel = self.bot.get_channel(selected_channel_id)
-                await interaction.response.send_message(
-                    f"Target channel set to {channel.mention}", ephemeral=True
-                )
 
             if not selected_schedule and not selected_channel_id:
                 await interaction.response.send_message(
                     "No changes were made.", ephemeral=True
                 )
+                view.stop()
+                return
 
+            await interaction.response.send_message(
+                "New configuration updated!", ephemeral=True
+            )
             view.stop()
+            return
 
         async def cancel_callback(interaction: Interaction):
             await interaction.response.send_message(
                 "Configuration cancelled", ephemeral=True
             )
             view.stop()
+            return
 
         view = View(timeout=300)
 
@@ -462,14 +481,16 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             self.refresh_loop_interval()
             self.schedule_showcase.start()
             is_running = self.schedule_showcase.is_running()
-            self.logger.info(f"Forum showcase is now enabled={is_running}")
+            self.logger.info(
+                f"[FORUM-SHOWCASE] Forum showcase is now enabled={is_running}"
+            )
             await interaction.response.send_message(
                 "Forum showcase is now enabled.", ephemeral=True
             )
             return
 
         self.schedule_showcase.cancel()
-        self.logger.info("Forum showcase is now disabled")
+        self.logger.info("[FORUM-SHOWCASE] Forum showcase is now disabled")
         await interaction.response.send_message(
             "Forum showcase is now disabled.", ephemeral=True
         )
