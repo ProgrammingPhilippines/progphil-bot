@@ -1,12 +1,9 @@
 
-name: Deploy PPH Bot
+name: PPH Bot Release on PR Merge
 
-# Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
-  push:
-    branches:
-      - 'main'
-  workflow_dispatch:
+  pull_request:
+    types: [closed]
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -15,32 +12,21 @@ env:
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
+  pylint-checks:
+    name: Pylint Checks
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/pylint-checks.yml
+    secrets: inherit 
   deploy-to-dev:
     name: Deploy application to DEV env
-    runs-on: ubuntu-latest
-    environment: dev
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Load DEV config
-        run: |
-          cp config/dev-config.yml config/config.yml
-          rm .gitignore
-      - name: Install Railway
-        run: npm i -g @railway/cli
-      - name: Deploy
-        run: |
-          ls -al
-          railway up -s ${{ vars.RAILWAY_SERVICE }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  release:
-    name: Create Release
+    needs: pylint-checks
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/release-to-dev.yml
+    secrets: inherit 
+  create-release-pr:
+    name: Create Release Pull Request
+    needs: pylint-checks
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
@@ -49,15 +35,18 @@ jobs:
       - # Please follow conventional-commits convention on commits.
         # https://www.conventionalcommits.org/en/v1.0.0/
         name: Create Release
-        uses: google-github-actions/release-please-action@v4
+        uses: googleapis/release-please-action@v4
         with:
-          release-type: simple
+          release-type: python
           token: ${{ secrets.GITHUB_TOKEN }}
-          package-name: "progphil-bot"
+          # target-branch: ${{ github.ref_name }}
+          # package-name: "progphil-bot"
   build-and-push-image:
+    name: Build docker image for archiving
+    needs: create-release-pr
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && contains(github.event.pull_request.head.ref, 'release-')
     runs-on: ubuntu-latest
     environment: prd
-    needs: release
     permissions:
       contents: read
       packages: write
@@ -86,25 +75,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
   deploy-to-prd:
     name: Deploy application to PRODUCTION env
-    runs-on: ubuntu-latest
-    needs: release
-    environment: prd
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Cleanup dev config
-        run: |
-          rm config/dev-config.yml
-          rm .gitignore
-      - name: Install Railway
-        run: npm i -g @railway/cli
-      - name: Deploy
-        run: |
-          railway up -s ${{ vars.RAILWAY_SERVICE }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    needs: 
+      - create-release-pr
+      - pylint-checks
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && contains(github.event.pull_request.head.ref, 'release-')
+    uses: ./.github/workflows/release-to-prd.yml
+    secrets: inherit 

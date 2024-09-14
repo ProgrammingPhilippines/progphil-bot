@@ -1,0 +1,35 @@
+
+name: PPH Bot Release to PRD
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-to-prd:
+    name: Deploy application to PRODUCTION env
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Cleanup dev config
+        run: |
+          rm config/dev-config.yml
+          rm .gitignore
+      - name: Install Railway
+        run: npm i -g @railway/cli
+      - name: Deploy
+        run: |
+          railway up -s ${{ vars.RAILWAY_SERVICE }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
