@@ -1,9 +1,8 @@
 import asyncio
 import random
-import threading
 from datetime import datetime
 from logging import Logger
-from typing import Literal
+from typing import Literal, Optional
 
 from dateutil.relativedelta import relativedelta
 from discord import (
@@ -15,7 +14,6 @@ from discord import (
     Thread,
     app_commands,
 )
-
 from discord.app_commands import command
 from discord.ext.commands import Bot, GroupCog
 from discord.ext.tasks import loop
@@ -31,38 +29,14 @@ from src.data.forum.forum_showcase import (
 from src.utils.decorators import is_staff
 
 SCHEDULES = [
-    "12 AM",
-    "01 AM",
-    "02 AM",
-    "03 AM",
-    "04 AM",
-    "05 AM",
-    "06 AM",
-    "07 AM",
-    "08 AM",
-    "09 AM",
-    "10 AM",
-    "11 AM",
-    "12 PM",
-    "01 PM",
-    "02 PM",
-    "03 PM",
-    "04 PM",
-    "05 PM",
-    "06 PM",
-    "07 PM",
-    "08 PM",
-    "09 PM",
-    "10 PM",
-    "11 PM",
+    f"{(h + 12 if h == 0 else h) if h < 12 else h - 12:02d} {'AM' if h < 12 else 'PM'}"
+    for h in range(24)
 ]
 
 
 class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     forum_showcase_id: int
-    forum_showcase: dict[int, ForumShowcase]
-    tasks: dict[int, threading.Thread]
-    first_load: bool
+    forum_showcase: ForumShowcase
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -73,7 +47,6 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         self.forum_showcase: ForumShowcase = {}
 
     async def cog_load(self) -> None:
-        self.first_load = True
         await asyncio.create_task(self.init_data())
 
         schedule = self.forum_showcase.schedule
@@ -90,92 +63,83 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
     @loop()
     async def schedule_showcase(self):
-        forum_showcase = self.forum_showcase
         config = await self.db_config.get_config("forum_showcase")
 
         if not config["config_status"]:
-            self.logger.info(
-                f"[FORUM-SHOWCASE] Showcase {forum_showcase.id} is inactive, stopping task"
-            )
+            self.logger.info("[FORUM-SHOWCASE] Showcase is inactive, stopping task")
             return
 
-        if self.first_load:
-            self.refresh_loop_interval()
-            self.first_load = False
-            return
+        now = datetime.now()
+        scheduled_time = self.calculate_next_run()
 
-        try:
-            await self.showcase_threads(forum_showcase)
-        except Exception as e:
-            self.logger.info(
-                f"[FORUM-SHOWCASE] Error in showcase_threads for {forum_showcase.id}: {e}"
-            )
+        if (
+            abs((now - scheduled_time).total_seconds()) <= 60
+        ):  # Within 1 minute of scheduled time
+            try:
+                await self.showcase_threads(self.forum_showcase)
+            except Exception as e:
+                self.logger.error(f"[FORUM-SHOWCASE] Error in showcase_threads: {e}")
+        else:
+            self.logger.info("[FORUM-SHOWCASE] reschedule")
 
-        await self.update_schedule()
-        self.refresh_loop_interval()
+        await self.schedule_next_run()
 
-    async def update_schedule(self):
-        forum_showcase = self.forum_showcase
-        next_schedule = self._calculate_next_schedule(
-            forum_showcase.schedule, forum_showcase.interval
-        )
+    async def update_schedule(self, next_schedule: datetime):
         update_showcase_schedule = UpdateForumShowcase(
-            id=forum_showcase.id,
+            id=self.forum_showcase.id,
             schedule=next_schedule,
-            interval=forum_showcase.interval,
-            target_channel=forum_showcase.target_channel,
+            interval=self.forum_showcase.interval,
+            target_channel=self.forum_showcase.target_channel,
             updated_at=datetime.now(),
         )
 
+        self.logger.info("[FORUM-SHOWCASE] updated database config")
+
         await self.forum_showcase_db.update_showcase(update_showcase_schedule)
-        self.logger.info(
-            f"[FORUM-SHOWCASE] forum showcase {forum_showcase.id} is scheduled to run on {next_schedule}"
-        )
-        forum_showcase.schedule = next_schedule
+        self.forum_showcase.schedule = next_schedule
 
-    def refresh_loop_interval(self):
+    async def schedule_next_run(self, run_now=False):
+        if not self.forum_showcase:
+            self.logger.error("[FORUM-SHOWCASE] No forum showcase configured")
+            return
+
+        next_run = self.calculate_next_run()
+
         now = datetime.now()
-        diff = self.forum_showcase.schedule - now
-
-        # if the time is negative, it means the showcase has already passed
-        if diff.total_seconds() <= 0:
-            next_sched = datetime.now()
-            next_sched = next_sched.replace(
-                hour=self.forum_showcase.schedule.hour,
-                minute=self.forum_showcase.schedule.minute,
-                second=0,
-            )
-
-            next_sched = self._calculate_next_schedule(
-                next_sched, self.forum_showcase.interval
-            )
-
-            self.logger.info(
-                f"[FORUM-SHOWCASE] forum showcase {self.forum_showcase.id} is scheduled to run on {next_sched}"
-            )
-
-            diff = next_sched - now
+        diff = (next_run - now).total_seconds()
 
         self.logger.info(
-            f"[FORUM-SHOWCASE] forum showcase {self.forum_showcase.id}, will rerun on {diff}."
+            f"[FORUM-SHOWCASE] Scheduling next run at {next_run} (in {diff:.2f} seconds)"
         )
-        seconds = diff.total_seconds()
-        self.schedule_showcase.change_interval(seconds=seconds)
 
-    def _calculate_next_schedule(
-        self,
-        current_schedule: datetime,
-        interval: Literal["daily", "weekly", "monthly"],
-    ) -> datetime:
-        if interval == "daily":
-            return current_schedule + relativedelta(days=1)
+        await self.update_schedule(next_run)
 
-        if interval == "weekly":
-            return current_schedule + relativedelta(weeks=1)
+        if diff > 0 or run_now:
+            self.schedule_showcase.change_interval(seconds=max(1, diff))
+        else:
+            self.logger.info(
+                "[FORUM-SHOWCASE] Next run time is in the past. Waiting for next interval."
+            )
 
-        if interval == "monthly":
-            current_schedule = current_schedule.replace(day=1)
-            return current_schedule + relativedelta(months=1)
+    def calculate_next_run(self) -> datetime:
+        now = datetime.now()
+        schedule = self.forum_showcase.schedule
+        interval = self.forum_showcase.interval
+
+        next_run = schedule.replace(year=now.year, month=now.month, day=now.day)
+
+        while next_run <= now:
+            if interval == "daily":
+                next_run += relativedelta(days=1)
+            elif interval == "weekly":
+                next_run += relativedelta(weeks=1)
+            elif interval == "monthly":
+                next_month = next_run.replace(day=1) + relativedelta(months=1)
+                next_run = next_month.replace(
+                    day=min(schedule.day, (next_month + relativedelta(days=-1)).day)
+                )
+
+        return next_run
 
     async def showcase_threads(self, forum_showcase: ForumShowcase):
         self.logger.info(
@@ -190,7 +154,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             return
 
         self.logger.info(f"[FORUM-SHOWCASE] target channel: {target_channel}")
-        msgs = ""
+        msgs = []
 
         for showcase_forum in forum_showcase.forums:
             forum = self.bot.get_channel(showcase_forum.forum_id)
@@ -214,19 +178,15 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 continue
 
             thread = random.choice(threads)
-            msg = self._build_response(forum.name, thread)
-            msgs += msg
+            msgs.append(f"### {forum.name}\n{thread.mention}\n")
 
-        if msg == "":
-            self.logger.info("[FORUM-SHOWCASE] No threads found for the current month.")
-            return
-
-        # build message
-        message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{msgs}"
-        await target_channel.send(message)
-
-    def _build_response(self, forum_name: str, thread: Thread):
-        return f"### {forum_name}\n{thread.mention}\n"
+        if msgs:
+            message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{''.join(msgs)}"
+            await target_channel.send(message)
+        else:
+            self.bot.logger.info(
+                "[FORUM-SHOWCASE] No threads found for the current month."
+            )
 
     async def init_data(self):
         data = await self.forum_showcase_db.get_showcases()
@@ -402,26 +362,40 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             )
 
         async def submit_callback(interaction: Interaction):
+            changes_made = False
+
             if selected_schedule:
-                self.forum_showcase.schedule = self._parse_schedule(selected_schedule)
-                await self.update_schedule()
-                self.refresh_loop_interval()
+                parsed_schedule = self._parse_schedule(selected_schedule)
+                parsed_schedule = parsed_schedule.replace(day=self.forum_showcase.schedule.day)
+                self.forum_showcase.schedule = parsed_schedule
+                # await self.update_schedule(parsed_schedule)
+                await self.schedule_next_run()
+                changes_made = True
 
             if selected_channel_id:
                 self.forum_showcase.target_channel = selected_channel_id
+                changes_made = True
 
-            if not selected_schedule and not selected_channel_id:
+            if changes_made:
+                # Update the database with the new target channel
+                update_showcase = UpdateForumShowcase(
+                    id=self.forum_showcase.id,
+                    schedule=self.forum_showcase.schedule,
+                    interval=self.forum_showcase.interval,
+                    target_channel=self.forum_showcase.target_channel,
+                    updated_at=datetime.now(),
+                )
+                await self.forum_showcase_db.update_showcase(update_showcase)
+                await interaction.response.send_message(
+                    "New configuration updated!",
+                    ephemeral=True,
+                )
+            else:
                 await interaction.response.send_message(
                     "No changes were made.", ephemeral=True
                 )
-                view.stop()
-                return
 
-            await interaction.response.send_message(
-                "New configuration updated!", ephemeral=True
-            )
             view.stop()
-            return
 
         async def cancel_callback(interaction: Interaction):
             await interaction.response.send_message(
@@ -433,7 +407,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         view = View(timeout=300)
 
         schedule_select = Select(
-            placeholder="Select a schedule",
+            placeholder="Select a target schedule",
             options=[SelectOption(label=s, value=s) for s in SCHEDULES],
         )
         schedule_select.callback = schedule_callback
@@ -478,18 +452,16 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         status = await self.db_config.toggle_config("forum_showcase")
 
         if status:
-            self.refresh_loop_interval()
-            self.schedule_showcase.start()
-            is_running = self.schedule_showcase.is_running()
-            self.logger.info(
-                f"[FORUM-SHOWCASE] Forum showcase is now enabled={is_running}"
-            )
+            next_run = self.calculate_next_run()
+            await self.schedule_next_run()
             await interaction.response.send_message(
-                "Forum showcase is now enabled.", ephemeral=True
+                f"Forum showcase is now enabled. Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}.",
+                ephemeral=True,
             )
             return
 
-        self.schedule_showcase.cancel()
+        if self.schedule_showcase.is_running():
+            self.schedule_showcase.cancel()
         self.logger.info("[FORUM-SHOWCASE] Forum showcase is now disabled")
         await interaction.response.send_message(
             "Forum showcase is now disabled.", ephemeral=True
