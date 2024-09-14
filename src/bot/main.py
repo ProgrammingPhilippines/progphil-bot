@@ -122,7 +122,7 @@ def migrate_db(db: Database, logger: Logger) -> None:
 
 
 async def main():
-    config = get_config("config/dev-config-void.yml")
+    config = get_config("config/dev-config.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
     logger.add_handler(StreamHandler())
