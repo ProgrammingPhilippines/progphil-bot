@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS pph_forum_showcase_forum (
         ON DELETE CASCADE
 );
 
-INSERT INTO pph_config_auto(config_type) VALUES ('forum_showcase');
+INSERT INTO pph_config_auto(config_type, config_status) VALUES ('forum_showcase', false);
 INSERT INTO pph_forum_showcase(
     id,
     target_channel
