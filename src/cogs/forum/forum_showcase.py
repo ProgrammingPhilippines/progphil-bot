@@ -57,6 +57,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         config = await self.db_config.get_config("forum_showcase")
 
         if not config["config_status"]:
+            self.logger.info("[FORUM-SHOWCASE] Showcase is disabled")
             return
 
         self.schedule_showcase.start()
