@@ -455,6 +455,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         if status:
             next_run = self.calculate_next_run()
             await self.schedule_next_run()
+            if not self.schedule_showcase.is_running():
+                self.schedule_showcase.start()
             await interaction.response.send_message(
                 f"Forum showcase is now enabled. Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}.",
                 ephemeral=True,
