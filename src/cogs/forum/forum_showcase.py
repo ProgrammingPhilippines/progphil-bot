@@ -28,8 +28,8 @@ from src.data.forum.forum_showcase import (
 from src.utils.decorators import is_staff
 
 SCHEDULES = [
-    f"{(h + 12 if h == 0 else h) if h < 12 else (h + 12 if h == 0 else h - 12):02d} {'AM' if h < 12 else 'PM'}"
-    for h in range(24)
+    f"{(hour + 12 if hour == 0 else hour) if hour < 12 else (hour if hour == 12 else hour - 12):02d} {'AM' if hour < 12 else 'PM'}"
+    for hour in range(24)
 ]
 
 
@@ -69,8 +69,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             self.logger.info("[FORUM-SHOWCASE] Showcase is inactive, stopping task")
             return
 
-        now = datetime.now()
-        scheduled_time = self.forum_showcase.schedule
+        now = datetime.now(timezone.utc)
+        scheduled_time = self.forum_showcase.schedule.replace(tzinfo=timezone.utc)
         diff = floor((scheduled_time - now).total_seconds())
 
         if diff <= 60 and diff == 0.00:  # Within 1 minute of scheduled time
@@ -93,7 +93,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             schedule=next_schedule,
             interval=self.forum_showcase.interval,
             target_channel=self.forum_showcase.target_channel,
-            updated_at=datetime.now(),
+            updated_at=datetime.now(timezone.utc),
         )
 
         self.logger.info("[FORUM-SHOWCASE] updated database config")
@@ -108,7 +108,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         next_run = self.calculate_next_run()
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         diff = (next_run - now).total_seconds()
 
         self.logger.info(
@@ -125,11 +125,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             )
 
     def calculate_next_run(self) -> datetime:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         schedule = self.forum_showcase.schedule
         interval = self.forum_showcase.interval
 
-        next_run = schedule.replace(year=now.year, month=now.month, day=now.day)
+        next_run = schedule.replace(
+            year=now.year, month=now.month, day=now.day, tzinfo=timezone.utc
+        )
 
         while next_run <= now:
             if interval == "daily":
@@ -166,8 +168,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 continue
 
             # filter the threads that is posted on current month
-            current_month = datetime.now().month
-            current_year = datetime.now().year
+            current_month = datetime.now(timezone.utc).month
+            current_year = datetime.now(timezone.utc).year
             threads = [
                 thread
                 for thread in forum.threads
@@ -389,7 +391,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                     schedule=self.forum_showcase.schedule,
                     interval=self.forum_showcase.interval,
                     target_channel=self.forum_showcase.target_channel,
-                    updated_at=datetime.now(),
+                    updated_at=datetime.now(timezone.utc),
                 )
                 await self.forum_showcase_db.update_showcase(update_showcase)
                 await interaction.response.send_message(
@@ -450,7 +452,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             hr_schedule += 12
         elif split[1] == "AM" and hr_schedule == 12:
             hr_schedule = 0
-        return datetime.now().replace(hour=hr_schedule, minute=0, second=0)
+        return datetime.now(timezone.utc).replace(
+            hour=hr_schedule, minute=0, second=0, tzinfo=timezone.utc
+        )
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
