@@ -2,6 +2,7 @@ import asyncio
 import random
 from datetime import datetime, timezone
 from logging import Logger
+from math import floor
 
 from dateutil.relativedelta import relativedelta
 from discord import (
@@ -27,7 +28,7 @@ from src.data.forum.forum_showcase import (
 from src.utils.decorators import is_staff
 
 SCHEDULES = [
-    f"{(h + 12 if h == 0 else h) if h < 12 else h - 12:02d} {'AM' if h < 12 else 'PM'}"
+    f"{(h + 12 if h == 0 else h) if h < 12 else (h + 12 if h == 0 else h - 12):02d} {'AM' if h < 12 else 'PM'}"
     for h in range(24)
 ]
 
@@ -68,11 +69,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             self.logger.info("[FORUM-SHOWCASE] Showcase is inactive, stopping task")
             return
 
-        now = datetime.now(timezone.utc)
-        scheduled_time = self.calculate_next_run()
-        diff = abs((scheduled_time - now).total_seconds())
+        now = datetime.now()
+        scheduled_time = self.forum_showcase.schedule
+        diff = floor((scheduled_time - now).total_seconds())
 
-        if diff <= 60:  # Within 1 minute of scheduled time
+        if diff <= 60 and diff == 0.00:  # Within 1 minute of scheduled time
             try:
                 await self.showcase_threads(self.forum_showcase)
                 self.logger.info("[FORUM-SHOWCASE] Showcase completed, rescheduling")
@@ -107,7 +108,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         next_run = self.calculate_next_run()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         diff = (next_run - now).total_seconds()
 
         self.logger.info(
@@ -124,13 +125,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             )
 
     def calculate_next_run(self) -> datetime:
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         schedule = self.forum_showcase.schedule
         interval = self.forum_showcase.interval
 
-        next_run = schedule.replace(
-            year=now.year, month=now.month, day=now.day, tzinfo=timezone.utc
-        )
+        next_run = schedule.replace(year=now.year, month=now.month, day=now.day)
 
         while next_run <= now:
             if interval == "daily":
@@ -372,7 +371,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if selected_schedule:
                 parsed_schedule = self._parse_schedule(selected_schedule)
                 parsed_schedule = parsed_schedule.replace(
-                    day=self.forum_showcase.schedule.day, tzinfo=timezone.utc
+                    day=self.forum_showcase.schedule.day
                 )
                 self.forum_showcase.schedule = parsed_schedule
                 # await self.update_schedule(parsed_schedule)
@@ -461,8 +460,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         if status:
             next_run = self.calculate_next_run()
             await self.schedule_next_run()
+
             if not self.schedule_showcase.is_running():
                 self.schedule_showcase.start()
+
             await interaction.response.send_message(
                 f"Forum showcase is now enabled. Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}.",
                 ephemeral=True,
@@ -471,6 +472,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         if self.schedule_showcase.is_running():
             self.schedule_showcase.cancel()
+
         self.logger.info("[FORUM-SHOWCASE] Forum showcase is now disabled")
         await interaction.response.send_message(
             "Forum showcase is now disabled.", ephemeral=True
