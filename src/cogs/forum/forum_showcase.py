@@ -459,7 +459,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             hr_schedule = 0
 
         # need to convert from UTC+08:00 to UTC+00:00 to match the timezone where the bot is running
-        utc_8 = datetime.now(timezone.utc).replace(
+        utc_8 = datetime.now().replace(
             hour=hr_schedule, minute=0, second=0, tzinfo=timezone(timedelta(hours=8))
         )
         parsed_schedule = (utc_8 - timedelta(hours=8)).replace(tzinfo=timezone.utc)
