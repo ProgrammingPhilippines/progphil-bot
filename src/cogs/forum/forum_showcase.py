@@ -1,6 +1,6 @@
 import asyncio
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from logging import Logger
 from math import floor
 
@@ -43,7 +43,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         self.db_config = Config(self.bot.pool)
         self.logger: Logger = bot.logger
         self.forum_showcase_id = 1
-        self.forum_showcase: ForumShowcase = {}
+        self.forum_showcase = {}
 
     async def cog_load(self) -> None:
         await asyncio.create_task(self.init_data())
@@ -73,6 +73,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         scheduled_time = self.forum_showcase.schedule.replace(tzinfo=timezone.utc)
         diff = floor((scheduled_time - now).total_seconds())
 
+        # We need to current time is the same as the scheduled time,
+        # because sometimes the this task runs halfway the schedule time
+        # due to oversleeping.
+        # If it happens, we need to reschedule the task
         if diff <= 60 and diff == 0.00:  # Within 1 minute of scheduled time
             try:
                 await self.showcase_threads(self.forum_showcase)
@@ -448,13 +452,19 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     def _parse_schedule(self, schedule: str) -> datetime:
         split = schedule.split(" ")
         hr_schedule = int(split[0])
+
         if split[1] == "PM" and hr_schedule != 12:
             hr_schedule += 12
         elif split[1] == "AM" and hr_schedule == 12:
             hr_schedule = 0
-        return datetime.now(timezone.utc).replace(
-            hour=hr_schedule, minute=0, second=0, tzinfo=timezone.utc
+
+        # need to convert from UTC+08:00 to UTC+00:00 to match the timezone where the bot is running
+        utc_8 = datetime.now(timezone.utc).replace(
+            hour=hr_schedule, minute=0, second=0, tzinfo=timezone(timedelta(hours=8))
         )
+        parsed_schedule = (utc_8 - timedelta(hours=8)).replace(tzinfo=timezone.utc)
+
+        return parsed_schedule
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
