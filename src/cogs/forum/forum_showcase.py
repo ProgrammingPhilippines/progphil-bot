@@ -172,8 +172,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 continue
 
             # filter the threads that is posted on current month
-            current_month = datetime.now(timezone.utc).month
-            current_year = datetime.now(timezone.utc).year
+            now = datetime.now(timezone.utc)
+            current_month = now.month
+            current_year = now.year
+
             threads = [
                 thread
                 for thread in forum.threads
@@ -187,6 +189,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if total_threads == 0:
                 continue
 
+            random.seed(now.timestamp())
             thread = random.choice(threads)
             msgs.append(f"### {forum.name}\n{thread.mention}\n")
 
