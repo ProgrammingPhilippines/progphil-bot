@@ -49,8 +49,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         await asyncio.create_task(self.init_data())
 
         schedule = self.forum_showcase.schedule
+        target_channel = self.forum_showcase.target_channel
 
-        if not schedule or not self.forum_showcase.target_channel:
+        if not schedule or not target_channel:
             return
 
         config = await self.db_config.get_config("forum_showcase")
@@ -77,7 +78,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         # because sometimes the this task runs halfway the schedule time
         # due to oversleeping.
         # If it happens, we need to reschedule the task
-        if diff <= 60 and diff == 0.00:  # Within 1 minute of scheduled time
+        if diff < 1.0 and diff >= 0.0:
             try:
                 await self.showcase_threads(self.forum_showcase)
                 self.logger.info("[FORUM-SHOWCASE] Showcase completed, rescheduling")
