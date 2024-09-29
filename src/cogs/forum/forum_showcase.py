@@ -78,7 +78,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         # because sometimes the this task runs halfway the schedule time
         # due to oversleeping.
         # If it happens, we need to reschedule the task
-        if diff < 1.0 and diff >= 0.0:
+        if diff < 1.0 and diff >= -1.0:
             try:
                 await self.showcase_threads(self.forum_showcase)
                 self.logger.info("[FORUM-SHOWCASE] Showcase completed, rescheduling")
