@@ -32,6 +32,16 @@ SCHEDULES = [
     for hour in range(24)
 ]
 
+WEEKDAYS = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+]
+
 
 class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     forum_showcase_id: int
@@ -97,6 +107,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             id=self.forum_showcase.id,
             schedule=next_schedule,
             interval=self.forum_showcase.interval,
+            weekday=self.forum_showcase.weekday,
             target_channel=self.forum_showcase.target_channel,
             updated_at=datetime.now(timezone.utc),
         )
@@ -142,7 +153,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if interval == "daily":
                 next_run += relativedelta(days=1)
             elif interval == "weekly":
-                next_run += relativedelta(weeks=1)
+                next_run += relativedelta(
+                    weekday=WEEKDAYS.index(self.forum_showcase.weekday)
+                )
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
                 next_run = next_month.replace(
@@ -214,7 +227,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         self,
         interaction: Interaction,
     ):
-        async def selection_callback(interaction: Interaction):
+        async def forum_selection_callback(interaction: Interaction):
             await interaction.response.send_message("Thanks!", ephemeral=True)
             view.stop()
 
@@ -229,8 +242,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         cancel = Button(label="Cancel", style=ButtonStyle.red)
         cancel.callback = cancel_callback
 
-        selection = Select(placeholder="Select a forum to add")
-        selection.callback = selection_callback
+        forum_selection = Select(placeholder="Select a forum to add")
+        forum_selection.callback = forum_selection_callback
 
         forum_ids = interaction.guild.forums
 
@@ -357,10 +370,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     async def config(self, interaction: Interaction):
         selected_schedule = None
         selected_channel_id = None
+        selected_weekday = None
 
         async def schedule_callback(interaction: Interaction):
             nonlocal selected_schedule
             selected_schedule = schedule_select.values[0]
+
             await interaction.response.defer()
             await interaction.followup.send(
                 f"New schedule is {selected_schedule}", ephemeral=True
@@ -369,14 +384,29 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         async def channel_callback(interaction: Interaction):
             nonlocal selected_channel_id
             selected_channel_id = int(channel_select.values[0])
+
             await interaction.response.defer()
             channel = self.bot.get_channel(selected_channel_id)
             await interaction.followup.send(
                 f"New target channel is {channel.mention}", ephemeral=True
             )
 
+        async def weekday_selection_callabck(interaction: Interaction):
+            nonlocal selected_weekday
+            selected_weekday = weekday_selection.values[0]
+
+            await interaction.response.defer()
+            await interaction.followup.send(
+                f"New weekday is {selected_weekday}", ephemeral=True
+            )
+
         async def submit_callback(interaction: Interaction):
             changes_made = False
+
+            if selected_weekday:
+                self.forum_showcase.weekday = str(selected_weekday)
+                # await self.schedule_next_run()
+                changes_made = True
 
             if selected_schedule:
                 parsed_schedule = self._parse_schedule(selected_schedule)
@@ -385,7 +415,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 )
                 self.forum_showcase.schedule = parsed_schedule
                 # await self.update_schedule(parsed_schedule)
-                await self.schedule_next_run()
+                # await self.schedule_next_run()
                 changes_made = True
 
             if selected_channel_id:
@@ -398,6 +428,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                     id=self.forum_showcase.id,
                     schedule=self.forum_showcase.schedule,
                     interval=self.forum_showcase.interval,
+                    weekday=self.forum_showcase.weekday,
                     target_channel=self.forum_showcase.target_channel,
                     updated_at=datetime.now(timezone.utc),
                 )
@@ -406,6 +437,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                     "New configuration updated!",
                     ephemeral=True,
                 )
+                await self.schedule_next_run()
             else:
                 await interaction.response.send_message(
                     "No changes were made.", ephemeral=True
@@ -438,14 +470,22 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         channel_select.callback = channel_callback
 
+        weekday_selection = Select(
+            placeholder="Select a day",
+            options=[SelectOption(label=s, value=s) for s in WEEKDAYS],
+        )
+        weekday_selection.callback = weekday_selection_callabck
+
         submit_button = Button(label="Submit", style=ButtonStyle.green)
         submit_button.callback = submit_callback
 
         cancel_button = Button(label="Cancel", style=ButtonStyle.red)
         cancel_button.callback = cancel_callback
 
+        view.add_item(weekday_selection)
         view.add_item(schedule_select)
         view.add_item(channel_select)
+
         view.add_item(submit_button)
         view.add_item(cancel_button)
 
