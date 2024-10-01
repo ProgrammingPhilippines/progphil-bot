@@ -28,6 +28,7 @@ cryptography = "^43.0.1"
 python-levenshtein = "^0.25.1"
 setuptools = "^70.1.0"
 pydantic = "^2.8.0"
+python-dateutil = "^2.9.0"
 
 [tool.poetry.scripts]
 progphil = "main:run"
