@@ -67,7 +67,7 @@ class ConfigurePostAssist(View):
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        await self.stop()
+        self.stop()
 
 
 class PostAssistMessage(Modal, title="Post Assist Message"):
