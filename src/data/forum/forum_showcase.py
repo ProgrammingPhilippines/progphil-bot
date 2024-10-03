@@ -43,7 +43,6 @@ class ForumShowcase(object):
     target_channel: int
     schedule: datetime
     interval: Literal["daily", "weekly", "monthly"]
-    weekday: str
     forums: list[ShowcaseForum]
     created_at: datetime
     updated_at: datetime
@@ -54,7 +53,6 @@ class ForumShowcase(object):
         target_channel: int,
         schedule: datetime,
         interval: Literal["daily", "weekly", "monthly"],
-        weekday: str,
         forums: list[ShowcaseForum],
         created_at: datetime,
         updated_at: datetime,
@@ -63,7 +61,6 @@ class ForumShowcase(object):
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
-        self.weekday = weekday
         self.forums = forums
         self.created_at = created_at
         self.updated_at = updated_at
@@ -93,7 +90,6 @@ class UpdateForumShowcase(object):
     target_channel: int
     schedule: datetime
     interval: Literal["daily", "weekly", "monthly"]
-    weekday: str
     updated_at: datetime
 
     def __init__(
@@ -102,14 +98,12 @@ class UpdateForumShowcase(object):
         target_channel: int,
         schedule: datetime,
         interval: Literal["daily", "weekly", "monthly"],
-        weekday: str,
         updated_at: datetime,
     ) -> None:
         self.id = id
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
-        self.weekday = weekday
         self.updated_at = updated_at
 
 
@@ -134,7 +128,6 @@ class ForumShowcaseDB:
                     target_channel=record["target_channel"],
                     schedule=record["schedule"],
                     interval=record["interval"],
-                    weekday=record["weekday"],
                     forums=[],
                     created_at=record["created_at"],
                     updated_at=record["updated_at"],
@@ -258,15 +251,13 @@ class ForumShowcaseDB:
                         target_channel = $1,
                         schedule = $2,
                         interval = $3,
-                        weekday = $4,
-                        updated_at = $5
-                    WHERE id = $6
+                        updated_at = $4
+                    WHERE id = $5
                     RETURNING *;
                 """,
                     data.target_channel,
                     data.schedule,
                     data.interval,
-                    data.weekday,
                     data.updated_at,
                     data.id,
                 )
