@@ -5,10 +5,10 @@ description = ""
 authors = ["Jedddy <jedbalita25@gmail.com>"]
 readme = "README.md"
 packages = [
-    {include = "src"},
-    {include = "bot", from = "src"},
-    {include = "cogs", from = "src"},
-    {include = "*", from = "src/bot"}
+    { include = "src" },
+    { include = "bot", from = "src" },
+    { include = "cogs", from = "src" },
+    { include = "*", from = "src/bot" },
 ]
 
 [tool.poetry.dependencies]
@@ -29,7 +29,6 @@ python-levenshtein = "^0.25.1"
 setuptools = "^70.1.0"
 pydantic = "^2.8.0"
 python-dateutil = "^2.9.0"
-unittest = "^3.12.6"
 
 [tool.poetry.scripts]
 progphil = "main:run"
