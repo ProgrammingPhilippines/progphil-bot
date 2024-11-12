@@ -9,8 +9,6 @@ from discord import (
     ButtonStyle,
     Embed,
     Interaction,
-    SelectOption,
-    TextChannel,
     app_commands,
 )
 from discord.app_commands import command
@@ -25,11 +23,27 @@ from src.data.forum.forum_showcase import (
     ForumShowcaseDB,
     UpdateForumShowcase,
 )
+from src.ui.views.forum_showcase import (
+    ConfigureChannel,
+    ConfigureTime,
+    ConfigureWeekday,
+)
 from src.utils.decorators import is_staff
 
+# List of hours from 12:00 AM to 11:00 PM
 SCHEDULES = [
     f"{(hour + 12 if hour == 0 else hour) if hour < 12 else (hour if hour == 12 else hour - 12):02d} {'AM' if hour < 12 else 'PM'}"
     for hour in range(24)
+]
+
+WEEKDAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
 ]
 
 
@@ -39,11 +53,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.forum_showcase_db = ForumShowcaseDB(self.bot.pool)
-        self.db_config = Config(self.bot.pool)
-        self.logger: Logger = bot.logger
+        self.forum_showcase_db = ForumShowcaseDB(self.bot.pool, self.bot.logger)  # type: ignore
+        self.db_config = Config(self.bot.pool)  # type: ignore
+        self.logger: Logger = bot.logger  # type: ignore
         self.forum_showcase_id = 1
-        self.forum_showcase = {}
+        self.forum_showcase = {}  # type: ignore
 
     async def cog_load(self) -> None:
         await asyncio.create_task(self.init_data())
@@ -93,17 +107,19 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         await self.schedule_next_run()
 
     async def update_schedule(self, next_schedule: datetime):
+        now = datetime.now(timezone.utc)
         update_showcase_schedule = UpdateForumShowcase(
             id=self.forum_showcase.id,
             schedule=next_schedule,
             interval=self.forum_showcase.interval,
             target_channel=self.forum_showcase.target_channel,
-            updated_at=datetime.now(timezone.utc),
+            weekday=self.forum_showcase.weekday,
+            updated_at=now,
         )
 
-        self.logger.info("[FORUM-SHOWCASE] updated database config")
+        await asyncio.create_task(self.forum_showcase_db.update_showcase(update_showcase_schedule))
 
-        await self.forum_showcase_db.update_showcase(update_showcase_schedule)
+        self.logger.info("[FORUM-SHOWCASE] updated database config")
         self.forum_showcase.schedule = next_schedule
 
     async def schedule_next_run(self, run_now=False):
@@ -143,11 +159,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 next_run += relativedelta(days=1)
             elif interval == "weekly":
                 next_run += relativedelta(weeks=1)
+                weekday = WEEKDAYS.index(self.forum_showcase.weekday)
+                next_run += relativedelta(weekday=weekday)
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
-                next_run = next_month.replace(
-                    day=min(schedule.day, (next_month + relativedelta(days=-1)).day)
-                )
+                next_month_day = (next_month + relativedelta(days=1)).day
+                next_run = next_month.replace(day=min(schedule.day, next_month_day))
 
         return next_run
 
@@ -172,16 +189,17 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if not forum:
                 continue
 
-            # filter the threads that is posted on current month
             now = datetime.now(timezone.utc)
             current_month = now.month
             current_year = now.year
 
+            # filter the threads that is not archived
+            # and is posted on current month
             threads = [
                 thread
-                for thread in forum.threads
-                if thread.created_at.month == current_month
-                and thread.created_at.year == current_year
+                for thread in forum.threads  # type: ignore
+                if thread.created_at.month == current_month  # type: ignore
+                and thread.created_at.year == current_year  # type: ignore
                 and not thread.archived
             ]
 
@@ -192,15 +210,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
             random.seed(now.timestamp())
             thread = random.choice(threads)
-            msgs.append(f"### {forum.name}\n{thread.mention}\n")
+            msgs.append(f"### {forum.name}\n{thread.mention}\n")  # type: ignore
 
         if msgs:
             message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{''.join(msgs)}"
-            await target_channel.send(message)
+            await target_channel.send(message)  # type: ignore
         else:
-            self.bot.logger.info(
-                "[FORUM-SHOWCASE] No threads found for the current month."
-            )
+            self.logger.info("[FORUM-SHOWCASE] No threads found for the current month.")
 
     async def init_data(self):
         data = await self.forum_showcase_db.get_showcases()
@@ -355,102 +371,37 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
     async def config(self, interaction: Interaction):
-        selected_schedule = None
-        selected_channel_id = None
-
-        async def schedule_callback(interaction: Interaction):
-            nonlocal selected_schedule
-            selected_schedule = schedule_select.values[0]
-            await interaction.response.defer()
-            await interaction.followup.send(
-                f"New schedule is {selected_schedule}", ephemeral=True
-            )
-
-        async def channel_callback(interaction: Interaction):
-            nonlocal selected_channel_id
-            selected_channel_id = int(channel_select.values[0])
-            await interaction.response.defer()
-            channel = self.bot.get_channel(selected_channel_id)
-            await interaction.followup.send(
-                f"New target channel is {channel.mention}", ephemeral=True
-            )
-
-        async def submit_callback(interaction: Interaction):
-            changes_made = False
-
-            if selected_schedule:
-                parsed_schedule = self._parse_schedule(selected_schedule)
-                parsed_schedule = parsed_schedule.replace(
-                    day=self.forum_showcase.schedule.day
-                )
-                self.forum_showcase.schedule = parsed_schedule
-                # await self.update_schedule(parsed_schedule)
-                await self.schedule_next_run()
-                changes_made = True
-
-            if selected_channel_id:
-                self.forum_showcase.target_channel = selected_channel_id
-                changes_made = True
-
-            if changes_made:
-                # Update the database with the new target channel
-                update_showcase = UpdateForumShowcase(
-                    id=self.forum_showcase.id,
-                    schedule=self.forum_showcase.schedule,
-                    interval=self.forum_showcase.interval,
-                    target_channel=self.forum_showcase.target_channel,
-                    updated_at=datetime.now(timezone.utc),
-                )
-                await self.forum_showcase_db.update_showcase(update_showcase)
-                await interaction.response.send_message(
-                    "New configuration updated!",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    "No changes were made.", ephemeral=True
-                )
-
-            view.stop()
-
-        async def cancel_callback(interaction: Interaction):
-            await interaction.response.send_message(
-                "Configuration cancelled", ephemeral=True
-            )
-            view.stop()
-            return
-
-        view = View(timeout=300)
-
-        schedule_select = Select(
-            placeholder="Select a target schedule",
-            options=[SelectOption(label=s, value=s) for s in SCHEDULES],
+        await interaction.response.defer()
+        target_channel_select = ConfigureChannel(
+            self.forum_showcase, self.forum_showcase_id, self.forum_showcase_db, self.logger
         )
-        schedule_select.callback = schedule_callback
 
-        channel_select = Select(
-            placeholder="Select a target channel",
-            options=[
-                SelectOption(label=channel.name, value=str(channel.id))
-                for channel in interaction.guild.channels
-                if isinstance(channel, TextChannel)
-            ],
+        await interaction.followup.send(
+            "Select a target channel", view=target_channel_select, ephemeral=True
         )
-        channel_select.callback = channel_callback
+        await target_channel_select.wait()
 
-        submit_button = Button(label="Submit", style=ButtonStyle.green)
-        submit_button.callback = submit_callback
+        weekday_select = ConfigureWeekday(
+            self.forum_showcase, self.forum_showcase_db, self.logger
+        )
 
-        cancel_button = Button(label="Cancel", style=ButtonStyle.red)
-        cancel_button.callback = cancel_callback
+        await interaction.followup.send(
+            "Select a weekday", view=weekday_select, ephemeral=True
+        )
+        await weekday_select.wait()
 
-        view.add_item(schedule_select)
-        view.add_item(channel_select)
-        view.add_item(submit_button)
-        view.add_item(cancel_button)
+        time_select = ConfigureTime(
+            self.forum_showcase, self.forum_showcase_db, self.logger
+        )
+        await interaction.followup.send(
+            "Select a time", view=time_select, ephemeral=True
+        )
+        await time_select.wait()
 
-        await interaction.response.send_message(
-            "Configure forum showcase:", view=view, ephemeral=True
+        await self.schedule_next_run()
+
+        await interaction.followup.send(
+            "All settings have been updated.", ephemeral=True
         )
 
     def _parse_schedule(self, schedule: str) -> datetime:
