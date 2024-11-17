@@ -155,9 +155,6 @@ class ConfigureWeekday(View):
     async def weekday_select(self, interaction: Interaction, selection: Select):
         selected_weekday = selection.values[0] or None
         self.selected_weekday = selected_weekday
-        # await interaction.response.send_message(
-        #     f"Selected {selected_weekday}", ephemeral=True
-        # )
         await interaction.response.defer()
 
 
@@ -223,10 +220,6 @@ class ConfigureTime(View):
     async def time_select(self, interaction: Interaction, selection: Select):
         selected_time = selection.values[0]
         self.selected_time = selected_time
-
-        # await interaction.response.send_message(
-        #     f"Selected {self.selected_time}", ephemeral=True
-        # )
         await interaction.response.defer()
 
 
@@ -241,9 +234,12 @@ def parse_schedule(schedule: str) -> datetime:
 
     # need to convert from UTC+08:00 to UTC+00:00 to match the timezone
     # where the bot is running
-    utc_8 = datetime.now().replace(
-        hour=hr_schedule, minute=0, second=0, tzinfo=timezone(timedelta(hours=8))
+    now = datetime.now(timezone.utc)
+    parsed_schedule = now.replace(
+        hour=hr_schedule,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
-    parsed_schedule = (utc_8 - timedelta(hours=8)).replace(tzinfo=timezone.utc)
 
     return parsed_schedule

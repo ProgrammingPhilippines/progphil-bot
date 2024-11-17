@@ -379,7 +379,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         await target_channel_select.wait()
 
-        self.forum_showcase = target_channel_select.forum_showcase
+        self.forum_showcase.target_channel = (
+            target_channel_select.forum_showcase.target_channel
+        )
 
         weekday_select = ConfigureWeekday(
             self.forum_showcase, self.forum_showcase_db, self.logger
@@ -390,7 +392,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         await weekday_select.wait()
 
-        self.forum_showcase = weekday_select.forum_showcase
+        self.forum_showcase.weekday = weekday_select.forum_showcase.weekday
 
         time_select = ConfigureTime(
             self.forum_showcase, self.forum_showcase_db, self.logger
@@ -400,7 +402,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         await time_select.wait()
 
-        self.forum_showcase = time_select.forum_showcase
+        self.forum_showcase.schedule = time_select.forum_showcase.schedule
 
         await self.schedule_next_run()
 
@@ -417,11 +419,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         elif split[1] == "AM" and hr_schedule == 12:
             hr_schedule = 0
 
-        # need to convert from UTC+08:00 to UTC+00:00 to match the timezone where the bot is running
-        utc_8 = datetime.now().replace(
-            hour=hr_schedule, minute=0, second=0, tzinfo=timezone(timedelta(hours=8))
+        now = datetime.now(timezone.utc)
+        parsed_schedule = now.replace(
+            hour=hr_schedule,
+            minute=0,
+            second=0,
+            microsecond=0,
         )
-        parsed_schedule = (utc_8 - timedelta(hours=8)).replace(tzinfo=timezone.utc)
 
         return parsed_schedule
 
