@@ -155,7 +155,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 next_run += relativedelta(days=1)
             elif interval == "weekly":
                 weekday = WEEKDAYS.index(self.forum_showcase.weekday)
-                next_run += relativedelta(day=now.day + 1, weekday=weekday)
+                next_run += relativedelta(weekday=weekday)
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
                 next_month_day = (next_month + relativedelta(days=1)).day
