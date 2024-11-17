@@ -145,6 +145,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         now = datetime.now(timezone.utc)
         schedule = self.forum_showcase.schedule
         interval = self.forum_showcase.interval
+        weekday_int = WEEKDAYS.index(self.forum_showcase.weekday)
 
         next_run = schedule.replace(
             year=now.year, month=now.month, day=now.day, tzinfo=timezone.utc
@@ -154,8 +155,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if interval == "daily":
                 next_run += relativedelta(days=1)
             elif interval == "weekly":
-                weekday = WEEKDAYS.index(self.forum_showcase.weekday)
-                next_run += relativedelta(weekday=weekday)
+                if weekday_int == now.weekday():
+                    next_run += relativedelta(weeks=1)
+                else:
+                    weekday = weekday_int
+                    next_run += relativedelta(weekday=weekday)
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
                 next_month_day = (next_month + relativedelta(days=1)).day
@@ -386,13 +390,17 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         weekday_select = ConfigureWeekday(
             self.forum_showcase, self.forum_showcase_db, self.logger
         )
-
         await interaction.followup.send(
             "Select a weekday", view=weekday_select, ephemeral=True
         )
         await weekday_select.wait()
 
-        self.forum_showcase.weekday = weekday_select.forum_showcase.weekday
+        if weekday_select.selected_weekday is not None:
+            self.forum_showcase.weekday = weekday_select.forum_showcase.weekday
+            self.logger.info(
+                f"[FORUM-SHOWCASE] New weekday: {self.forum_showcase.weekday}"
+            )
+            await self.schedule_next_run()
 
         time_select = ConfigureTime(
             self.forum_showcase, self.forum_showcase_db, self.logger
@@ -402,9 +410,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         await time_select.wait()
 
-        self.forum_showcase.schedule = time_select.forum_showcase.schedule
-
-        await self.schedule_next_run()
+        if time_select.selected_time is not None:
+            self.forum_showcase.schedule = time_select.forum_showcase.schedule
+            self.logger.info(
+                f"[FORUM-SHOWCASE] New schedule: {self.forum_showcase.schedule}"
+            )
+            await self.schedule_next_run()
 
         await interaction.followup.send(
             "All settings have been updated.", ephemeral=True

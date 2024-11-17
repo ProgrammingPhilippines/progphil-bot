@@ -123,18 +123,18 @@ class ConfigureWeekday(View):
             self.stop()
             return
 
+        self.forum_showcase.weekday = self.selected_weekday
+
         now = datetime.now(timezone.utc)
         update_showcase = UpdateForumShowcase(
             id=self.forum_showcase.id,
             target_channel=self.forum_showcase.target_channel,
             schedule=self.forum_showcase.schedule,
             interval=self.forum_showcase.interval,
-            weekday=self.selected_weekday,
+            weekday=self.forum_showcase.weekday,
             updated_at=now,
         )
         await self.forum_showcase_db.update_showcase(update_showcase)
-
-        self.forum_showcase.weekday = self.selected_weekday
 
         await interaction.response.send_message(
             f"New weekday is {self.selected_weekday}", ephemeral=True
