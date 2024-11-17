@@ -99,10 +99,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             except Exception as e:
                 self.logger.error(f"[FORUM-SHOWCASE] Error in showcase_threads: {e}")
         else:
-            self.logger.info("[FORUM-SHOWCASE] Not yet time for showcase")
-            self.logger.info(
-                f"[FORUM-SHOWCASE] Time until next showcase: {diff:.2f} seconds"
-            )
+            pass
 
         await self.schedule_next_run()
 
@@ -117,9 +114,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             updated_at=now,
         )
 
-        await asyncio.create_task(self.forum_showcase_db.update_showcase(update_showcase_schedule))
+        await asyncio.create_task(
+            self.forum_showcase_db.update_showcase(update_showcase_schedule)
+        )
 
-        self.logger.info("[FORUM-SHOWCASE] updated database config")
         self.forum_showcase.schedule = next_schedule
 
     async def schedule_next_run(self, run_now=False):
@@ -131,10 +129,6 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         now = datetime.now(timezone.utc)
         diff = (next_run - now).total_seconds()
-
-        self.logger.info(
-            f"[FORUM-SHOWCASE] Scheduling next run at {next_run} (in {diff:.2f} seconds)"
-        )
 
         await self.update_schedule(next_run)
 
@@ -372,13 +366,18 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     async def config(self, interaction: Interaction):
         await interaction.response.defer()
         target_channel_select = ConfigureChannel(
-            self.forum_showcase, self.forum_showcase_id, self.forum_showcase_db, self.logger
+            self.forum_showcase,
+            self.forum_showcase_id,
+            self.forum_showcase_db,
+            self.logger,
         )
 
         await interaction.followup.send(
             "Select a target channel", view=target_channel_select, ephemeral=True
         )
         await target_channel_select.wait()
+
+        self.forum_showcase = target_channel_select.forum_showcase
 
         weekday_select = ConfigureWeekday(
             self.forum_showcase, self.forum_showcase_db, self.logger
@@ -389,6 +388,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
         await weekday_select.wait()
 
+        self.forum_showcase = weekday_select.forum_showcase
+
         time_select = ConfigureTime(
             self.forum_showcase, self.forum_showcase_db, self.logger
         )
@@ -396,6 +397,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             "Select a time", view=time_select, ephemeral=True
         )
         await time_select.wait()
+
+        self.forum_showcase = time_select.forum_showcase
 
         await self.schedule_next_run()
 
