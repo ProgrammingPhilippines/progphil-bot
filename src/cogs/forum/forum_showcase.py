@@ -130,7 +130,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         now = datetime.now(timezone.utc)
         diff = (next_run - now).total_seconds()
 
-        self.logger.info("[FORUM-SHOWCASE] New showcase schedule: {next_run}")
+        self.logger.info(f"[FORUM-SHOWCASE] New showcase schedule: {next_run}")
 
         await self.update_schedule(next_run)
 
