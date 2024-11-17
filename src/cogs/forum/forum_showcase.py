@@ -101,7 +101,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         else:
             pass
 
-        await self.schedule_next_run()
+        next_run = self.calculate_next_run(
+            self.forum_showcase.schedule,
+            self.forum_showcase.interval,
+            self.forum_showcase.weekday,
+        )
+        await self.schedule_next_run(next_run=next_run)
 
     async def update_schedule(self, next_schedule: datetime):
         now = datetime.now(timezone.utc)
@@ -120,12 +125,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         self.forum_showcase.schedule = next_schedule
 
-    async def schedule_next_run(self, run_now=False):
+    async def schedule_next_run(self, next_run: datetime, run_now=False):
         if not self.forum_showcase:
             self.logger.error("[FORUM-SHOWCASE] No forum showcase configured")
             return
-
-        next_run = self.calculate_next_run()
 
         now = datetime.now(timezone.utc)
         diff = (next_run - now).total_seconds()
@@ -141,11 +144,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 "[FORUM-SHOWCASE] Next run time is in the past. Waiting for next interval."
             )
 
-    def calculate_next_run(self) -> datetime:
+    def calculate_next_run(
+        self, schedule: datetime, interval: str, day: str
+    ) -> datetime:
         now = datetime.now(timezone.utc)
-        schedule = self.forum_showcase.schedule
-        interval = self.forum_showcase.interval
-        weekday_int = WEEKDAYS.index(self.forum_showcase.weekday)
+        weekday_int = WEEKDAYS.index(day)
 
         next_run = schedule.replace(
             year=now.year, month=now.month, day=now.day, tzinfo=timezone.utc
@@ -400,7 +403,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             self.logger.info(
                 f"[FORUM-SHOWCASE] New weekday: {self.forum_showcase.weekday}"
             )
-            await self.schedule_next_run()
+            next_run = self.calculate_next_run(
+                self.forum_showcase.schedule,
+                self.forum_showcase.interval,
+                self.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
         time_select = ConfigureTime(
             self.forum_showcase, self.forum_showcase_db, self.logger
@@ -411,11 +419,15 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         await time_select.wait()
 
         if time_select.selected_time is not None:
-            self.forum_showcase.schedule = time_select.forum_showcase.schedule
             self.logger.info(
                 f"[FORUM-SHOWCASE] New schedule: {self.forum_showcase.schedule}"
             )
-            await self.schedule_next_run()
+            next_run = self.calculate_next_run(
+                self.forum_showcase.schedule,
+                self.forum_showcase.interval,
+                self.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
         await interaction.followup.send(
             "All settings have been updated.", ephemeral=True
@@ -446,8 +458,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         status = await self.db_config.toggle_config("forum_showcase")
 
         if status:
-            next_run = self.calculate_next_run()
-            await self.schedule_next_run()
+            next_run = self.calculate_next_run(
+                self.forum_showcase.schedule,
+                self.forum_showcase.interval,
+                self.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
             if not self.schedule_showcase.is_running():
                 self.schedule_showcase.start()
