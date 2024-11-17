@@ -399,14 +399,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         await weekday_select.wait()
 
         if weekday_select.selected_weekday is not None:
-            self.forum_showcase.weekday = weekday_select.forum_showcase.weekday
             self.logger.info(
-                f"[FORUM-SHOWCASE] New weekday: {self.forum_showcase.weekday}"
+                f"[FORUM-SHOWCASE] New weekday: {weekday_select.forum_showcase.weekday}"
             )
             next_run = self.calculate_next_run(
-                self.forum_showcase.schedule,
-                self.forum_showcase.interval,
-                self.forum_showcase.weekday,
+                weekday_select.forum_showcase.schedule,
+                weekday_select.forum_showcase.interval,
+                weekday_select.forum_showcase.weekday,
             )
             await self.schedule_next_run(next_run=next_run)
 
@@ -424,9 +423,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             )
             self.forum_showcase.schedule = time_select.forum_showcase.schedule
             next_run = self.calculate_next_run(
-                self.forum_showcase.schedule,
-                self.forum_showcase.interval,
-                self.forum_showcase.weekday,
+                time_select.forum_showcase.schedule,
+                time_select.forum_showcase.interval,
+                time_select.forum_showcase.weekday,
             )
             await self.schedule_next_run(next_run=next_run)
 
