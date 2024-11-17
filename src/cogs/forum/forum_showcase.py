@@ -420,8 +420,9 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
         if time_select.selected_time is not None:
             self.logger.info(
-                f"[FORUM-SHOWCASE] New schedule: {self.forum_showcase.schedule}"
+                f"[FORUM-SHOWCASE] New schedule: {time_select.forum_showcase.schedule}"
             )
+            self.forum_showcase.schedule = time_select.forum_showcase.schedule
             next_run = self.calculate_next_run(
                 self.forum_showcase.schedule,
                 self.forum_showcase.interval,
