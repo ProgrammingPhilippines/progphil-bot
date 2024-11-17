@@ -57,6 +57,11 @@ class ConfigureChannel(View):
             return
 
         channel = interaction.guild.get_channel(self.selected_channel)  # type: ignore
+
+        if channel is None:
+            await interaction.response.send_message("Selected channel does not exist.")
+            return self.stop()
+
         now = datetime.now(timezone.utc)
 
         update_showcase = UpdateForumShowcase(
@@ -69,8 +74,6 @@ class ConfigureChannel(View):
         )
 
         await self.forum_showcase_db.update_showcase(update_showcase)
-
-        self.forum_showcase.target_channel = channel.id  # type: ignore
 
         await interaction.response.send_message(
             f"New target channel is {channel.mention}, id {channel.id}",  # type: ignore
@@ -88,11 +91,9 @@ class ConfigureChannel(View):
     )
     async def channel_select(self, interaction: Interaction, selection: ChannelSelect):
         selected_channel = selection.values[0] or None
-        self.selected_channel = selected_channel.id
-        # await interaction.response.send_message(
-        #     f"Selected {selected_channel.mention}",  # type: ignore
-        #     ephemeral=True,
-        # )
+        if selected_channel is not None:
+            self.selected_channel = selected_channel.id
+            self.forum_showcase.target_channel = self.selected_channel
         await interaction.response.defer()
 
 
@@ -123,8 +124,6 @@ class ConfigureWeekday(View):
             self.stop()
             return
 
-        self.forum_showcase.weekday = self.selected_weekday
-
         now = datetime.now(timezone.utc)
         update_showcase = UpdateForumShowcase(
             id=self.forum_showcase.id,
@@ -154,7 +153,9 @@ class ConfigureWeekday(View):
     )
     async def weekday_select(self, interaction: Interaction, selection: Select):
         selected_weekday = selection.values[0] or None
-        self.selected_weekday = selected_weekday
+        if selected_weekday is not None:
+            self.selected_weekday = selected_weekday
+            self.forum_showcase.weekday = self.selected_weekday
         await interaction.response.defer()
 
 
@@ -186,20 +187,16 @@ class ConfigureTime(View):
             return
 
         now = datetime.now(timezone.utc)
-        parsed_schedule = parse_schedule(self.selected_time)
-        schedule = parsed_schedule.replace(day=self.forum_showcase.schedule.day)
         update_showcase = UpdateForumShowcase(
             id=self.forum_showcase.id,
             target_channel=self.forum_showcase.target_channel,
-            schedule=schedule,
+            schedule=self.forum_showcase.schedule,
             interval=self.forum_showcase.interval,
             weekday=self.forum_showcase.weekday,
             updated_at=now,
         )
 
         await self.forum_showcase_db.update_showcase(update_showcase)
-
-        self.forum_showcase.schedule = schedule
 
         await interaction.response.send_message(
             f"New time is {self.selected_time}", ephemeral=True
@@ -219,7 +216,11 @@ class ConfigureTime(View):
     )
     async def time_select(self, interaction: Interaction, selection: Select):
         selected_time = selection.values[0]
-        self.selected_time = selected_time
+        if selected_time is not None:
+            self.selected_time = selected_time
+            parsed_schedule = parse_schedule(self.selected_time)
+            schedule = parsed_schedule.replace(day=self.forum_showcase.schedule.day)
+            self.forum_showcase.schedule = schedule
         await interaction.response.defer()
 
 
