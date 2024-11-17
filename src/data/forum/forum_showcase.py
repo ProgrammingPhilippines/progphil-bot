@@ -275,7 +275,6 @@ class ForumShowcaseDB:
                     data.updated_at.replace(tzinfo=None),
                     data.id,
                 )
-                self.logger.info(f"Successfully updated showcase {data.id}")
 
                 return True
             except Exception as e:
