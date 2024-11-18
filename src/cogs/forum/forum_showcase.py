@@ -442,10 +442,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 )
                 await self.schedule_next_run(next_run=next_run)
 
-                time_select.forum_showcase = self.forum_showcase
-                await interaction.followup.send(
-                    "Select a time", view=time_select, ephemeral=True
-                )
+            time_select.forum_showcase = self.forum_showcase
+            await interaction.followup.send(
+                "Select a time", view=time_select, ephemeral=True
+            )
             await time_select.wait()
         elif self.forum_showcase.interval == "monthly":
             next_run = self.calculate_next_run(

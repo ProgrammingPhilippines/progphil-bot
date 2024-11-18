@@ -304,5 +304,6 @@ def parse_schedule(schedule: str) -> datetime:
         second=0,
         microsecond=0,
     )
+    parsed_schedule = (parsed_schedule - timedelta(hours=8)).replace(tzinfo=timezone.utc)
 
     return parsed_schedule
