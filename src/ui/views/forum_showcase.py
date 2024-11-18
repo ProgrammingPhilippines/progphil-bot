@@ -111,12 +111,12 @@ class ConfigureInterval(View):
         self.logger = logger
         self.selected_interval: str | None = None
 
-    @button(label="Skip", style=ButtonStyle.red)  # type: ignore
+    @button(label="Skip", style=ButtonStyle.red, custom_id="cancel-interval-select")  # type: ignore
     async def cancel_button(self, interaction: Interaction, button: Button):
         await interaction.response.send_message("Skipped!", ephemeral=True)
         self.stop()
 
-    @button(label="Submit", style=ButtonStyle.green) # type: ignore
+    @button(label="Submit", style=ButtonStyle.green, custom_id="submit-interval-select") # type: ignore
     async def submit_button(self, interaction: Interaction, button: Button):
         if self.selected_interval is None:
             await interaction.response.send_message(
