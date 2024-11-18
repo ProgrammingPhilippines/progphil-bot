@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from logging import Logger
+from typing import Literal
 
 from discord import Button, ButtonStyle, ChannelType, Interaction, SelectOption
 from discord.ui import ChannelSelect, Select, View, button, select
@@ -25,6 +26,8 @@ WEEKDAYS = [
     "Saturday",
     "Sunday",
 ]
+
+INTERVAL = ["daily", "weekly", "monthly"]
 
 
 class ConfigureChannel(View):
@@ -96,6 +99,65 @@ class ConfigureChannel(View):
             self.forum_showcase.target_channel = self.selected_channel
         await interaction.response.defer()
 
+class ConfigureInterval(View):
+    def __init__(self,
+        forum_showcase: ForumShowcase,
+        forum_showcase_db: ForumShowcaseDB,
+        logger: Logger,
+    ):
+        super().__init__(timeout=300)
+        self.forum_showcase = forum_showcase
+        self.forum_showcase_db = forum_showcase_db
+        self.logger = logger
+        self.selected_interval: str | None = None
+
+    @button(label="Skip", style=ButtonStyle.red)  # type: ignore
+    async def cancel_button(self, interaction: Interaction, button: Button):
+        await interaction.response.send_message("Skipped!", ephemeral=True)
+        self.stop()
+
+    @button(label="Submit", style=ButtonStyle.green) # type: ignore
+    async def submit_button(self, interaction: Interaction, button: Button):
+        if self.selected_interval is None:
+            await interaction.response.send_message(
+                "No changes were made for the interval.", ephemeral=True
+            )
+            self.stop()
+            return
+
+        now = datetime.now(timezone.utc)
+        update_showcase = UpdateForumShowcase(
+            id=self.forum_showcase.id,
+            target_channel=self.forum_showcase.target_channel,
+            schedule=self.forum_showcase.schedule,
+            interval=str(self.selected_interval),
+            weekday=self.forum_showcase.weekday,
+            updated_at=now,
+        )
+        await self.forum_showcase_db.update_showcase(update_showcase)
+
+        await interaction.response.send_message(
+            f"New interval is {self.selected_interval}", ephemeral=True
+        )
+        self.stop()
+
+    @select(
+        cls=Select,
+        placeholder="Select an interval",
+        options=[
+            SelectOption(
+                label=interval,
+                value=interval,
+            )
+            for interval in INTERVAL
+        ],
+    )
+    async def select_interval(self, interaction: Interaction, selection: Select):
+        selected_interval = selection.values[0] or None
+        if selected_interval is not None:
+            self.selected_interval = selected_interval
+            self.forum_showcase.interval = self.selected_interval
+        await interaction.response.defer()
 
 class ConfigureWeekday(View):
     def __init__(
@@ -130,7 +192,7 @@ class ConfigureWeekday(View):
             target_channel=self.forum_showcase.target_channel,
             schedule=self.forum_showcase.schedule,
             interval=self.forum_showcase.interval,
-            weekday=self.forum_showcase.weekday,
+            weekday=self.selected_weekday,
             updated_at=now,
         )
         await self.forum_showcase_db.update_showcase(update_showcase)
@@ -235,7 +297,7 @@ def parse_schedule(schedule: str) -> datetime:
 
     # need to convert from UTC+08:00 to UTC+00:00 to match the timezone
     # where the bot is running
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone(timedelta(hours=8)))
     parsed_schedule = now.replace(
         hour=hr_schedule,
         minute=0,

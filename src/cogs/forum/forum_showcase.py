@@ -23,8 +23,10 @@ from src.data.forum.forum_showcase import (
     ForumShowcaseDB,
     UpdateForumShowcase,
 )
+from src.ui.views import forum_showcase
 from src.ui.views.forum_showcase import (
     ConfigureChannel,
+    ConfigureInterval,
     ConfigureTime,
     ConfigureWeekday,
 )
@@ -165,8 +167,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                     next_run += relativedelta(weekday=weekday)
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
-                next_month_day = (next_month + relativedelta(days=1)).day
-                next_run = next_month.replace(day=min(schedule.day, next_month_day))
+                next_run = next_month.replace(day=next_month.day)
 
         return next_run
 
@@ -374,11 +375,27 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     @command(name="config", description="Configure the schedule of a forum.")
     async def config(self, interaction: Interaction):
         await interaction.response.defer()
+
         target_channel_select = ConfigureChannel(
             self.forum_showcase,
             self.forum_showcase_id,
             self.forum_showcase_db,
             self.logger,
+        )
+        interval_select = ConfigureInterval(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger,
+        )
+        weekday_select = ConfigureWeekday(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger
+        )
+        time_select = ConfigureTime(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger
         )
 
         await interaction.followup.send(
@@ -390,37 +407,55 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             target_channel_select.forum_showcase.target_channel
         )
 
-        weekday_select = ConfigureWeekday(
-            self.forum_showcase, self.forum_showcase_db, self.logger
-        )
         await interaction.followup.send(
-            "Select a weekday", view=weekday_select, ephemeral=True
+            "Select a target interval", view=interval_select, ephemeral=True
         )
-        await weekday_select.wait()
+        await interval_select.wait()
 
-        if weekday_select.selected_weekday is not None:
-            self.logger.info(
-                f"[FORUM-SHOWCASE] New weekday: {weekday_select.forum_showcase.weekday}"
+        if interval_select.selected_interval is not None:
+            self.forum_showcase.interval = str(interval_select.selected_interval)
+
+        if self.forum_showcase.interval == "daily":
+            time_select.forum_showcase = self.forum_showcase
+
+            await interaction.followup.send(
+                    "Select a time", view=time_select, ephemeral=True
+                )
+            await time_select.wait()
+        elif self.forum_showcase.interval == "weekly":
+            weekday_select.forum_showcase = self.forum_showcase
+
+            await interaction.followup.send(
+                    "Select a weekday", view=weekday_select, ephemeral=True
             )
+            await weekday_select.wait()
+
+            if weekday_select.selected_weekday is not None:
+                self.logger.info(
+                        f"[FORUM-SHOWCASE] New weekday: {weekday_select.forum_showcase.weekday}"
+                )
+                self.forum_showcase = weekday_select.forum_showcase
+                next_run = self.calculate_next_run(
+                        weekday_select.forum_showcase.schedule,
+                        weekday_select.forum_showcase.interval,
+                        weekday_select.forum_showcase.weekday,
+                )
+                await self.schedule_next_run(next_run=next_run)
+
+                time_select.forum_showcase = self.forum_showcase
+                await interaction.followup.send(
+                    "Select a time", view=time_select, ephemeral=True
+                )
+            await time_select.wait()
+        elif self.forum_showcase.interval == "monthly":
             next_run = self.calculate_next_run(
-                weekday_select.forum_showcase.schedule,
-                weekday_select.forum_showcase.interval,
-                weekday_select.forum_showcase.weekday,
+                    time_select.forum_showcase.schedule,
+                    time_select.forum_showcase.interval,
+                    time_select.forum_showcase.weekday,
             )
             await self.schedule_next_run(next_run=next_run)
 
-        time_select = ConfigureTime(
-            self.forum_showcase, self.forum_showcase_db, self.logger
-        )
-        await interaction.followup.send(
-            "Select a time", view=time_select, ephemeral=True
-        )
-        await time_select.wait()
-
         if time_select.selected_time is not None:
-            self.logger.info(
-                f"[FORUM-SHOWCASE] New schedule: {time_select.forum_showcase.schedule}"
-            )
             self.forum_showcase.schedule = time_select.forum_showcase.schedule
             next_run = self.calculate_next_run(
                 time_select.forum_showcase.schedule,
@@ -432,25 +467,6 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         await interaction.followup.send(
             "All settings have been updated.", ephemeral=True
         )
-
-    def _parse_schedule(self, schedule: str) -> datetime:
-        split = schedule.split(" ")
-        hr_schedule = int(split[0])
-
-        if split[1] == "PM" and hr_schedule != 12:
-            hr_schedule += 12
-        elif split[1] == "AM" and hr_schedule == 12:
-            hr_schedule = 0
-
-        now = datetime.now(timezone.utc)
-        parsed_schedule = now.replace(
-            hour=hr_schedule,
-            minute=0,
-            second=0,
-            microsecond=0,
-        )
-
-        return parsed_schedule
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")

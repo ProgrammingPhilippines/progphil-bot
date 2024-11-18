@@ -43,7 +43,7 @@ class ForumShowcase(object):
     id: int
     target_channel: int
     schedule: datetime
-    interval: Literal["daily", "weekly", "monthly"]
+    interval: Literal["daily", "weekly", "monthly"] | str
     weekday: str
     forums: list[ShowcaseForum]
     created_at: datetime
@@ -93,7 +93,7 @@ class UpdateForumShowcase(object):
     id: int
     target_channel: int
     schedule: datetime
-    interval: Literal["daily", "weekly", "monthly"]
+    interval:  str | Literal["daily", "weekly", "monthly"]
     weekday: str
     updated_at: datetime
 
@@ -102,7 +102,7 @@ class UpdateForumShowcase(object):
         id: int,
         target_channel: int,
         schedule: datetime,
-        interval: Literal["daily", "weekly", "monthly"],
+        interval: str | Literal["daily", "weekly", "monthly"],
         weekday: str,
         updated_at: datetime,
     ) -> None:
