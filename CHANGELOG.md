@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.2.0...v1.3.0) (2024-12-01)
+
+
+### Features
+
+* Thread Showcase ([#260](https://github.com/ProgrammingPhilippines/progphil-bot/issues/260)) ([9d98acb](https://github.com/ProgrammingPhilippines/progphil-bot/commit/9d98acb1bf1828785c0809824f4de64a98651f08))
+
 ## [1.2.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.1.1...v1.2.0) (2024-09-01)
 
 
