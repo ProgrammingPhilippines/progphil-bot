@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Literal
 
 from asyncpg import Pool
+from logging import Logger
 
 
 class ShowcaseForum(object):
@@ -42,7 +43,8 @@ class ForumShowcase(object):
     id: int
     target_channel: int
     schedule: datetime
-    interval: Literal["daily", "weekly", "monthly"]
+    interval: Literal["daily", "weekly", "monthly"] | str
+    weekday: str
     forums: list[ShowcaseForum]
     created_at: datetime
     updated_at: datetime
@@ -53,6 +55,7 @@ class ForumShowcase(object):
         target_channel: int,
         schedule: datetime,
         interval: Literal["daily", "weekly", "monthly"],
+        weekday: str,
         forums: list[ShowcaseForum],
         created_at: datetime,
         updated_at: datetime,
@@ -61,6 +64,7 @@ class ForumShowcase(object):
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
+        self.weekday = weekday
         self.forums = forums
         self.created_at = created_at
         self.updated_at = updated_at
@@ -89,7 +93,8 @@ class UpdateForumShowcase(object):
     id: int
     target_channel: int
     schedule: datetime
-    interval: Literal["daily", "weekly", "monthly"]
+    interval:  str | Literal["daily", "weekly", "monthly"]
+    weekday: str
     updated_at: datetime
 
     def __init__(
@@ -97,13 +102,15 @@ class UpdateForumShowcase(object):
         id: int,
         target_channel: int,
         schedule: datetime,
-        interval: Literal["daily", "weekly", "monthly"],
+        interval: str | Literal["daily", "weekly", "monthly"],
+        weekday: str,
         updated_at: datetime,
     ) -> None:
         self.id = id
         self.target_channel = target_channel
         self.schedule = schedule
         self.interval = interval
+        self.weekday = weekday
         self.updated_at = updated_at
 
 
@@ -111,9 +118,11 @@ class ForumShowcaseDB:
     """The database handler for Forum Showcase."""
 
     _pool: Pool
+    logger: Logger
 
-    def __init__(self, pool: Pool) -> None:
+    def __init__(self, pool: Pool, logger: Logger) -> None:
         self._pool = pool
+        self.logger = logger
 
     async def get_showcases(self) -> list[ForumShowcase]:
         async with self._pool.acquire() as conn:
@@ -128,6 +137,7 @@ class ForumShowcaseDB:
                     target_channel=record["target_channel"],
                     schedule=record["schedule"],
                     interval=record["interval"],
+                    weekday=record["weekday"],
                     forums=[],
                     created_at=record["created_at"],
                     updated_at=record["updated_at"],
@@ -176,17 +186,20 @@ class ForumShowcaseDB:
                     target_channel,
                     schedule,
                     interval,
+                    weekday,
                 ) VALUES (
                     $1,
                     $2,
                     $3,
-                    $4
+                    $4.
+                    $5
                 );
                 """,
                     showcase.id,
                     showcase.target_channel,
                     showcase.schedule,
                     showcase.interval,
+                    showcase.weekday,
                 )
 
                 return showcase
@@ -246,24 +259,26 @@ class ForumShowcaseDB:
             try:
                 await conn.execute(
                     """
-                    UPDATE pph_forum_showcase
-                    SET
-                        target_channel = $1,
-                        schedule = $2,
-                        interval = $3,
-                        updated_at = $4
-                    WHERE id = $5
-                    RETURNING *;
+                        UPDATE pph_forum_showcase
+                        SET
+                            target_channel = $1,
+                            schedule = $2,
+                            interval = $3,
+                            weekday = $4,
+                            updated_at = $5
+                        WHERE id = $6;
                 """,
                     data.target_channel,
-                    data.schedule,
+                    data.schedule.replace(tzinfo=None),
                     data.interval,
-                    data.updated_at,
+                    data.weekday,
+                    data.updated_at.replace(tzinfo=None),
                     data.id,
                 )
 
                 return True
-            except Exception:
+            except Exception as e:
+                self.logger.error(f"Failed to update showcase {data.id}: {str(e)}")
                 return False
 
     async def delete_showcase(self, showcase__id: int) -> bool:

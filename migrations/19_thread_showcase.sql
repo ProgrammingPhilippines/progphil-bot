@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS pph_forum_showcase (
     id SERIAL PRIMARY KEY,
     target_channel BIGINT NOT NULL,
     schedule TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    interval forum_showcase_interval NOT NULL DEFAULT 'daily',
+    interval forum_showcase_interval NOT NULL DEFAULT 'weekly',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

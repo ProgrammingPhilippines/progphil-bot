@@ -9,8 +9,6 @@ from discord import (
     ButtonStyle,
     Embed,
     Interaction,
-    SelectOption,
-    TextChannel,
     app_commands,
 )
 from discord.app_commands import command
@@ -25,11 +23,29 @@ from src.data.forum.forum_showcase import (
     ForumShowcaseDB,
     UpdateForumShowcase,
 )
+from src.ui.views import forum_showcase
+from src.ui.views.forum_showcase import (
+    ConfigureChannel,
+    ConfigureInterval,
+    ConfigureTime,
+    ConfigureWeekday,
+)
 from src.utils.decorators import is_staff
 
+# List of hours from 12:00 AM to 11:00 PM
 SCHEDULES = [
     f"{(hour + 12 if hour == 0 else hour) if hour < 12 else (hour if hour == 12 else hour - 12):02d} {'AM' if hour < 12 else 'PM'}"
     for hour in range(24)
+]
+
+WEEKDAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
 ]
 
 
@@ -39,11 +55,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.forum_showcase_db = ForumShowcaseDB(self.bot.pool)
-        self.db_config = Config(self.bot.pool)
-        self.logger: Logger = bot.logger
+        self.forum_showcase_db = ForumShowcaseDB(self.bot.pool, self.bot.logger)  # type: ignore
+        self.db_config = Config(self.bot.pool)  # type: ignore
+        self.logger: Logger = bot.logger  # type: ignore
         self.forum_showcase_id = 1
-        self.forum_showcase = {}
+        self.forum_showcase = {}  # type: ignore
 
     async def cog_load(self) -> None:
         await asyncio.create_task(self.init_data())
@@ -85,40 +101,41 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             except Exception as e:
                 self.logger.error(f"[FORUM-SHOWCASE] Error in showcase_threads: {e}")
         else:
-            self.logger.info("[FORUM-SHOWCASE] Not yet time for showcase")
-            self.logger.info(
-                f"[FORUM-SHOWCASE] Time until next showcase: {diff:.2f} seconds"
-            )
+            pass
 
-        await self.schedule_next_run()
+        next_run = self.calculate_next_run(
+            self.forum_showcase.schedule,
+            self.forum_showcase.interval,
+            self.forum_showcase.weekday,
+        )
+        await self.schedule_next_run(next_run=next_run)
 
     async def update_schedule(self, next_schedule: datetime):
+        now = datetime.now(timezone.utc)
         update_showcase_schedule = UpdateForumShowcase(
             id=self.forum_showcase.id,
             schedule=next_schedule,
             interval=self.forum_showcase.interval,
             target_channel=self.forum_showcase.target_channel,
-            updated_at=datetime.now(timezone.utc),
+            weekday=self.forum_showcase.weekday,
+            updated_at=now,
         )
 
-        self.logger.info("[FORUM-SHOWCASE] updated database config")
+        await asyncio.create_task(
+            self.forum_showcase_db.update_showcase(update_showcase_schedule)
+        )
 
-        await self.forum_showcase_db.update_showcase(update_showcase_schedule)
         self.forum_showcase.schedule = next_schedule
 
-    async def schedule_next_run(self, run_now=False):
+    async def schedule_next_run(self, next_run: datetime, run_now=False):
         if not self.forum_showcase:
             self.logger.error("[FORUM-SHOWCASE] No forum showcase configured")
             return
 
-        next_run = self.calculate_next_run()
-
         now = datetime.now(timezone.utc)
         diff = (next_run - now).total_seconds()
 
-        self.logger.info(
-            f"[FORUM-SHOWCASE] Scheduling next run at {next_run} (in {diff:.2f} seconds)"
-        )
+        self.logger.info(f"[FORUM-SHOWCASE] New showcase schedule: {next_run}")
 
         await self.update_schedule(next_run)
 
@@ -129,10 +146,11 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 "[FORUM-SHOWCASE] Next run time is in the past. Waiting for next interval."
             )
 
-    def calculate_next_run(self) -> datetime:
+    def calculate_next_run(
+        self, schedule: datetime, interval: str, day: str
+    ) -> datetime:
         now = datetime.now(timezone.utc)
-        schedule = self.forum_showcase.schedule
-        interval = self.forum_showcase.interval
+        weekday_int = WEEKDAYS.index(day)
 
         next_run = schedule.replace(
             year=now.year, month=now.month, day=now.day, tzinfo=timezone.utc
@@ -142,12 +160,14 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if interval == "daily":
                 next_run += relativedelta(days=1)
             elif interval == "weekly":
-                next_run += relativedelta(weeks=1)
+                if weekday_int == now.weekday():
+                    next_run += relativedelta(weeks=1)
+                else:
+                    weekday = weekday_int
+                    next_run += relativedelta(weekday=weekday)
             elif interval == "monthly":
                 next_month = next_run.replace(day=1) + relativedelta(months=1)
-                next_run = next_month.replace(
-                    day=min(schedule.day, (next_month + relativedelta(days=-1)).day)
-                )
+                next_run = next_month.replace(day=next_month.day)
 
         return next_run
 
@@ -172,16 +192,17 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             if not forum:
                 continue
 
-            # filter the threads that is posted on current month
             now = datetime.now(timezone.utc)
             current_month = now.month
             current_year = now.year
 
+            # filter the threads that is not archived
+            # and is posted on current month
             threads = [
                 thread
-                for thread in forum.threads
-                if thread.created_at.month == current_month
-                and thread.created_at.year == current_year
+                for thread in forum.threads  # type: ignore
+                if thread.created_at.month == current_month  # type: ignore
+                and thread.created_at.year == current_year  # type: ignore
                 and not thread.archived
             ]
 
@@ -192,15 +213,13 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
 
             random.seed(now.timestamp())
             thread = random.choice(threads)
-            msgs.append(f"### {forum.name}\n{thread.mention}\n")
+            msgs.append(f"### {forum.name}\n{thread.mention}\n")  # type: ignore
 
         if msgs:
             message = f"# Hey, everyone! You might wanna check out these posts from our forums\n{''.join(msgs)}"
-            await target_channel.send(message)
+            await target_channel.send(message)  # type: ignore
         else:
-            self.bot.logger.info(
-                "[FORUM-SHOWCASE] No threads found for the current month."
-            )
+            self.logger.info("[FORUM-SHOWCASE] No threads found for the current month.")
 
     async def init_data(self):
         data = await self.forum_showcase_db.get_showcases()
@@ -355,120 +374,99 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
     async def config(self, interaction: Interaction):
-        selected_schedule = None
-        selected_channel_id = None
+        await interaction.response.defer()
 
-        async def schedule_callback(interaction: Interaction):
-            nonlocal selected_schedule
-            selected_schedule = schedule_select.values[0]
-            await interaction.response.defer()
+        target_channel_select = ConfigureChannel(
+            self.forum_showcase,
+            self.forum_showcase_id,
+            self.forum_showcase_db,
+            self.logger,
+        )
+        interval_select = ConfigureInterval(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger,
+        )
+        weekday_select = ConfigureWeekday(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger
+        )
+        time_select = ConfigureTime(
+            self.forum_showcase,
+            self.forum_showcase_db,
+            self.logger
+        )
+
+        await interaction.followup.send(
+            "Select a target channel", view=target_channel_select, ephemeral=True
+        )
+        await target_channel_select.wait()
+
+        self.forum_showcase.target_channel = (
+            target_channel_select.forum_showcase.target_channel
+        )
+
+        await interaction.followup.send(
+            "Select a target interval", view=interval_select, ephemeral=True
+        )
+        await interval_select.wait()
+
+        if interval_select.selected_interval is not None:
+            self.forum_showcase.interval = str(interval_select.selected_interval)
+
+        if self.forum_showcase.interval == "daily":
+            time_select.forum_showcase = self.forum_showcase
+
             await interaction.followup.send(
-                f"New schedule is {selected_schedule}", ephemeral=True
-            )
+                    "Select a time", view=time_select, ephemeral=True
+                )
+            await time_select.wait()
+        elif self.forum_showcase.interval == "weekly":
+            weekday_select.forum_showcase = self.forum_showcase
 
-        async def channel_callback(interaction: Interaction):
-            nonlocal selected_channel_id
-            selected_channel_id = int(channel_select.values[0])
-            await interaction.response.defer()
-            channel = self.bot.get_channel(selected_channel_id)
             await interaction.followup.send(
-                f"New target channel is {channel.mention}", ephemeral=True
+                    "Select a weekday", view=weekday_select, ephemeral=True
             )
+            await weekday_select.wait()
 
-        async def submit_callback(interaction: Interaction):
-            changes_made = False
-
-            if selected_schedule:
-                parsed_schedule = self._parse_schedule(selected_schedule)
-                parsed_schedule = parsed_schedule.replace(
-                    day=self.forum_showcase.schedule.day
+            if weekday_select.selected_weekday is not None:
+                self.logger.info(
+                        f"[FORUM-SHOWCASE] New weekday: {weekday_select.forum_showcase.weekday}"
                 )
-                self.forum_showcase.schedule = parsed_schedule
-                # await self.update_schedule(parsed_schedule)
-                await self.schedule_next_run()
-                changes_made = True
-
-            if selected_channel_id:
-                self.forum_showcase.target_channel = selected_channel_id
-                changes_made = True
-
-            if changes_made:
-                # Update the database with the new target channel
-                update_showcase = UpdateForumShowcase(
-                    id=self.forum_showcase.id,
-                    schedule=self.forum_showcase.schedule,
-                    interval=self.forum_showcase.interval,
-                    target_channel=self.forum_showcase.target_channel,
-                    updated_at=datetime.now(timezone.utc),
+                self.forum_showcase = weekday_select.forum_showcase
+                next_run = self.calculate_next_run(
+                        weekday_select.forum_showcase.schedule,
+                        weekday_select.forum_showcase.interval,
+                        weekday_select.forum_showcase.weekday,
                 )
-                await self.forum_showcase_db.update_showcase(update_showcase)
-                await interaction.response.send_message(
-                    "New configuration updated!",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    "No changes were made.", ephemeral=True
-                )
+                await self.schedule_next_run(next_run=next_run)
 
-            view.stop()
-
-        async def cancel_callback(interaction: Interaction):
-            await interaction.response.send_message(
-                "Configuration cancelled", ephemeral=True
+            time_select.forum_showcase = self.forum_showcase
+            await interaction.followup.send(
+                "Select a time", view=time_select, ephemeral=True
             )
-            view.stop()
-            return
+            await time_select.wait()
+        elif self.forum_showcase.interval == "monthly":
+            next_run = self.calculate_next_run(
+                    time_select.forum_showcase.schedule,
+                    time_select.forum_showcase.interval,
+                    time_select.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
-        view = View(timeout=300)
+        if time_select.selected_time is not None:
+            self.forum_showcase.schedule = time_select.forum_showcase.schedule
+            next_run = self.calculate_next_run(
+                time_select.forum_showcase.schedule,
+                time_select.forum_showcase.interval,
+                time_select.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
-        schedule_select = Select(
-            placeholder="Select a target schedule",
-            options=[SelectOption(label=s, value=s) for s in SCHEDULES],
+        await interaction.followup.send(
+            "All settings have been updated.", ephemeral=True
         )
-        schedule_select.callback = schedule_callback
-
-        channel_select = Select(
-            placeholder="Select a target channel",
-            options=[
-                SelectOption(label=channel.name, value=str(channel.id))
-                for channel in interaction.guild.channels
-                if isinstance(channel, TextChannel)
-            ],
-        )
-        channel_select.callback = channel_callback
-
-        submit_button = Button(label="Submit", style=ButtonStyle.green)
-        submit_button.callback = submit_callback
-
-        cancel_button = Button(label="Cancel", style=ButtonStyle.red)
-        cancel_button.callback = cancel_callback
-
-        view.add_item(schedule_select)
-        view.add_item(channel_select)
-        view.add_item(submit_button)
-        view.add_item(cancel_button)
-
-        await interaction.response.send_message(
-            "Configure forum showcase:", view=view, ephemeral=True
-        )
-
-    def _parse_schedule(self, schedule: str) -> datetime:
-        split = schedule.split(" ")
-        hr_schedule = int(split[0])
-
-        if split[1] == "PM" and hr_schedule != 12:
-            hr_schedule += 12
-        elif split[1] == "AM" and hr_schedule == 12:
-            hr_schedule = 0
-
-        # need to convert from UTC+08:00 to UTC+00:00 to match the timezone where the bot is running
-        utc_8 = datetime.now().replace(
-            hour=hr_schedule, minute=0, second=0, tzinfo=timezone(timedelta(hours=8))
-        )
-        parsed_schedule = (utc_8 - timedelta(hours=8)).replace(tzinfo=timezone.utc)
-
-        return parsed_schedule
 
     @is_staff()
     @command(name="toggle", description="Enable/Disable the showcase feature.")
@@ -476,8 +474,12 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         status = await self.db_config.toggle_config("forum_showcase")
 
         if status:
-            next_run = self.calculate_next_run()
-            await self.schedule_next_run()
+            next_run = self.calculate_next_run(
+                self.forum_showcase.schedule,
+                self.forum_showcase.interval,
+                self.forum_showcase.weekday,
+            )
+            await self.schedule_next_run(next_run=next_run)
 
             if not self.schedule_showcase.is_running():
                 self.schedule_showcase.start()
