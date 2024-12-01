@@ -1,5 +1,7 @@
 import os
 
+from yoyo.backends.base import DatabaseBackend
+
 from src.utils.logging.logger import BotLogger
 from src.bot.config import Database, Config, get_config
 from src.utils.logging.discord_handler import DiscordHandler
@@ -23,7 +25,13 @@ class ProgPhil(Bot):
     bot_logger: BotLogger
     pool: Pool
 
-    def __init__(self, pool: Pool, cfg: Config, bot_logger: BotLogger, **kwargs):
+    def __init__(
+        self,
+        pool: Pool,
+        cfg: Config,
+        bot_logger: BotLogger,
+        **kwargs,
+    ):
         bot_cfg = cfg.bot
         super().__init__(
             **kwargs,
@@ -45,11 +53,11 @@ class ProgPhil(Bot):
         logger_config = self.config.logger
         log_channel = self.get_channel(logger_config.log_channel)
 
-        discord_handler = DiscordHandler(log_channel)
+        discord_handler = DiscordHandler(log_channel)  # type: ignore
         bot_logger.add_handler(discord_handler)
 
         logger = bot_logger.get_logger()
-        logger.info(f"{self.user.display_name} running.")
+        logger.info(f"{self.user.display_name} running.")  # type: ignore
 
         self.logger = logger
 
@@ -109,13 +117,12 @@ def migrate_db(db: Database, logger: Logger) -> None:
     logger.info(f"Starting database migration with URL: {url}")
 
     try:
-        backend = get_backend(url)
+        backend: DatabaseBackend = get_backend(url)
         migrations = read_migrations("./migrations/")
+        to_apply = backend.to_apply(migrations)
 
-        with backend.lock():
-            to_apply = backend.to_apply(migrations)
-            logger.info(f"Found {len(to_apply)} migrations to apply")
-            backend.apply_migrations(to_apply)
+        logger.info(f"Found {len(to_apply)} migrations to apply")
+        backend.apply_migrations(to_apply)
         logger.info("Migration completed successfully")
     except Exception as e:
         logger.error(f"Error during migration: {str(e)}")
@@ -139,7 +146,7 @@ async def main():
 
     migrate_db(db_config, logger.get_logger())
 
-    bot = ProgPhil(pool, config, logger)
+    bot = ProgPhil(pool, config, logger)  # type: ignore
     await bot.launch()
 
 

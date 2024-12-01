@@ -1,32 +1,30 @@
 import os
+from logging import Logger
 
-import requests
 import discord
+import requests
 from discord import Embed
-from discord.ext.commands import (
-    Bot,
-    Context,
-    GroupCog,
-    command as prefixed_command
-)
 from discord.app_commands import command
+from discord.ext.commands import Bot, Context, GroupCog
+from discord.ext.commands import command as prefixed_command
 
 from src.data.admin.config_auto import Config
 from src.ui.views.currency_converter import CurrencyConverterPagination
 from src.utils.decorators import is_staff
-from logging import Logger
 
 
 class Converter(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.config = Config(self.bot.pool)
-        self.logger: Logger = self.bot.logger
+        self.config = Config(self.bot.pool)  # type: ignore
+        self.logger: Logger = self.bot.logger  # type: ignore
 
-        symbols = requests.get(
+    async def cog_load(self):
+        req = requests.get(
             "https://api.apilayer.com/currency_data/list",
-            headers={"apiKey": os.environ["currency_api_key"]}
-        ).json()["currencies"]
+            headers={"apiKey": os.environ["currency_api_key"]},
+        )
+        symbols = req.json()["currencies"] or []
         self.symbols = [(symbol, symbols[symbol]) for symbol in symbols]
 
     def is_valid(self, amount: str):
@@ -34,14 +32,14 @@ class Converter(GroupCog):
 
     @prefixed_command(
         usage="<amount> <from_currency> <to_currency>",
-        help="Convert Currency to Another Currency (e.g. 10 usd eur)"
+        help="Convert Currency to Another Currency (e.g. 10 usd eur)",
     )
     async def exchange(
-            self,
-            ctx: Context,
-            amount: str,
-            from_currency: str,
-            to_currency: str,
+        self,
+        ctx: Context,
+        amount: str,
+        from_currency: str,
+        to_currency: str,
     ) -> None:
         """
         Convert Currency
@@ -83,16 +81,20 @@ class Converter(GroupCog):
 
         decimal_places = 2
 
-        formatted_from = f"{round(float(amount),decimal_places):,} {from_currency.upper()}"
-        formatted_to = f"{round(converted_amount,decimal_places):,} {to_currency.upper()}"
+        formatted_from = (
+            f"{round(float(amount),decimal_places):,} {from_currency.upper()}"
+        )
+        formatted_to = (
+            f"{round(converted_amount,decimal_places):,} {to_currency.upper()}"
+        )
         await ctx.send(
             f"The exchange rate for {formatted_from} is around {formatted_to}."
         )
 
     @prefixed_command(usage="<currency>", help="Get a list of supported currencies.")
     async def currencies(
-            self,
-            ctx: Context,
+        self,
+        ctx: Context,
     ) -> None:
         """
         Get a list of supported currencies
@@ -109,14 +111,14 @@ class Converter(GroupCog):
         embed = Embed()
         embed.title = "Here are the available currencies:"
         embed.description = "\n".join(
-            [f"{symbol[0].upper()} - {symbol[1]}" for count, symbol in enumerate(self.symbols, start=1) if count <= 10]
+            [
+                f"{symbol[0].upper()} - {symbol[1]}"
+                for count, symbol in enumerate(self.symbols, start=1)
+                if count <= 10
+            ]
         )
 
-        view = CurrencyConverterPagination(
-            ctx.author,
-            self.symbols,
-            self.logger
-        )
+        view = CurrencyConverterPagination(ctx.author, self.symbols, self.logger)
         await ctx.send(embed=embed, view=view)
 
     @is_staff()
@@ -124,14 +126,10 @@ class Converter(GroupCog):
     async def toggle_config(self, interaction: discord.Interaction):
         """Toggles converter."""
 
-        toggle_map = {
-            True: "ON",
-            False: "OFF"
-        }
+        toggle_map = {True: "ON", False: "OFF"}
         toggle = await self.config.toggle_config("currency_converter")
         await interaction.response.send_message(
-            f"Turned {toggle_map[toggle]} Currency Converter.",
-            ephemeral=True
+            f"Turned {toggle_map[toggle]} Currency Converter.", ephemeral=True
         )
         self.logger.info(f"Currency Converter is now {toggle_map[toggle]}.")
 
