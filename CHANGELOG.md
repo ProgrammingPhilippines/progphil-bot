@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.3.0...v1.3.1) (2024-12-02)
+
+
+### Bug Fixes
+
+* Remove reference to dev-config on main.py ([#265](https://github.com/ProgrammingPhilippines/progphil-bot/issues/265)) ([d22e844](https://github.com/ProgrammingPhilippines/progphil-bot/commit/d22e8445e5a7f4f9929df9b95d8cafffd8473486))
+
 ## [1.3.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.2.0...v1.3.0) (2024-12-01)
 
 
