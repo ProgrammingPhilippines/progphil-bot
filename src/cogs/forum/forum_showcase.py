@@ -374,7 +374,7 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     @is_staff()
     @command(name="config", description="Configure the schedule of a forum.")
     async def config(self, interaction: Interaction):
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         target_channel_select = ConfigureChannel(
             self.forum_showcase,
