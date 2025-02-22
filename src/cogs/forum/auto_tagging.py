@@ -1,18 +1,27 @@
-from discord import Forbidden, Guild, HTTPException
-from discord import Interaction, Thread, Member, Role
-from discord.app_commands import command, describe
+from discord import (
+    Forbidden,
+    Guild,
+    HTTPException,
+    Interaction,
+    Member,
+    Message,
+    Role,
+    Thread,
+)
+from discord.app_commands import ContextMenu, command, describe
+from discord.enums import AppCommandType
 from discord.ext.commands import Bot, Cog, GroupCog
 
-from src.data.forum.post_assist import PostAssistDB
 from src.data.admin.config_auto import Config
-from src.utils.decorators import is_staff
+from src.data.forum.post_assist import PostAssistDB
 from src.ui.views.post_assist import (
-    ConfigurePostAssist,
     ConfigurationPagination,
+    ConfigurePostAssist,
     PostAssistMessage,
     PostAssistState,
     format_data,
 )
+from src.utils.decorators import is_staff
 
 AUTHOR_PLACEHOLDER = "[[@author]]"
 
@@ -31,8 +40,15 @@ def _getter(guild: Guild, entry: dict) -> Member | Role:
 class ForumAssist(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.db = PostAssistDB(self.bot.pool)
-        self.config = Config(self.bot.pool)
+        self.db = PostAssistDB(self.bot.pool)  # type: ignore
+        self.config = Config(self.bot.pool)  # type: ignore
+        ctx_menu = ContextMenu(
+            name="Accept Solution",
+            callback=self.accept_solution,
+            type=AppCommandType.message,
+        )
+        self.bot.tree.add_command(ctx_menu)
+        self.ctx_menu = ctx_menu
 
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
@@ -53,8 +69,7 @@ class ForumAssist(GroupCog):
         thread_msg = thread.get_partial_message(thread.id)
 
         if AUTHOR_PLACEHOLDER in reply:
-            reply = reply.replace(AUTHOR_PLACEHOLDER,
-                                  thread_msg.thread.owner.mention)
+            reply = reply.replace(AUTHOR_PLACEHOLDER, thread_msg.thread.owner.mention)
 
         # Sometimes the pinning and reply fails
         # when the thread is created and the bot
@@ -193,9 +208,7 @@ class ForumAssist(GroupCog):
         try:
             config = await self.db.get_config(config_id)
             if not config:
-                self.bot.logger.info(
-                    f"Configuration ID: {config_id} may not exist."
-                )
+                self.bot.logger.info(f"Configuration ID: {config_id} may not exist.")
                 return await interaction.response.send_message(
                     f"Configuration ID: {config_id} may not exist.",
                     ephemeral=True,
@@ -220,7 +233,7 @@ class ForumAssist(GroupCog):
             forum=forum_id,
             tag_message=tag_message,
             custom_msg=custom_message,
-            existing_tags=existing_tags
+            existing_tags=existing_tags,
         )
 
         modal = PostAssistMessage(state)
@@ -249,6 +262,22 @@ class ForumAssist(GroupCog):
             return
 
         await interaction.followup.send("Cancelled.", ephemeral=True)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(
+            self.ctx_menu.name, type=self.ctx_menu.type
+        )  # remove it on unload
+
+    async def accept_solution(self, interaction: Interaction, message: Message) -> None:
+        is_thread = isinstance(message.channel, Thread)
+
+        if not is_thread:
+            return await interaction.response.send_message(
+                "This command can only be used in threads.", ephemeral=True
+            )
+
+        await message.add_reaction("✅")
+        await interaction.response.send_message("HELLO", ephemeral=True)
 
 
 async def setup(bot: Bot):
