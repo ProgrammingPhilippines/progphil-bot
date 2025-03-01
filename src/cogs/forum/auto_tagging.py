@@ -1,5 +1,8 @@
+from logging import Logger
+
 from discord import (
     Forbidden,
+    ForumChannel,
     Guild,
     HTTPException,
     Interaction,
@@ -14,6 +17,8 @@ from discord.ext.commands import Bot, Cog, GroupCog
 
 from src.data.admin.config_auto import Config
 from src.data.forum.post_assist import PostAssistDB
+from src.ui.views.dev_help import DevHelpTagDB, DevHelpViewsDB, PersistentSolverView
+from src.ui.views.mark_as_solution import MarkAsSolution
 from src.ui.views.post_assist import (
     ConfigurationPagination,
     ConfigurePostAssist,
@@ -40,7 +45,10 @@ def _getter(guild: Guild, entry: dict) -> Member | Role:
 class ForumAssist(GroupCog):
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.logger: Logger = self.bot.logger  # type: ignore
         self.db = PostAssistDB(self.bot.pool)  # type: ignore
+        self.dev_help_tag_db = DevHelpTagDB(self.bot.pool)  # type: ignore
+        self.dev_help_views_db = DevHelpViewsDB(self.bot.pool)  # type: ignore
         self.config = Config(self.bot.pool)  # type: ignore
         ctx_menu = ContextMenu(
             name="Accept Solution",
@@ -127,6 +135,7 @@ class ForumAssist(GroupCog):
         reply = view.state.custom_msg
         tags = view.state.tag_list
         tag_message = view.state.tag_message
+        enable_accept_solutions = view.state.enable_accept_solutions
 
         if await self.db.config_by_forum(forum):
             return await interaction.followup.send(
@@ -147,6 +156,7 @@ class ForumAssist(GroupCog):
                 entities=tags,
                 entity_tag_message=tag_message,
                 reply=reply,
+                enable_accept_solutions=enable_accept_solutions,
             )
             return
 
@@ -269,15 +279,80 @@ class ForumAssist(GroupCog):
         )  # remove it on unload
 
     async def accept_solution(self, interaction: Interaction, message: Message) -> None:
-        is_thread = isinstance(message.channel, Thread)
+        thread = interaction.channel
+        is_thread = isinstance(thread, Thread)
+        thread_id = thread.id if is_thread else None
+        message_id = message.id
+        forum = thread.parent if is_thread else None
+        staff_roles: list[int] = self.bot.config.guild.staff_roles  # type: ignore
+        user_id = interaction.user.id
 
-        if not is_thread:
+        if (
+            not is_thread
+            or not thread_id
+            or not forum
+            or not isinstance(forum, ForumChannel)
+        ):
             return await interaction.response.send_message(
                 "This command can only be used in threads.", ephemeral=True
             )
 
+        if interaction.user != message.author:
+            return await interaction.response.send_message(
+                "Only the thread author can mark solutions.", ephemeral=True
+            )
+
+        if message_id == thread_id:
+            return await interaction.response.send_message(
+                "Cannot mark the original post as a solution.", ephemeral=True
+            )
+
+        mark_as_solution_config = await self.db.is_mark_as_solution_enabled(forum.id)
+        post_assist_config_id = mark_as_solution_config[0]
+        is_enabled = mark_as_solution_config[1]
+
+        if not is_enabled:
+            return await interaction.response.send_message(
+                "Accept Solution is not enabled here.", ephemeral=True
+            )
+
+        mark_as_solution_view = MarkAsSolution(thread=thread, message=message)
+        await interaction.response.send_message(
+            "Are you sure you want to mark this as a solution?",
+            view=mark_as_solution_view,
+            ephemeral=True,
+        )
+        await mark_as_solution_view.wait()
+
+        if not mark_as_solution_view.confirmed:
+            return
+
+        current_solution = await self.db.get_accepted_solution(thread_id)
+        if current_solution:
+            old_message = await thread.fetch_message(current_solution.message_id)
+            await old_message.remove_reaction("✅", interaction.user)
+            await old_message.unpin()
+
         await message.add_reaction("✅")
-        await interaction.response.send_message("HELLO", ephemeral=True)
+        await message.pin()
+        await self.db.mark_as_solution(
+            post_assist_config_id, thread_id, message.id, user_id
+        )
+
+        mark_as_solved_button = PersistentSolverView(
+            thread.id,
+            thread.owner_id,
+            self.dev_help_views_db,
+            self.dev_help_tag_db,
+            forum,
+            staff_roles,
+            self.logger,
+        )
+
+        await interaction.followup.send(
+            f"{interaction.user.mention} marked this as a solution.",
+            view=mark_as_solved_button,
+        )
 
 
 async def setup(bot: Bot):
