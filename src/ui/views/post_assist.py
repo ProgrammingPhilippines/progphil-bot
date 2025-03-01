@@ -14,13 +14,14 @@ from discord.ui import (
 )
 
 
-class PostAssistState():
+class PostAssistState:
     def __init__(
         self,
         forum: int = None,
         tag_message: str = None,
         custom_msg: str = None,
         existing_tags: list[Role] | list[Member] = [],
+        enable_accept_solutions: bool = False,
         finished: bool = False,
     ):
         self.forum: int = forum
@@ -28,15 +29,13 @@ class PostAssistState():
         self.existing_tags: list[Role] | list[Member] = existing_tags or []
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
+        self.enable_accept_solutions: bool = enable_accept_solutions
         self.finished = finished
 
 
 class ConfigurePostAssist(View):
     def __init__(
-        self,
-        forum: int = None,
-        tag_message: str = None,
-        custom_msg: str = None
+        self, forum: int = None, tag_message: str = None, custom_msg: str = None
     ):
         super().__init__(timeout=480)
         self.state = PostAssistState(
@@ -44,6 +43,7 @@ class ConfigurePostAssist(View):
             tag_message=tag_message,
             custom_msg=custom_msg,
             existing_tags=[],
+            enable_accept_solutions=False,
         )
 
     @select(
@@ -51,11 +51,7 @@ class ConfigurePostAssist(View):
         placeholder="Select forum...",
         channel_types=[ChannelType.forum],
     )
-    async def select_forum(
-        self,
-        interaction: Interaction,
-        selection: ChannelSelect
-    ):
+    async def select_forum(self, interaction: Interaction, selection: ChannelSelect):
         if self.state.forum and self.state.forum != selection.values[0].id:
             return await interaction.response.send_message(
                 f"Please select this forum -> {interaction.guild.get_channel(self.state.forum).mention}.",
@@ -100,13 +96,12 @@ class PostAssistTags(View):
         self.state = options
         self.selection = [tag for tag in self.state.existing_tags]
 
-        select_menu = [item for item in
-                       self.children if isinstance(item, MentionableSelect)][0]
+        select_menu = [
+            item for item in self.children if isinstance(item, MentionableSelect)
+        ][0]
         select_menu.default_values = self.state.existing_tags
 
-    @select(cls=MentionableSelect,
-            placeholder="Select member/roles...",
-            max_values=25)
+    @select(cls=MentionableSelect, placeholder="Select member/roles...", max_values=25)
     async def select_entities(
         self, interaction: Interaction, selection: MentionableSelect
     ):
@@ -123,9 +118,7 @@ class PostAssistTags(View):
             for entity in self.selection
         ]
 
-        modal = PostAssistTagMessage(
-            self.state, required=bool(self.state.tag_list)
-        )
+        modal = PostAssistTagMessage(self.state, required=bool(self.state.tag_list))
         await interaction.response.send_modal(modal)
         await modal.wait()
         self.stop()
@@ -150,7 +143,34 @@ class PostAssistTagMessage(Modal, title="Set Tag Message"):
 
     async def on_submit(self, interaction: Interaction) -> None:
         self.state.tag_message = self.message.value
-        await interaction.response.send_message("Success...", ephemeral=True)
+
+        view = PostAssistMarkAsSolution(self.state)
+        await interaction.response.send_message(
+            "Enable Accept Solution feature?", view=view, ephemeral=True
+        )
+        await view.wait()
+        self.stop()
+
+
+class PostAssistMarkAsSolution(View):
+    def __init__(self, options: PostAssistState):
+        super().__init__(timeout=480)
+        self.state = options
+
+    @button(label="Yes")
+    async def enable(self, interaction: Interaction, button: Button):
+        self.state.enable_accept_solutions = True
+
+        await interaction.response.send_message(
+            "Mark as solution will be enabled.", ephemeral=True
+        )
+        await interaction.followup.send("Success...", ephemeral=True)
+        self.state.finished = True
+        self.stop()
+
+    @button(label="No")
+    async def disable(self, interaction: Interaction, button: Button):
+        self.state.enable_accept_solutions = False
         self.state.finished = True
         self.stop()
 
@@ -172,9 +192,7 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page],
-                                interaction.guild,
-                                self.getter),
+            content=format_data(self.data[self.page], interaction.guild, self.getter),
             view=self,
         )
 
@@ -188,9 +206,7 @@ class ConfigurationPagination(View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=format_data(self.data[self.page],
-                                interaction.guild,
-                                self.getter),
+            content=format_data(self.data[self.page], interaction.guild, self.getter),
             view=self,
         )
 
