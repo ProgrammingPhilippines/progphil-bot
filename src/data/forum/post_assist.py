@@ -1,4 +1,27 @@
 from asyncpg import Pool
+from datetime import datetime
+
+
+class AcceptedSolution:
+    """Represents an accepted solution."""
+
+    id: int
+    thread_id: int
+    post_assist_config_id: int
+    user_id: int
+    message_id: int
+
+    def __init__(
+        self,
+        thread_id: int,
+        post_assist_config_id: int,
+        user_id: int,
+        message_id: int,
+    ):
+        self.thread_id = thread_id
+        self.post_assist_config_id = post_assist_config_id
+        self.user_id = user_id
+        self.message_id = message_id
 
 
 class PostAssistDB:
@@ -14,10 +37,13 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetchrow("""
+            config = await conn.fetchrow(
+                """
                 SELECT * FROM pph_post_assist_config
                 WHERE id = $1;
-            """, id)
+            """,
+                id,
+            )
 
         return config if config is not None else None
 
@@ -30,10 +56,13 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetchrow("""
+            config = await conn.fetchrow(
+                """
                 SELECT * FROM pph_post_assist_config
                 WHERE forum_id = $1;
-            """, forum_id)
+            """,
+                forum_id,
+            )
 
         return config if config is not None else None
 
@@ -49,10 +78,13 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetchrow("""
+            config = await conn.fetchrow(
+                """
                 SELECT * FROM pph_post_assist_reply
                 WHERE configuration_id = $1;
-            """, config_id)
+            """,
+                config_id,
+            )
 
         return config["custom_message"] if config is not None else None
 
@@ -68,10 +100,13 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetch("""
+            config = await conn.fetch(
+                """
                 SELECT * FROM pph_post_assist_tags
                 WHERE configuration_id = $1;
-            """, config_id)
+            """,
+                config_id,
+            )
 
         return config or []
 
@@ -87,10 +122,13 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            config = await conn.fetchrow("""
+            config = await conn.fetchrow(
+                """
                 SELECT * FROM pph_post_assist_tag_message
                 WHERE configuration_id = $1;
-            """, config_id)
+            """,
+                config_id,
+            )
 
         return config["custom_message"] if config is not None else None
 
@@ -122,7 +160,8 @@ class PostAssistDB:
         forum_id: int,
         entities: list[tuple[int, str]],
         entity_tag_message: str,
-        reply: str
+        reply: str,
+        enable_accept_solutions: bool,
     ):
         """Adds a configuration to the database.
 
@@ -135,39 +174,60 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 INSERT INTO pph_post_assist_config(
-                    forum_id
-                ) VALUES ($1)
-            """, forum_id)
+                    forum_id,
+                    enable_accept_solutions
+                ) VALUES ($1, $2)
+            """,
+                forum_id,
+                enable_accept_solutions,
+            )
 
-            config = await conn.fetchrow("""
+            config = await conn.fetchrow(
+                """
                 SELECT * FROM pph_post_assist_config
                 WHERE forum_id = $1;
-            """, forum_id)
+            """,
+                forum_id,
+            )
 
             for entity_id, entity_type in entities:
-                await conn.execute("""
+                await conn.execute(
+                    """
                     INSERT INTO pph_post_assist_tags(
                         configuration_id,
                         entity_id,
                         entity_type
                     ) VALUES ($1, $2, $3)
-                """, config["id"], entity_id, entity_type)
+                """,
+                    config["id"],
+                    entity_id,
+                    entity_type,
+                )
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 INSERT INTO pph_post_assist_tag_message(
                     configuration_id,
                     custom_message
                 ) VALUES ($1, $2)
-            """, config["id"], entity_tag_message)
+            """,
+                config["id"],
+                entity_tag_message,
+            )
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 INSERT INTO pph_post_assist_reply(
                     configuration_id,
                     custom_message
                 ) VALUES ($1, $2)
-            """, config["id"], reply)
+            """,
+                config["id"],
+                reply,
+            )
 
     async def update_configuration(
         self,
@@ -175,7 +235,7 @@ class PostAssistDB:
         forum_id: int,
         entities: list[tuple[int, str]],
         entity_tag_message: str,
-        reply: str
+        reply: str,
     ):
         """Updates a configuration to the database.
 
@@ -193,37 +253,57 @@ class PostAssistDB:
             if not config:
                 return
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 UPDATE pph_post_assist_config SET
                     forum_id = $1
                 WHERE id = $2;
-            """, forum_id, id)
+            """,
+                forum_id,
+                id,
+            )
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 DELETE FROM pph_post_assist_tags WHERE configuration_id = $1;
-            """, id)
+            """,
+                id,
+            )
 
             for entity_id, entity_type in entities:
-                await conn.execute("""
+                await conn.execute(
+                    """
                     INSERT INTO pph_post_assist_tags(
                         configuration_id,
                         entity_id,
                         entity_type
                     ) VALUES ($1, $2, $3)
                 
-                """, config["id"], entity_id, entity_type)
+                """,
+                    config["id"],
+                    entity_id,
+                    entity_type,
+                )
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 UPDATE pph_post_assist_tag_message SET
                     custom_message = $1
                 WHERE configuration_id = $2;
-            """, entity_tag_message, config["id"])
+            """,
+                entity_tag_message,
+                config["id"],
+            )
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 UPDATE pph_post_assist_reply SET
                     custom_message = $1
                 WHERE configuration_id = $2;
-            """, reply, config["id"])
+            """,
+                reply,
+                config["id"],
+            )
 
     async def delete_configuration(self, id: int):
         """Deletes a configuration from the database.
@@ -234,7 +314,98 @@ class PostAssistDB:
         async with self._pool.acquire() as conn:
             conn: Pool
 
-            await conn.execute("""
+            await conn.execute(
+                """
                 DELETE FROM pph_post_assist_config WHERE id = $1;
-            """, id)
+            """,
+                id,
+            )
 
+    async def is_mark_as_solution_enabled(self, forum_id: int):
+        """Checks if the mark as solution is enabled for a forum."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            res = await conn.fetchrow(
+                """
+                SELECT id, enable_accept_solutions
+                FROM pph_post_assist_config
+                WHERE forum_id = $1;
+                """,
+                forum_id,
+            )
+
+            if not res:
+                return (-1, False)
+
+            res = (int(res["id"]), bool(res["enable_accept_solutions"]))
+            return res
+
+    async def mark_as_solution(
+        self, post_assist_id: int, thread_id: int, message_id: int, user_id: int
+    ):
+        """Marks a post as a solution."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                INSERT INTO pph_post_assist_config_accept_solutions(
+                    post_assist_config_id,
+                    message_id,
+                    thread_id,
+                    user_id
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                )
+                """,
+                post_assist_id,
+                message_id,
+                thread_id,
+                user_id,
+            )
+
+    async def get_accepted_solution(self, thread_id: int) -> AcceptedSolution | None:
+        """Gets the accepted solution for a forum."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            res = await conn.fetchrow(
+                """
+                SELECT * FROM pph_post_assist_config_accept_solutions
+                WHERE thread_id = $1;
+                """,
+                thread_id,
+            )
+
+            if not res:
+                return None
+
+            accepted_solution = AcceptedSolution(
+                res["thread_id"],
+                res["post_assist_config_id"],
+                res["user_id"],
+                res["message_id"],
+            )
+
+            return accepted_solution
+
+    async def delete_solution(self, forum_id: int):
+        """Deletes the accepted solution for a forum."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                DELETE FROM pph_post_assist_config_accept_solutions
+                WHERE forum_id = $1;
+                """,
+                forum_id,
+            )
