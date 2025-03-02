@@ -12,6 +12,7 @@ class MarkAsSolution(View):
     @button(label="Yes", style=ButtonStyle.green)  # type: ignore
     async def accept(self, interaction: Interaction, button: Button):
         self.confirmed = True
+        await interaction.response.send_message("Confirmed.", ephemeral=True)
         self.stop()
 
     @button(label="No", style=ButtonStyle.red)  # type: ignore
