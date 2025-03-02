@@ -282,13 +282,15 @@ class ForumAssist(GroupCog):
         thread = interaction.channel
         is_thread = isinstance(thread, Thread)
         thread_id = thread.id if is_thread else None
+        thread_author_id = thread.owner_id if is_thread else None
         message_id = message.id
         forum = thread.parent if is_thread else None
         staff_roles: list[int] = self.bot.config.guild.staff_roles  # type: ignore
-        user_id = interaction.user.id
+        user_id = message.author.id
 
         if (
             not is_thread
+            or not thread_author_id
             or not thread_id
             or not forum
             or not isinstance(forum, ForumChannel)
@@ -297,9 +299,14 @@ class ForumAssist(GroupCog):
                 "This command can only be used in threads.", ephemeral=True
             )
 
-        if interaction.user != message.author:
+        if thread.archived:
             return await interaction.response.send_message(
-                "Only the thread author can mark solutions.", ephemeral=True
+                "This thread is archived.", ephemeral=True
+            )
+
+        if message.author.bot:
+            return await interaction.response.send_message(
+                "Cannot mark a bot's post as a solution.", ephemeral=True
             )
 
         if message_id == thread_id:
@@ -328,20 +335,32 @@ class ForumAssist(GroupCog):
             return
 
         current_solution = await self.db.get_accepted_solution(thread_id)
+
         if current_solution:
             old_message = await thread.fetch_message(current_solution.message_id)
-            await old_message.remove_reaction("✅", interaction.user)
             await old_message.unpin()
+            if self.bot.user:
+                await old_message.remove_reaction("✅", self.bot.user)
 
         await message.add_reaction("✅")
         await message.pin()
-        await self.db.mark_as_solution(
-            post_assist_config_id, thread_id, message.id, user_id
-        )
+
+        if current_solution:
+            await self.db.update_user_mark_as_solution(
+                post_assist_config_id,
+                thread_id,
+                message_id,
+                current_solution.user_id,
+                user_id,
+            )
+        else:
+            await self.db.mark_as_solution(
+                post_assist_config_id, thread_id, message_id, user_id
+            )
 
         mark_as_solved_button = PersistentSolverView(
-            thread.id,
-            thread.owner_id,
+            thread_id,
+            thread_author_id,
             self.dev_help_views_db,
             self.dev_help_tag_db,
             forum,
