@@ -1,5 +1,4 @@
 from asyncpg import Pool
-from datetime import datetime
 
 
 class AcceptedSolution:
@@ -369,6 +368,40 @@ class PostAssistDB:
                 thread_id,
                 user_id,
             )
+
+    async def update_user_mark_as_solution(
+        self,
+        post_assist_id: int,
+        thread_id: int,
+        message_id: int,
+        user_id: int,
+        new_user_id: int,
+    ):
+        """Marks a post as a solution."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                    UPDATE
+                        pph_post_assist_config_accept_solutions
+                    SET
+                        message_id = $1,
+                        user_id = $2
+                    WHERE
+                        post_assist_config_id = $3
+                        AND user_id = $4
+                        AND thread_id = $5;
+                """,
+                message_id,
+                new_user_id,
+                post_assist_id,
+                user_id,
+                thread_id,
+            )
+
+            return True
 
     async def get_accepted_solution(self, thread_id: int) -> AcceptedSolution | None:
         """Gets the accepted solution for a forum."""
