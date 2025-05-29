@@ -278,6 +278,56 @@ class ForumAssist(GroupCog):
             self.ctx_menu.name, type=self.ctx_menu.type
         )  # remove it on unload
 
+    async def _get_current_solution_from_pins(self, thread: Thread) -> Message | None:
+        """Check pinned messages to find the current accepted solution.
+
+        Returns the pinned message that has a ✅ reaction from the bot,
+        or None if no solution is currently accepted.
+
+        Note: We need to fetch full message objects because pins() returns
+        incomplete reaction data according to Discord API documentation.
+        """
+        try:
+            pinned_messages = await thread.pins()
+            self.logger.info(
+                f"Found {len(pinned_messages)} pinned messages in thread {thread.id}"
+            )
+
+            for pinned_msg in pinned_messages:
+                # Skip the original thread message (it's always pinned)
+                if pinned_msg.id == thread.id:
+                    continue
+
+                try:
+                    full_message = await thread.fetch_message(pinned_msg.id)
+
+                    for reaction in full_message.reactions:
+                        emoji_str = str(reaction.emoji)
+
+                        if emoji_str not in ["✅", "✔️", "☑️"]:
+                            continue
+
+                        if self.bot.user:
+                            async for user in reaction.users():
+                                if user.id == self.bot.user.id:
+                                    self.logger.info(
+                                        f"Found existing solution: message {full_message.id}"
+                                    )
+                                    return full_message
+
+                except (Forbidden, HTTPException) as e:
+                    self.logger.warning(f"Failed to fetch message {pinned_msg.id}: {e}")
+                    continue
+
+            self.logger.info("No existing solution found in pinned messages")
+
+        except (Forbidden, HTTPException) as e:
+            self.logger.warning(
+                f"Failed to access pinned messages in thread {thread.id}: {e}"
+            )
+
+        return None
+
     async def accept_solution(self, interaction: Interaction, message: Message) -> None:
         thread = interaction.channel
         is_thread = isinstance(thread, Thread)
@@ -286,7 +336,6 @@ class ForumAssist(GroupCog):
         message_id = message.id
         forum = thread.parent if is_thread else None
         staff_roles: list[int] = self.bot.config.guild.staff_roles  # type: ignore
-        user_id = message.author.id
 
         if (
             not is_thread
@@ -315,7 +364,6 @@ class ForumAssist(GroupCog):
             )
 
         mark_as_solution_config = await self.db.is_mark_as_solution_enabled(forum.id)
-        post_assist_config_id = mark_as_solution_config[0]
         is_enabled = mark_as_solution_config[1]
 
         if not is_enabled:
@@ -334,29 +382,33 @@ class ForumAssist(GroupCog):
         if not mark_as_solution_view.confirmed:
             return
 
-        current_solution = await self.db.get_accepted_solution(thread_id)
+        current_solution_message = await self._get_current_solution_from_pins(thread)
 
-        if current_solution:
-            old_message = await thread.fetch_message(current_solution.message_id)
-            await old_message.unpin()
+        if current_solution_message:
+            try:
+                await current_solution_message.unpin()
+            except (Forbidden, HTTPException) as e:
+                self.logger.warning(
+                    f"Failed to unpin previous solution {current_solution_message.id}: {e}"
+                )
+
             if self.bot.user:
-                await old_message.remove_reaction("✅", self.bot.user)
+                try:
+                    await current_solution_message.remove_reaction("✅", self.bot.user)
+                    self.logger.info(
+                        f"Removed ✅ from previous solution: {current_solution_message.id}"
+                    )
+                except (Forbidden, HTTPException) as e:
+                    self.logger.warning(
+                        f"Failed to remove ✅ from previous solution {current_solution_message.id}: {e}"
+                    )
 
-        await message.add_reaction("✅")
-        await message.pin()
-
-        if current_solution:
-            await self.db.update_user_mark_as_solution(
-                post_assist_config_id,
-                thread_id,
-                message_id,
-                current_solution.user_id,
-                user_id,
-            )
-        else:
-            await self.db.mark_as_solution(
-                post_assist_config_id, thread_id, message_id, user_id
-            )
+        try:
+            await message.add_reaction("✅")
+            await message.pin()
+            self.logger.info(f"Marked message {message.id} as solution")
+        except (Forbidden, HTTPException) as e:
+            self.logger.error(f"Failed to mark message {message.id} as solution: {e}")
 
         mark_as_solved_button = PersistentSolverView(
             thread_id,
@@ -371,6 +423,7 @@ class ForumAssist(GroupCog):
         await interaction.followup.send(
             f"{interaction.user.mention} marked this as a solution.",
             view=mark_as_solved_button,
+            ephemeral=False,
         )
 
 
