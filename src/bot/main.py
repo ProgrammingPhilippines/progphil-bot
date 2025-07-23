@@ -85,7 +85,7 @@ class ProgPhil(Bot):
         :param cogs: list of cogs to load, basically the files under the cogs/<category> that ends with .py
         """
         for cog in cogs:
-            if cog.startswith("__init__"):
+            if cog.startswith("__init__") or cog.startswith("test_"):
                 continue
             if cog.endswith(".py"):
                 await self.load_extension(f"src.cogs.{module}.{cog[:-3]}")
@@ -129,7 +129,7 @@ def migrate_db(db: Database, logger: Logger) -> None:
 
 
 async def main():
-    config = get_config("config/config.yml")
+    config = get_config("config/dev-config-void.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
     logger.add_handler(StreamHandler())
