@@ -40,7 +40,6 @@ class TestCurrencyConverter(IsolatedAsyncioTestCase):
         expected_url = "https://api.apilayer.com/currency_data/convert?from=USD&to=EUR&amount=100"
 
         await cog.config.get_config("currency_converter")
-        await cog.config.set_config("currency_converter", {"api_key": "test_key"})
         await cog.exchange.callback(cog, ctx=mock_ctx, amount="100", from_currency="USD", to_currency="EUR")
 
         mock_get.assert_called_once_with(expected_url, headers={"apiKey": "test_key"})
