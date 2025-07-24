@@ -185,7 +185,7 @@ class PostAssistMarkAsSolution(View):
         self.state.enable_accept_solutions = True
 
         await interaction.response.send_message(
-            "Mark as solution will be enabled.", ephemeral=True
+            "Accept as solution will be enabled.", ephemeral=True
         )
 
         enable_mark_as_solved_button = PostAssistEnableMarkAsSolvedButton(self.state)
