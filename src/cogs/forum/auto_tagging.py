@@ -62,30 +62,6 @@ def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
     view.add_item(tag_selection)
     return view
 
-
-def get_forums(db: Settings, guild: Guild) -> View:
-    """Gets all forums."""
-
-    async def select_callback(interaction: Interaction):
-        await db.set_setting("dev_help_forum", int(forum_selection.values[0]))
-        await interaction.response.edit_message(
-            content=f"Success...",
-            view=None
-        )
-        view.stop()
-
-    view = View()
-    forum_selection = Select(placeholder="Select Forum...")
-    forum_selection.callback = select_callback
-
-    for forum in guild.forums:
-        forum_selection.add_option(
-            label=forum.name, value=forum.id
-        )
-
-    view.add_item(forum_selection)
-    return view
-
 def _getter(guild: Guild, entry: dict) -> Member | Role:
     """Gets the object type and returns it."""
 
@@ -297,7 +273,6 @@ class ForumAssist(GroupCog):
             )
 
         if view.state.finished:
-            await interaction.followup.send("Success!", ephemeral=True)
             await self.db.add_configuration(
                 forum_id=forum,
                 entities=tags,
@@ -305,6 +280,16 @@ class ForumAssist(GroupCog):
                 reply=reply,
                 enable_accept_solutions=enable_accept_solutions,
             )
+
+            if view.state.enable_mark_as_solved:
+                forum = await self.bot.fetch_channel(view.state.forum)
+                tag_view = get_tag_options(self.dev_help_tag_db, forum)
+                await interaction.followup.send(view=tag_view, ephemeral=True)
+                await tag_view.wait()
+
+                await interaction.followup.send("Mark as solved button configured.", ephemeral=True)
+
+            await interaction.followup.send("Success!", ephemeral=True)
             return
 
         await interaction.followup.send("Cancelled.", ephemeral=True)
@@ -448,24 +433,6 @@ class ForumAssist(GroupCog):
         await ctx.channel.edit(locked=True)
         await ctx.channel.add_tags(tag, reason="Solved")
         await ctx.channel.edit(name=name)
-
-    @command(name="configure", description="Configure the feature.")
-    async def configure(self, interaction: Interaction):
-        forum_view = get_forums(self.settings, interaction.guild)
-        await interaction.response.send_message(view=forum_view, ephemeral=True)
-        await forum_view.wait()
-
-        await self.reload_forum()
-
-        if not self.forum.available_tags:
-            return await interaction.followup.send(
-                "No tags available for this forum.",
-                ephemeral=True
-            )
-
-        tag_view = get_tag_options(self.dev_help_tag_db, self.forum)
-        await interaction.followup.send(view=tag_view, ephemeral=True)
-        await tag_view.wait()
 
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(

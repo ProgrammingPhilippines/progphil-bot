@@ -3,6 +3,7 @@ from typing import Callable
 from discord import Interaction, ButtonStyle, ChannelType
 from discord import TextStyle, Member, Guild, Role
 from discord.ui import (
+    Select,
     View,
     Modal,
     Button,
@@ -13,6 +14,7 @@ from discord.ui import (
     button,
 )
 
+from src.data.admin.settings import Settings
 from src.data.forum.post_assist import PostAssistDB
 
 
@@ -24,6 +26,7 @@ class PostAssistState:
         custom_msg: str = None,
         existing_tags: list[Role] | list[Member] = [],
         enable_accept_solutions: bool = False,
+        enable_mark_as_solved: bool = False,
         finished: bool = False,
         failed: bool = False
     ):
@@ -33,6 +36,7 @@ class PostAssistState:
         self.tag_message: str = tag_message
         self.custom_msg: str = custom_msg
         self.enable_accept_solutions: bool = enable_accept_solutions
+        self.enable_mark_as_solved: bool = enable_mark_as_solved
         self.finished = finished
         self.failed = failed
 
@@ -183,16 +187,41 @@ class PostAssistMarkAsSolution(View):
         await interaction.response.send_message(
             "Mark as solution will be enabled.", ephemeral=True
         )
-        await interaction.followup.send("Success...", ephemeral=True)
-        self.state.finished = True
+
+        enable_mark_as_solved_button = PostAssistEnableMarkAsSolvedButton(self.state)
+        await interaction.followup.send("Enable Mark as Solved feature?", view=enable_mark_as_solved_button, ephemeral=True)
+        await enable_mark_as_solved_button.wait()
         self.stop()
 
     @button(label="No")
     async def disable(self, interaction: Interaction, button: Button):
         self.state.enable_accept_solutions = False
         self.state.finished = True
+        await interaction.response.send_message("Accept solutions disabled.", ephemeral=True)
         self.stop()
 
+class PostAssistEnableMarkAsSolvedButton(View):
+    def __init__(self, options: PostAssistState):
+        super().__init__(timeout=480)
+        self.state = options
+
+    @button(label="Yes")
+    async def enable_mark_as_solved(self, interaction: Interaction, button: Button):
+        await interaction.response.defer()
+
+        self.state.enable_mark_as_solved = True
+        self.state.finished = True
+
+        await interaction.followup.send("Mark as solved will be enabled.", ephemeral=True)
+
+        self.stop()
+
+    @button(label="No")
+    async def disable_mark_as_solved(self, interaction: Interaction, button: Button):
+        self.state.enable_mark_as_solved = False
+        self.state.finished = True
+        await interaction.response.send_message("Mark as solved disabled.", ephemeral=True)
+        self.stop()
 
 class ConfigurationPagination(View):
     def __init__(self, data: list[dict], getter: Callable):
@@ -229,6 +258,28 @@ class ConfigurationPagination(View):
             view=self,
         )
 
+def get_forums(db: Settings, guild: Guild) -> View:
+    """Gets all forums."""
+
+    async def select_callback(interaction: Interaction):
+        await db.set_setting("dev_help_forum", int(forum_selection.values[0]))
+        await interaction.response.edit_message(
+            content=f"Success...",
+            view=None
+        )
+        view.stop()
+
+    view = View()
+    forum_selection = Select(placeholder="Select Forum...")
+    forum_selection.callback = select_callback
+
+    for forum in guild.forums:
+        forum_selection.add_option(
+            label=forum.name, value=str(forum.id)
+        )
+
+    view.add_item(forum_selection)
+    return view
 
 def format_data(data: dict, guild: Guild, getter: Callable):
     forum = guild.get_channel(data["forum_id"])
