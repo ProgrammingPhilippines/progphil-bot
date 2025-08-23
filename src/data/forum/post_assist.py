@@ -139,6 +139,7 @@ class PostAssistDB:
         entity_tag_message: str,
         reply: str,
         enable_accept_solutions: bool,
+        enable_mark_as_solved: bool = False,
     ):
         """Adds a configuration to the database.
 
@@ -146,6 +147,8 @@ class PostAssistDB:
         :param entities: The entities to add
         :param entity_tag_message: The tag message
         :param reply: The reply message
+        :param enable_accept_solutions: Whether to enable accept solutions
+        :param enable_mark_as_solved: Whether to enable mark as solved button
         """
 
         async with self._pool.acquire() as conn:
@@ -155,11 +158,13 @@ class PostAssistDB:
                 """
                 INSERT INTO pph_post_assist_config(
                     forum_id,
-                    enable_accept_solutions
-                ) VALUES ($1, $2)
+                    enable_accept_solutions,
+                    enable_mark_as_solved
+                ) VALUES ($1, $2, $3)
             """,
                 forum_id,
                 enable_accept_solutions,
+                enable_mark_as_solved,
             )
 
             config = await conn.fetchrow(
@@ -213,6 +218,7 @@ class PostAssistDB:
         entities: list[tuple[int, str]],
         entity_tag_message: str,
         reply: str,
+        enable_mark_as_solved: bool | None = None,
     ):
         """Updates a configuration to the database.
 
@@ -220,6 +226,7 @@ class PostAssistDB:
         :param entities: The entities to add
         :param entity_tag_message: The tag message
         :param reply: The reply message
+        :param enable_mark_as_solved: Whether to enable mark as solved button
         """
 
         async with self._pool.acquire() as conn:
@@ -230,15 +237,29 @@ class PostAssistDB:
             if not config:
                 return
 
-            await conn.execute(
-                """
-                UPDATE pph_post_assist_config SET
-                    forum_id = $1
-                WHERE id = $2;
-            """,
-                forum_id,
-                id,
-            )
+            # Update the main configuration
+            if enable_mark_as_solved is not None:
+                await conn.execute(
+                    """
+                    UPDATE pph_post_assist_config SET
+                        forum_id = $1,
+                        enable_mark_as_solved = $3
+                    WHERE id = $2;
+                """,
+                    forum_id,
+                    id,
+                    enable_mark_as_solved,
+                )
+            else:
+                await conn.execute(
+                    """
+                    UPDATE pph_post_assist_config SET
+                        forum_id = $1
+                    WHERE id = $2;
+                """,
+                    forum_id,
+                    id,
+                )
 
             await conn.execute(
                 """
@@ -255,7 +276,6 @@ class PostAssistDB:
                         entity_id,
                         entity_type
                     ) VALUES ($1, $2, $3)
-                
                 """,
                     config["id"],
                     entity_id,
@@ -318,3 +338,68 @@ class PostAssistDB:
 
             res = (int(res["id"]), bool(res["enable_accept_solutions"]))
             return res
+
+    async def get_mark_as_solved_config(self, config_id: int):
+        """Get the mark as solved configuration for a specific config ID.
+
+        :param config_id: The configuration ID
+        :return: Dictionary with mark as solved settings or None
+        """
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            config = await conn.fetchrow(
+                """
+                SELECT enable_mark_as_solved FROM pph_post_assist_config
+                WHERE id = $1;
+                """,
+                config_id,
+            )
+
+        return config if config is not None else None
+
+    async def set_mark_as_solved_config(
+        self, config_id: int, enable_mark_as_solved: bool
+    ):
+        """Update the mark as solved configuration for a config ID.
+
+        :param config_id: The configuration ID
+        :param enable_mark_as_solved: Whether to enable mark as solved button
+        """
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                UPDATE pph_post_assist_config
+                SET enable_mark_as_solved = $2
+                WHERE id = $1;
+                """,
+                config_id,
+                enable_mark_as_solved,
+            )
+
+    async def is_mark_as_solved_enabled_for_forum(self, forum_id: int):
+        """Check if mark as solved button is enabled for a specific forum.
+
+        :param forum_id: The forum ID
+        :return: Tuple of (config_id, is_enabled)
+        """
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            res = await conn.fetchrow(
+                """
+                SELECT id,
+                       COALESCE(enable_mark_as_solved, FALSE)
+                           as enable_mark_as_solved
+                FROM pph_post_assist_config
+                WHERE forum_id = $1;
+                """,
+                forum_id,
+            )
+
+            if not res:
+                return (-1, False)
+
+            return (int(res["id"]), bool(res["enable_mark_as_solved"]))

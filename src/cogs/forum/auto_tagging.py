@@ -36,15 +36,13 @@ from src.utils.decorators import is_staff
 
 AUTHOR_PLACEHOLDER = "[[@author]]"
 
+
 def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
     """Gets all tag options for the given forum."""
 
     async def select_callback(interaction: Interaction):
         await db.update("tag_id", int(tag_selection.values[0]))
-        await interaction.response.edit_message(
-            content=f"Success...",
-            view=None
-        )
+        await interaction.response.edit_message(content=f"Success...", view=None)
         view.stop()
 
     view = View()
@@ -56,11 +54,13 @@ def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
 
     for a_tag in forum.available_tags:
         tag_selection.add_option(
-            label=f"{a_tag.emoji}{a_tag.name}" if a_tag.emoji else a_tag.name, value=a_tag.id
+            label=f"{a_tag.emoji}{a_tag.name}" if a_tag.emoji else a_tag.name,
+            value=a_tag.id,
         )
 
     view.add_item(tag_selection)
     return view
+
 
 def _getter(guild: Guild, entry: dict) -> Member | Role:
     """Gets the object type and returns it."""
@@ -111,7 +111,7 @@ class ForumAssist(GroupCog):
                     staff_roles,
                     self.logger,
                 ),
-                message_id=view["message_id"]
+                message_id=view["message_id"],
             )
 
     async def cog_load(self):
@@ -149,28 +149,31 @@ class ForumAssist(GroupCog):
                             thread.owner_id,
                             self.dev_help_views_db,
                             self.dev_help_tag_db,
-                            self.forum,
+                            thread.parent,
                             staff_roles,
                             self.logger,
-                        )
+                        ),
                     )
                 except Forbidden:
                     pass
 
-        config = await self.config.get_config("dev_help")
+        config_id, is_enabled = await self.db.is_mark_as_solved_enabled_for_forum(
+            thread.parent_id
+        )
 
-        if not config["config_status"]:
+        if not is_enabled:
+            return
+
+        global_config = await self.config.get_config("auto_tagging")
+        if not global_config["config_status"]:
+            return
+
+        entry = await self.db.config_by_forum(thread.parent.id)
+        if not entry:
             return
 
         settings = await self.dev_help_tag_db.get()
-
         if not settings:
-            return
-
-        if not self.forum:
-            return
-
-        if thread.parent_id != self.forum.id:
             return
 
         bot_message = await try_send()
@@ -179,7 +182,9 @@ class ForumAssist(GroupCog):
             return
 
         await bot_message.pin()
-        await self.dev_help_views_db.add_view(thread.id, bot_message.id, thread.owner.id)
+        await self.dev_help_views_db.add_view(
+            thread.id, bot_message.id, thread.owner.id
+        )
 
     async def _notify_subscribers(self, thread: Thread):
         config = await self.config.get_config("auto_tagging")
@@ -279,15 +284,19 @@ class ForumAssist(GroupCog):
                 entity_tag_message=tag_message,
                 reply=reply,
                 enable_accept_solutions=enable_accept_solutions,
+                enable_mark_as_solved=view.state.enable_mark_as_solved,
             )
 
             if view.state.enable_mark_as_solved:
-                forum = await self.bot.fetch_channel(view.state.forum)
-                tag_view = get_tag_options(self.dev_help_tag_db, forum)
-                await interaction.followup.send(view=tag_view, ephemeral=True)
-                await tag_view.wait()
+                forum_channel = await self.bot.fetch_channel(view.state.forum)
+                tag_view = get_tag_options(self.dev_help_tag_db, forum_channel)
+                if tag_view:
+                    await interaction.followup.send(view=tag_view, ephemeral=True)
+                    await tag_view.wait()
 
-                await interaction.followup.send("Mark as solved button configured.", ephemeral=True)
+                await interaction.followup.send(
+                    "Mark as solved button configured.", ephemeral=True
+                )
 
             await interaction.followup.send("Success!", ephemeral=True)
             return
@@ -364,6 +373,13 @@ class ForumAssist(GroupCog):
         tags = await self.db.get_tags(config_id)
         existing_tags: list[Role] | list[Member] = []
 
+        mark_as_solved_config = await self.db.get_mark_as_solved_config(config_id)
+        current_mark_as_solved = (
+            mark_as_solved_config["enable_mark_as_solved"]
+            if mark_as_solved_config
+            else False
+        )
+
         for tag in tags:
             tag_id = tag["entity_id"]
             if tag["entity_type"] == "role":
@@ -376,6 +392,7 @@ class ForumAssist(GroupCog):
             tag_message=tag_message,
             custom_msg=custom_message,
             existing_tags=existing_tags,
+            enable_mark_as_solved=current_mark_as_solved,
         )
 
         modal = PostAssistMessage(state)
@@ -400,7 +417,18 @@ class ForumAssist(GroupCog):
                 entities=tags,
                 entity_tag_message=tag_message,
                 reply=reply,
+                enable_mark_as_solved=modal.state.enable_mark_as_solved,
             )
+
+            if modal.state.enable_mark_as_solved:
+                await interaction.followup.send(
+                    "Mark as solved button enabled for this forum.", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    "Mark as solved button disabled for this forum.", ephemeral=True
+                )
+
             return
 
         await interaction.followup.send("Cancelled.", ephemeral=True)
@@ -416,9 +444,7 @@ class ForumAssist(GroupCog):
 
         description = "This post has been marked as solved."
 
-        embed = Embed(
-            description=description
-        )
+        embed = Embed(description=description)
 
         tag = ctx.channel.parent.get_tag(tag_id)
 
