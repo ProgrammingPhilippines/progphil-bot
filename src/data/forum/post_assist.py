@@ -218,6 +218,7 @@ class PostAssistDB:
         entities: list[tuple[int, str]],
         entity_tag_message: str,
         reply: str,
+        enable_accept_solutions: bool | None = None,
         enable_mark_as_solved: bool | None = None,
     ):
         """Updates a configuration to the database.
@@ -226,6 +227,7 @@ class PostAssistDB:
         :param entities: The entities to add
         :param entity_tag_message: The tag message
         :param reply: The reply message
+        :param enable_accept_solutions: Enable accept solutions app command
         :param enable_mark_as_solved: Whether to enable mark as solved button
         """
 
@@ -237,29 +239,19 @@ class PostAssistDB:
             if not config:
                 return
 
-            # Update the main configuration
-            if enable_mark_as_solved is not None:
-                await conn.execute(
-                    """
-                    UPDATE pph_post_assist_config SET
-                        forum_id = $1,
-                        enable_mark_as_solved = $3
-                    WHERE id = $2;
+            await conn.execute(
+                """
+                UPDATE pph_post_assist_config SET
+                    forum_id = $1,
+                    enable_accept_solutions = COALESCE($3, enable_accept_solutions),
+                    enable_mark_as_solved = COALESCE($4, enable_mark_as_solved)
+                WHERE id = $2;
                 """,
-                    forum_id,
-                    id,
-                    enable_mark_as_solved,
-                )
-            else:
-                await conn.execute(
-                    """
-                    UPDATE pph_post_assist_config SET
-                        forum_id = $1
-                    WHERE id = $2;
-                """,
-                    forum_id,
-                    id,
-                )
+                forum_id,
+                id,
+                enable_accept_solutions,
+                enable_mark_as_solved,
+            )
 
             await conn.execute(
                 """

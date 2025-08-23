@@ -28,7 +28,7 @@ class PostAssistState:
         enable_accept_solutions: bool = False,
         enable_mark_as_solved: bool = False,
         finished: bool = False,
-        failed: bool = False
+        failed: bool = False,
     ):
         self.forum: int = forum
         self.tag_list: list[tuple[int, str]] = []
@@ -47,7 +47,7 @@ class ConfigurePostAssist(View):
         forum: int = None,
         tag_message: str = None,
         custom_msg: str = None,
-        db: PostAssistDB = None
+        db: PostAssistDB = None,
     ):
         super().__init__(timeout=480)
         self.db = db
@@ -189,7 +189,11 @@ class PostAssistMarkAsSolution(View):
         )
 
         enable_mark_as_solved_button = PostAssistEnableMarkAsSolvedButton(self.state)
-        await interaction.followup.send("Enable Mark as Solved feature?", view=enable_mark_as_solved_button, ephemeral=True)
+        await interaction.followup.send(
+            "Enable Mark as Solved feature?",
+            view=enable_mark_as_solved_button,
+            ephemeral=True,
+        )
         await enable_mark_as_solved_button.wait()
         self.stop()
 
@@ -197,8 +201,19 @@ class PostAssistMarkAsSolution(View):
     async def disable(self, interaction: Interaction, button: Button):
         self.state.enable_accept_solutions = False
         self.state.finished = True
-        await interaction.response.send_message("Accept solutions disabled.", ephemeral=True)
+        await interaction.response.send_message(
+            "Accept solutions disabled.", ephemeral=True
+        )
+
+        enable_mark_as_solved_button = PostAssistEnableMarkAsSolvedButton(self.state)
+        await interaction.followup.send(
+            "Enable Mark as Solved feature?",
+            view=enable_mark_as_solved_button,
+            ephemeral=True,
+        )
+        await enable_mark_as_solved_button.wait()
         self.stop()
+
 
 class PostAssistEnableMarkAsSolvedButton(View):
     def __init__(self, options: PostAssistState):
@@ -212,7 +227,9 @@ class PostAssistEnableMarkAsSolvedButton(View):
         self.state.enable_mark_as_solved = True
         self.state.finished = True
 
-        await interaction.followup.send("Mark as solved will be enabled.", ephemeral=True)
+        await interaction.followup.send(
+            "Mark as solved will be enabled.", ephemeral=True
+        )
 
         self.stop()
 
@@ -220,8 +237,11 @@ class PostAssistEnableMarkAsSolvedButton(View):
     async def disable_mark_as_solved(self, interaction: Interaction, button: Button):
         self.state.enable_mark_as_solved = False
         self.state.finished = True
-        await interaction.response.send_message("Mark as solved disabled.", ephemeral=True)
+        await interaction.response.send_message(
+            "Mark as solved disabled.", ephemeral=True
+        )
         self.stop()
+
 
 class ConfigurationPagination(View):
     def __init__(self, data: list[dict], getter: Callable):
@@ -258,15 +278,13 @@ class ConfigurationPagination(View):
             view=self,
         )
 
+
 def get_forums(db: Settings, guild: Guild) -> View:
     """Gets all forums."""
 
     async def select_callback(interaction: Interaction):
         await db.set_setting("dev_help_forum", int(forum_selection.values[0]))
-        await interaction.response.edit_message(
-            content=f"Success...",
-            view=None
-        )
+        await interaction.response.edit_message(content=f"Success...", view=None)
         view.stop()
 
     view = View()
@@ -274,12 +292,11 @@ def get_forums(db: Settings, guild: Guild) -> View:
     forum_selection.callback = select_callback
 
     for forum in guild.forums:
-        forum_selection.add_option(
-            label=forum.name, value=str(forum.id)
-        )
+        forum_selection.add_option(label=forum.name, value=str(forum.id))
 
     view.add_item(forum_selection)
     return view
+
 
 def format_data(data: dict, guild: Guild, getter: Callable):
     forum = guild.get_channel(data["forum_id"])

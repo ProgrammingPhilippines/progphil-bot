@@ -14,7 +14,8 @@ from discord import (
 )
 from discord.app_commands import ContextMenu, command, describe
 from discord.enums import AppCommandType
-from discord.ext.commands import Bot, Cog, GroupCog, command as prefixed_command
+from discord.ext.commands import Bot, Cog, GroupCog
+from discord.ext.commands import command as prefixed_command
 from discord.ext.commands.context import Context
 from discord.types.embed import Embed
 from discord.ui.select import Select
@@ -373,6 +374,9 @@ class ForumAssist(GroupCog):
         tags = await self.db.get_tags(config_id)
         existing_tags: list[Role] | list[Member] = []
 
+        # Get current configuration values
+        current_enable_accept_solutions = config.get("enable_accept_solutions", False)
+
         mark_as_solved_config = await self.db.get_mark_as_solved_config(config_id)
         current_mark_as_solved = (
             mark_as_solved_config["enable_mark_as_solved"]
@@ -392,6 +396,7 @@ class ForumAssist(GroupCog):
             tag_message=tag_message,
             custom_msg=custom_message,
             existing_tags=existing_tags,
+            enable_accept_solutions=current_enable_accept_solutions,
             enable_mark_as_solved=current_mark_as_solved,
         )
 
@@ -417,6 +422,7 @@ class ForumAssist(GroupCog):
                 entities=tags,
                 entity_tag_message=tag_message,
                 reply=reply,
+                enable_accept_solutions=modal.state.enable_accept_solutions,
                 enable_mark_as_solved=modal.state.enable_mark_as_solved,
             )
 
