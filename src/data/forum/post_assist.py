@@ -331,46 +331,6 @@ class PostAssistDB:
             res = (int(res["id"]), bool(res["enable_accept_solutions"]))
             return res
 
-    async def get_mark_as_solved_config(self, config_id: int):
-        """Get the mark as solved configuration for a specific config ID.
-
-        :param config_id: The configuration ID
-        :return: Dictionary with mark as solved settings or None
-        """
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            config = await conn.fetchrow(
-                """
-                SELECT enable_mark_as_solved FROM pph_post_assist_config
-                WHERE id = $1;
-                """,
-                config_id,
-            )
-
-        return config if config is not None else None
-
-    async def set_mark_as_solved_config(
-        self, config_id: int, enable_mark_as_solved: bool
-    ):
-        """Update the mark as solved configuration for a config ID.
-
-        :param config_id: The configuration ID
-        :param enable_mark_as_solved: Whether to enable mark as solved button
-        """
-        async with self._pool.acquire() as conn:
-            conn: Pool
-
-            await conn.execute(
-                """
-                UPDATE pph_post_assist_config
-                SET enable_mark_as_solved = $2
-                WHERE id = $1;
-                """,
-                config_id,
-                enable_mark_as_solved,
-            )
-
     async def is_mark_as_solved_enabled_for_forum(self, forum_id: int):
         """Check if mark as solved button is enabled for a specific forum.
 
@@ -395,3 +355,112 @@ class PostAssistDB:
                 return (-1, False)
 
             return (int(res["id"]), bool(res["enable_mark_as_solved"]))
+
+    async def get_mark_as_solved_tag(self, forum_id: int) -> int | None:
+        """Get the forum tag used when marking a thread as solved."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            res = await conn.fetchrow(
+                """
+                SELECT tag_id
+                FROM pph_post_assist_mark_as_solved_tags
+                WHERE forum_id = $1;
+                """,
+                forum_id,
+            )
+
+            if res and res["tag_id"]:
+                return int(res["tag_id"])
+
+            return None
+
+    async def set_mark_as_solved_tag(self, forum_id: int, tag_id: int) -> None:
+        """Set/update the forum tag used when a thread is marked as solved."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                INSERT INTO pph_post_assist_mark_as_solved_tags(forum_id, tag_id)
+                VALUES ($1, $2)
+                ON CONFLICT (forum_id)
+                DO UPDATE SET tag_id = EXCLUDED.tag_id;
+                """,
+                forum_id,
+                tag_id,
+            )
+
+    async def delete_mark_as_solved_tag(self, forum_id: int) -> None:
+        """Delete the forum tag mapping for mark-as-solved."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                DELETE FROM pph_post_assist_mark_as_solved_tags
+                WHERE forum_id = $1;
+                """,
+                forum_id,
+            )
+
+    async def get_persistent_mark_as_solved_views(self):
+        """Gets all active persistent mark-as-solved button views."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            views = await conn.fetch(
+                """
+                SELECT *
+                FROM pph_post_assist_mark_as_solved_views
+                WHERE closed = false;
+                """
+            )
+
+        return views
+
+    async def close_persistent_mark_as_solved_view(self, thread_id: int) -> None:
+        """Mark a persistent mark-as-solved view as closed."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                UPDATE pph_post_assist_mark_as_solved_views
+                SET closed = true
+                WHERE thread_id = $1;
+                """,
+                thread_id,
+            )
+
+    async def add_persistent_mark_as_solved_view(
+        self, thread_id: int, message_id: int, author_id: int
+    ) -> None:
+        """Store a persistent mark-as-solved view."""
+
+        async with self._pool.acquire() as conn:
+            conn: Pool
+
+            await conn.execute(
+                """
+                INSERT INTO pph_post_assist_mark_as_solved_views (
+                    thread_id,
+                    message_id,
+                    author_id
+                )
+                VALUES ($1, $2, $3)
+                ON CONFLICT (thread_id)
+                DO UPDATE SET
+                    message_id = EXCLUDED.message_id,
+                    author_id = EXCLUDED.author_id,
+                    closed = false;
+                """,
+                thread_id,
+                message_id,
+                author_id,
+            )

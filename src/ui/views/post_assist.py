@@ -3,7 +3,6 @@ from typing import Callable
 from discord import Interaction, ButtonStyle, ChannelType
 from discord import TextStyle, Member, Guild, Role
 from discord.ui import (
-    Select,
     View,
     Modal,
     Button,
@@ -14,7 +13,6 @@ from discord.ui import (
     button,
 )
 
-from src.data.admin.settings import Settings
 from src.data.forum.post_assist import PostAssistDB
 
 
@@ -277,26 +275,6 @@ class ConfigurationPagination(View):
             content=format_data(self.data[self.page], interaction.guild, self.getter),
             view=self,
         )
-
-
-def get_forums(db: Settings, guild: Guild) -> View:
-    """Gets all forums."""
-
-    async def select_callback(interaction: Interaction):
-        await db.set_setting("dev_help_forum", int(forum_selection.values[0]))
-        await interaction.response.edit_message(content=f"Success...", view=None)
-        view.stop()
-
-    view = View()
-    forum_selection = Select(placeholder="Select Forum...")
-    forum_selection.callback = select_callback
-
-    for forum in guild.forums:
-        forum_selection.add_option(label=forum.name, value=str(forum.id))
-
-    view.add_item(forum_selection)
-    return view
-
 
 def format_data(data: dict, guild: Guild, getter: Callable):
     forum = guild.get_channel(data["forum_id"])

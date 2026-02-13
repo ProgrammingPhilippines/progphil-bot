@@ -15,16 +15,11 @@ from discord import (
 from discord.app_commands import ContextMenu, command, describe
 from discord.enums import AppCommandType
 from discord.ext.commands import Bot, Cog, GroupCog
-from discord.ext.commands import command as prefixed_command
-from discord.ext.commands.context import Context
-from discord.types.embed import Embed
 from discord.ui.select import Select
 from discord.ui.view import View
 
 from src.data.admin.config_auto import Config
-from src.data.admin.settings import Settings
 from src.data.forum.post_assist import PostAssistDB
-from src.ui.views.dev_help import DevHelpTagDB, DevHelpViewsDB, PersistentSolverView
 from src.ui.views.mark_as_solution import MarkAsSolution
 from src.ui.views.post_assist import (
     ConfigurationPagination,
@@ -33,16 +28,17 @@ from src.ui.views.post_assist import (
     PostAssistState,
     format_data,
 )
+from src.ui.views.solver import PersistentSolverView
 from src.utils.decorators import is_staff
 
 AUTHOR_PLACEHOLDER = "[[@author]]"
 
 
-def get_tag_options(db: DevHelpTagDB, forum: ForumChannel) -> View | None:
+def get_tag_options(db: PostAssistDB, forum: ForumChannel) -> View | None:
     """Gets all tag options for the given forum."""
 
     async def select_callback(interaction: Interaction):
-        await db.update("tag_id", int(tag_selection.values[0]))
+        await db.set_mark_as_solved_tag(forum.id, int(tag_selection.values[0]))
         await interaction.response.edit_message(content=f"Success...", view=None)
         view.stop()
 
@@ -74,14 +70,11 @@ def _getter(guild: Guild, entry: dict) -> Member | Role:
     return getter(entry["entity_id"])
 
 
-class ForumAssist(GroupCog):
+class ForumAssist(GroupCog, name="forum-assist"):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.settings = Settings(self.bot.pool)
         self.logger: Logger = self.bot.logger  # type: ignore
         self.db = PostAssistDB(self.bot.pool)  # type: ignore
-        self.dev_help_tag_db = DevHelpTagDB(self.bot.pool)  # type: ignore
-        self.dev_help_views_db = DevHelpViewsDB(self.bot.pool)  # type: ignore
         self.config = Config(self.bot.pool)  # type: ignore
         ctx_menu = ContextMenu(
             name="Accept Solution",
@@ -91,24 +84,17 @@ class ForumAssist(GroupCog):
         self.bot.tree.add_command(ctx_menu)
         self.ctx_menu = ctx_menu
 
-    async def reload_forum(self):
-        dev_help = await self.settings.get_setting("dev_help_forum")
-        self.forum = self.bot.get_channel(dev_help)
-
     async def load(self):
         await self.bot.wait_until_ready()
-        await self.reload_forum()
 
         staff_roles: list[int] = self.bot.config.guild.staff_roles
 
-        for view in await self.dev_help_views_db.get_persistent_views():
+        for view in await self.db.get_persistent_mark_as_solved_views():
             self.bot.add_view(
                 PersistentSolverView(
                     view["thread_id"],
                     view["author_id"],
-                    self.dev_help_views_db,
-                    self.dev_help_tag_db,
-                    self.forum,
+                    self.db,
                     staff_roles,
                     self.logger,
                 ),
@@ -118,20 +104,6 @@ class ForumAssist(GroupCog):
     async def cog_load(self):
         asyncio.create_task(self.load())
 
-    def cog_check(self, ctx: Context) -> bool:
-        channel = ctx.channel
-
-        if not self.forum:
-            return False
-
-        if not isinstance(channel, Thread):
-            return False
-
-        if not isinstance(channel.parent, ForumChannel):
-            return False
-
-        return channel.parent_id == self.forum.id
-
     @Cog.listener()
     async def on_thread_create(self, thread: Thread):
         await self._send_mark_ask_solved_button(thread)
@@ -139,6 +111,12 @@ class ForumAssist(GroupCog):
 
     async def _send_mark_ask_solved_button(self, thread: Thread):
         staff_roles: list[int] = self.bot.config.guild.staff_roles
+
+        if not isinstance(thread.parent, ForumChannel):
+            return
+
+        if not thread.owner_id:
+            return
 
         async def try_send() -> Message:
             for _ in range(5):  # max of 5 retries
@@ -148,9 +126,7 @@ class ForumAssist(GroupCog):
                         view=PersistentSolverView(
                             thread.id,
                             thread.owner_id,
-                            self.dev_help_views_db,
-                            self.dev_help_tag_db,
-                            thread.parent,
+                            self.db,
                             staff_roles,
                             self.logger,
                         ),
@@ -158,7 +134,7 @@ class ForumAssist(GroupCog):
                 except Forbidden:
                     pass
 
-        config_id, is_enabled = await self.db.is_mark_as_solved_enabled_for_forum(
+        _, is_enabled = await self.db.is_mark_as_solved_enabled_for_forum(
             thread.parent_id
         )
 
@@ -173,8 +149,7 @@ class ForumAssist(GroupCog):
         if not entry:
             return
 
-        settings = await self.dev_help_tag_db.get()
-        if not settings:
+        if not await self.db.get_mark_as_solved_tag(thread.parent_id):
             return
 
         bot_message = await try_send()
@@ -183,8 +158,8 @@ class ForumAssist(GroupCog):
             return
 
         await bot_message.pin()
-        await self.dev_help_views_db.add_view(
-            thread.id, bot_message.id, thread.owner.id
+        await self.db.add_persistent_mark_as_solved_view(
+            thread.id, bot_message.id, thread.owner_id
         )
 
     async def _notify_subscribers(self, thread: Thread):
@@ -204,7 +179,7 @@ class ForumAssist(GroupCog):
 
         thread_msg = thread.get_partial_message(thread.id)
 
-        if AUTHOR_PLACEHOLDER in reply:
+        if reply and AUTHOR_PLACEHOLDER in reply:
             reply = reply.replace(AUTHOR_PLACEHOLDER, thread_msg.thread.owner.mention)
 
         # Sometimes the pinning and reply fails
@@ -290,14 +265,15 @@ class ForumAssist(GroupCog):
 
             if view.state.enable_mark_as_solved:
                 forum_channel = await self.bot.fetch_channel(view.state.forum)
-                tag_view = get_tag_options(self.dev_help_tag_db, forum_channel)
-                if tag_view:
-                    await interaction.followup.send(view=tag_view, ephemeral=True)
-                    await tag_view.wait()
+                if isinstance(forum_channel, ForumChannel):
+                    tag_view = get_tag_options(self.db, forum_channel)
+                    if tag_view:
+                        await interaction.followup.send(view=tag_view, ephemeral=True)
+                        await tag_view.wait()
 
-                await interaction.followup.send(
-                    "Mark as solved button configured.", ephemeral=True
-                )
+                    await interaction.followup.send(
+                        "Mark as solved button configured.", ephemeral=True
+                    )
 
             await interaction.followup.send("Success!", ephemeral=True)
             return
@@ -377,12 +353,7 @@ class ForumAssist(GroupCog):
         # Get current configuration values
         current_enable_accept_solutions = config.get("enable_accept_solutions", False)
 
-        mark_as_solved_config = await self.db.get_mark_as_solved_config(config_id)
-        current_mark_as_solved = (
-            mark_as_solved_config["enable_mark_as_solved"]
-            if mark_as_solved_config
-            else False
-        )
+        current_mark_as_solved = config.get("enable_mark_as_solved", False)
 
         for tag in tags:
             tag_id = tag["entity_id"]
@@ -427,10 +398,18 @@ class ForumAssist(GroupCog):
             )
 
             if modal.state.enable_mark_as_solved:
+                forum_channel = await self.bot.fetch_channel(forum_id)
+                if isinstance(forum_channel, ForumChannel):
+                    tag_view = get_tag_options(self.db, forum_channel)
+                    if tag_view:
+                        await interaction.followup.send(view=tag_view, ephemeral=True)
+                        await tag_view.wait()
+
                 await interaction.followup.send(
                     "Mark as solved button enabled for this forum.", ephemeral=True
                 )
             else:
+                await self.db.delete_mark_as_solved_tag(forum_id)
                 await interaction.followup.send(
                     "Mark as solved button disabled for this forum.", ephemeral=True
                 )
@@ -438,33 +417,6 @@ class ForumAssist(GroupCog):
             return
 
         await interaction.followup.send("Cancelled.", ephemeral=True)
-
-    @is_staff(command_type="prefix")
-    @prefixed_command()
-    async def solved(self, ctx: Context):
-        settings = await self.dev_help_tag_db.get()
-        tag_id = settings["tag_id"]
-
-        if not tag_id:
-            return
-
-        description = "This post has been marked as solved."
-
-        embed = Embed(description=description)
-
-        tag = ctx.channel.parent.get_tag(tag_id)
-
-        name = f"[SOLVED] {ctx.channel.name}"
-
-        self.logger.info(name)
-
-        if len(name) > 100:
-            name = name[:97] + "..."
-
-        await ctx.channel.send(embed=embed)
-        await ctx.channel.edit(locked=True)
-        await ctx.channel.add_tags(tag, reason="Solved")
-        await ctx.channel.edit(name=name)
 
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(
@@ -606,9 +558,7 @@ class ForumAssist(GroupCog):
         mark_as_solved_button = PersistentSolverView(
             thread_id,
             thread_author_id,
-            self.dev_help_views_db,
-            self.dev_help_tag_db,
-            forum,
+            self.db,
             staff_roles,
             self.logger,
         )
