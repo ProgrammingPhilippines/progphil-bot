@@ -157,17 +157,18 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
         )
 
         while next_run <= now:
-            if interval == "daily":
-                next_run += relativedelta(days=1)
-            elif interval == "weekly":
-                if weekday_int == now.weekday():
-                    next_run += relativedelta(weeks=1)
-                else:
-                    weekday = weekday_int
-                    next_run += relativedelta(weekday=weekday)
-            elif interval == "monthly":
-                next_month = next_run.replace(day=1) + relativedelta(months=1)
-                next_run = next_month.replace(day=next_month.day)
+            match interval:
+                case "daily":
+                    next_run += relativedelta(days=1)
+                case "weekly":
+                    if weekday_int == now.weekday():
+                        next_run += relativedelta(weeks=1)
+                    else:
+                        next_run += relativedelta(weekday=weekday_int)
+                case "monthly":
+                    next_month = next_run.replace(
+                        day=1) + relativedelta(months=1)
+                    next_run = next_month
 
         return next_run
 
