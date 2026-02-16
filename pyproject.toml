@@ -13,7 +13,6 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10.14"
-discord-py = "^2.4.0"
 python-dotenv = "^1.0.1"
 pyyaml = "^6.0"
 flake8 = "^7.1.0"
@@ -29,6 +28,7 @@ python-levenshtein = "^0.25.1"
 setuptools = "^70.1.0"
 pydantic = "^2.8.0"
 python-dateutil = "^2.9.0"
+discord-py = "^2.5.2"
 
 [tool.poetry.scripts]
 progphil = "main:run"
