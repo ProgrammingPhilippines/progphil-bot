@@ -99,8 +99,10 @@ class ConfigureChannel(View):
             self.forum_showcase.target_channel = self.selected_channel
         await interaction.response.defer()
 
+
 class ConfigureInterval(View):
-    def __init__(self,
+    def __init__(
+        self,
         forum_showcase: ForumShowcase,
         forum_showcase_db: ForumShowcaseDB,
         logger: Logger,
@@ -116,7 +118,7 @@ class ConfigureInterval(View):
         await interaction.response.send_message("Skipped!", ephemeral=True)
         self.stop()
 
-    @button(label="Submit", style=ButtonStyle.green, custom_id="submit-interval-select") # type: ignore
+    @button(label="Submit", style=ButtonStyle.green, custom_id="submit-interval-select")  # type: ignore
     async def submit_button(self, interaction: Interaction, button: Button):
         if self.selected_interval is None:
             await interaction.response.send_message(
@@ -158,6 +160,7 @@ class ConfigureInterval(View):
             self.selected_interval = selected_interval
             self.forum_showcase.interval = self.selected_interval
         await interaction.response.defer()
+
 
 class ConfigureWeekday(View):
     def __init__(
@@ -304,6 +307,8 @@ def parse_schedule(schedule: str) -> datetime:
         second=0,
         microsecond=0,
     )
-    parsed_schedule = (parsed_schedule - timedelta(hours=8)).replace(tzinfo=timezone.utc)
+    parsed_schedule = (parsed_schedule - timedelta(hours=8)).replace(
+        tzinfo=timezone.utc
+    )
 
     return parsed_schedule

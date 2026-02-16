@@ -14,7 +14,6 @@ class BotConfig(BaseModel):
 class GuildInfo(BaseModel):
     """Holds all guild-related configurations."""
     staff_roles: list[int]
-    dev_help_forum: int
     log_channel: int
 
 
