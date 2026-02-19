@@ -102,8 +102,7 @@ class PersistentSolverView(View):
             await view.wait()
 
             if selection.values:
-                members = [thread.guild.get_member(int(id)) for id in selection.values]
-                mentions = [member.mention for member in members if member is not None]
+                mentions = [f"<@{int(user_id)}>" for user_id in selection.values]
                 mentions_str = ", ".join(mentions)
 
                 if len(mentions) > 1:
