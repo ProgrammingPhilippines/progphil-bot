@@ -48,6 +48,17 @@ WEEKDAYS = [
     "Sunday",
 ]
 
+LOCAL_TIMEZONE = timezone(timedelta(hours=8))
+LOCAL_TIMEZONE_LABEL = "UTC+8"
+
+
+def format_datetime_in_local_timezone(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+
+    local_time = value.astimezone(LOCAL_TIMEZONE)
+    return f"{local_time.strftime('%Y-%m-%d %H:%M:%S')} [{LOCAL_TIMEZONE_LABEL}]"
+
 
 class ForumShowcaseCog(GroupCog, name="forum-showcase"):
     forum_showcase_id: int
@@ -324,10 +335,10 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
             forum_channel = self.bot.get_channel(forum.forum_id)
             embed = embed.add_field(
                 name=f"**Forum**: {forum_channel.mention}",
-                value=f"""
-                **ID**: {forum.id}
-                **Added at**: {forum.created_at.date()}
-                """,
+                value=(
+                    f"**ID**: {forum.id}\n"
+                    f"**Added at**: {format_datetime_in_local_timezone(forum.created_at)}"
+                ),
                 inline=False,
             )
 
@@ -486,7 +497,8 @@ class ForumShowcaseCog(GroupCog, name="forum-showcase"):
                 self.schedule_showcase.start()
 
             await interaction.response.send_message(
-                f"Forum showcase is now enabled. Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}.",
+                "Forum showcase is now enabled. "
+                f"Next run scheduled for {format_datetime_in_local_timezone(next_run)}.",
                 ephemeral=True,
             )
             return
