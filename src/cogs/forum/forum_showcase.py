@@ -48,7 +48,6 @@ WEEKDAYS = [
     "Sunday",
 ]
 
-# timezone
 LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 LOCAL_TIMEZONE_LABEL = "UTC+8"
 
