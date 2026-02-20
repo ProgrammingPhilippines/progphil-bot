@@ -473,6 +473,7 @@ class ForumAssist(GroupCog, name="forum-assist"):
 
         return None
 
+    # Only allow the author or staff
     def _can_accept_solution(
         self, interaction: Interaction, thread_author_id: int, staff_roles: list[int]
     ) -> bool:
