@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.3.1...v1.4.0) (2026-02-20)
+
+
+### Features
+
+* bump setuptools from 70.3.0 to 78.1.1 ([#277](https://github.com/ProgrammingPhilippines/progphil-bot/issues/277)) and other various changes ([1a07e5d](https://github.com/ProgrammingPhilippines/progphil-bot/commit/1a07e5d75e9b8599c91131ad696f4ed4bebf5a16))
+
 ## [1.3.1](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.3.0...v1.3.1) (2024-12-02)
 
 
