@@ -264,7 +264,7 @@ class ConfigureTime(View):
         await self.forum_showcase_db.update_showcase(update_showcase)
 
         await interaction.response.send_message(
-            f"New time is {self.selected_time}", ephemeral=True
+            f"New time is {self.selected_time} [UTC+8]", ephemeral=True
         )
         self.stop()
 

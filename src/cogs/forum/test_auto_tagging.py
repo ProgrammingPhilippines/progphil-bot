@@ -80,6 +80,89 @@ class TestForumAssist(IsolatedAsyncioTestCase):
         thread.send.assert_not_awaited()
         self.cog.config.get_config.assert_not_awaited()
 
+    async def test_accept_solution_rejects_non_owner(self):
+        thread = MagicMock(spec=Thread)
+        thread.id = 123
+        thread.owner_id = 456
+        thread.parent = MagicMock(spec=ForumChannel)
+        thread.parent.id = 789
+        thread.archived = False
+
+        interaction = AsyncMock()
+        interaction.channel = thread
+        interaction.user.id = 999
+        interaction.user.roles = []
+        interaction.user.guild_permissions.administrator = False
+
+        message = MagicMock()
+        message.id = 124
+        message.author.bot = False
+
+        await self.cog.accept_solution(interaction, message)
+
+        interaction.response.send_message.assert_awaited_once_with(
+            "Only the thread owner or staff can accept a solution.",
+            ephemeral=True,
+        )
+        self.cog.db.is_mark_as_solution_enabled.assert_not_awaited()
+
+    async def test_accept_solution_allows_admin(self):
+        thread = MagicMock(spec=Thread)
+        thread.id = 123
+        thread.owner_id = 456
+        thread.parent = MagicMock(spec=ForumChannel)
+        thread.parent.id = 789
+        thread.archived = False
+
+        interaction = AsyncMock()
+        interaction.channel = thread
+        interaction.user.id = 999
+        interaction.user.roles = []
+        interaction.user.guild_permissions.administrator = True
+
+        message = MagicMock()
+        message.id = 124
+        message.author.bot = False
+
+        self.cog.db.is_mark_as_solution_enabled.return_value = (1, False)
+
+        await self.cog.accept_solution(interaction, message)
+
+        self.cog.db.is_mark_as_solution_enabled.assert_awaited_once_with(789)
+        interaction.response.send_message.assert_awaited_once_with(
+            "Accept Solution is not enabled here.", ephemeral=True
+        )
+
+    async def test_accept_solution_allows_staff_role(self):
+        thread = MagicMock(spec=Thread)
+        thread.id = 123
+        thread.owner_id = 456
+        thread.parent = MagicMock(spec=ForumChannel)
+        thread.parent.id = 789
+        thread.archived = False
+
+        staff_role = MagicMock()
+        staff_role.id = 2
+
+        interaction = AsyncMock()
+        interaction.channel = thread
+        interaction.user.id = 999
+        interaction.user.roles = [staff_role]
+        interaction.user.guild_permissions.administrator = False
+
+        message = MagicMock()
+        message.id = 124
+        message.author.bot = False
+
+        self.cog.db.is_mark_as_solution_enabled.return_value = (1, False)
+
+        await self.cog.accept_solution(interaction, message)
+
+        self.cog.db.is_mark_as_solution_enabled.assert_awaited_once_with(789)
+        interaction.response.send_message.assert_awaited_once_with(
+            "Accept Solution is not enabled here.", ephemeral=True
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

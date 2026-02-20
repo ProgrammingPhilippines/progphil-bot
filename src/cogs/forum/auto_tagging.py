@@ -473,6 +473,19 @@ class ForumAssist(GroupCog, name="forum-assist"):
 
         return None
 
+    def _can_accept_solution(
+        self, interaction: Interaction, thread_author_id: int, staff_roles: list[int]
+    ) -> bool:
+        if interaction.user.id == thread_author_id:
+            return True
+
+        user_permissions = getattr(interaction.user, "guild_permissions", None)
+        if user_permissions and user_permissions.administrator:
+            return True
+
+        user_roles = {role.id for role in getattr(interaction.user, "roles", [])}
+        return any(role_id in user_roles for role_id in staff_roles)
+
     async def accept_solution(self, interaction: Interaction, message: Message) -> None:
         thread = interaction.channel
         is_thread = isinstance(thread, Thread)
@@ -491,6 +504,17 @@ class ForumAssist(GroupCog, name="forum-assist"):
         ):
             return await interaction.response.send_message(
                 "This command can only be used in threads.", ephemeral=True
+            )
+
+        can_accept_solution = self._can_accept_solution(
+            interaction=interaction,
+            thread_author_id=thread_author_id,
+            staff_roles=staff_roles,
+        )
+        if not can_accept_solution:
+            return await interaction.response.send_message(
+                "Only the thread owner or staff can accept a solution.",
+                ephemeral=True,
             )
 
         if thread.archived:
