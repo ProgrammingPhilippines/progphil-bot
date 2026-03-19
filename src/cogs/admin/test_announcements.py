@@ -13,7 +13,12 @@ class TestAnnouncementFormatting(unittest.TestCase):
     def test_format_announcement_with_title_uses_single_newline(self):
         announcement = _format_announcement("my title", "test")
 
-        self.assertEqual(announcement, "**my title**\ntest")
+        self.assertEqual(announcement, "# my title\ntest")
+
+    def test_format_announcement_with_title_strips_leading_line_breaks_from_content(self):
+        announcement = _format_announcement("my title", "\n\ntest")
+
+        self.assertEqual(announcement, "# my title\ntest")
 
     def test_format_announcement_without_title_has_no_leading_newline(self):
         announcement = _format_announcement("", "test")
@@ -84,7 +89,29 @@ class TestAnnouncements(IsolatedAsyncioTestCase):
         await modal.on_submit(mock_interaction)
 
         mock_channel.send.assert_awaited_once_with(
-            content="**my title**\ntest",
+            content="# my title\ntest",
+            file=None
+        )
+
+    async def test_on_submit_regular_submission_drops_leading_line_breaks_in_content(self):
+        mock_channel = MagicMock()
+        mock_channel.send = AsyncMock()
+
+        mock_interaction = MagicMock(spec=Interaction)
+        mock_interaction.response = MagicMock()
+        mock_interaction.response.is_done = MagicMock(return_value=False)
+        mock_interaction.response.send_message = AsyncMock()
+        mock_interaction.followup = MagicMock()
+        mock_interaction.followup.send = AsyncMock()
+
+        modal = Announcement(None, mock_channel, "regular")
+        modal.announcement_title = MagicMock(value="my title")
+        modal.announcement = MagicMock(value="\n\ntest")
+
+        await modal.on_submit(mock_interaction)
+
+        mock_channel.send.assert_awaited_once_with(
+            content="# my title\ntest",
             file=None
         )
 

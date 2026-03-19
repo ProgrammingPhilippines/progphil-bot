@@ -29,8 +29,10 @@ def _unique(iterable: list) -> list:
 
 def _format_announcement(title: str, content: str) -> str:
     """Build the outgoing announcement body."""
-    if title and not title.isspace():
-        return f"**{title}**\n{content}"
+    title = title.strip()
+
+    if title:
+        return f"# {title}\n{content.lstrip('\r\n')}"
 
     return content
 
