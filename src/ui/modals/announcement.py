@@ -32,7 +32,8 @@ def _format_announcement(title: str, content: str) -> str:
     title = title.strip()
 
     if title:
-        return f"# {title}\n{content.lstrip('\r\n')}"
+        content = content.lstrip("\r\n")
+        return f"# {title}\n{content}"
 
     return content
 
