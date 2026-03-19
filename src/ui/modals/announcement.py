@@ -27,6 +27,14 @@ def _unique(iterable: list) -> list:
     return r
 
 
+def _format_announcement(title: str, content: str) -> str:
+    """Build the outgoing announcement body."""
+    if title and not title.isspace():
+        return f"**{title}**\n{content}"
+
+    return content
+
+
 class Announcement(Modal, title='Announcement'):
     announcement_title = TextInput(
         label='Title',
@@ -57,15 +65,14 @@ class Announcement(Modal, title='Announcement'):
 
     async def on_submit(self, interaction: Interaction) -> None:
         photo = None
-        announcement_title = ""
 
         if self.attachment:  # If the user has uploaded an attachment
             photo = await self.attachment.to_file()
 
-        if self.announcement_title.value:
-            announcement_title = f"**{self.announcement_title.value}**"
-
-        announcement = announcement_title + f'\n\n{self.announcement.value}'
+        announcement = _format_announcement(
+            self.announcement_title.value,
+            self.announcement.value
+        )
 
         if self.mention:
             selection_view = AnnouncementView()
