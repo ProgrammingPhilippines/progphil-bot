@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.4.0...v1.5.0) (2026-05-01)
+
+
+### Features
+
+* [FIX] Extra whitespace between the title and content of an announcement ([#282](https://github.com/ProgrammingPhilippines/progphil-bot/issues/282)) ([e4a6d7f](https://github.com/ProgrammingPhilippines/progphil-bot/commit/e4a6d7f15d6808d5634ac59f12e5cce216640809))
+
 ## [1.4.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.3.1...v1.4.0) (2026-02-20)
 
 
