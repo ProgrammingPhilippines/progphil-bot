@@ -19,7 +19,7 @@ class EditPost(Cog):
         name="post-edit",
         description="A command to allow staff to edit an existing post created by the PPH bot",
     )
-    @describe(message_id="The ID post/message to edit")
+    @describe(message_id="The ID of the post/message to edit")
     async def edit_post(self, interaction: Interaction, message_id: str):
 
         if not interaction.channel_id:
