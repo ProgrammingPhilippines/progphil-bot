@@ -1,8 +1,8 @@
-from discord import Interaction, Message, NotFound
+from discord import Interaction, NotFound
 from discord.app_commands import command
 from discord.app_commands.commands import describe
 from discord.ext.commands.bot import Bot
-from discord.ext.commands.cog import Cog, GroupCog
+from discord.ext.commands.cog import Cog
 
 from data.admin.config_auto import Config
 from ui.modals.edit_post import EditPostModal

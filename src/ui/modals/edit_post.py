@@ -1,4 +1,4 @@
-from discord import CategoryChannel, ForumChannel, Interaction
+from discord import Interaction
 from discord.enums import TextStyle
 from discord.ext.commands.bot import Bot
 from discord.ui.modal import Modal
