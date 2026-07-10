@@ -26,4 +26,4 @@ class EditPostModal(Modal, title="Edit post"):
         channel = await self.bot.fetch_channel(self.channel_id)
         message = await channel.fetch_message(self.post_id)
         await message.edit(content=self.message.value)
-        await interaction.response.send_message("Post edited.", ephemeral=True)
+        await interaction.response.send_message("Success", ephemeral=True)

@@ -180,7 +180,7 @@ class TestEditPostModal(IsolatedAsyncioTestCase):
         mock_channel.fetch_message.assert_awaited_once_with(42)
         mock_message.edit.assert_awaited_once_with(content="new content")
         mock_interaction.response.send_message.assert_awaited_once_with(
-            "Post edited.", ephemeral=True
+            "Success", ephemeral=True
         )
 
 
