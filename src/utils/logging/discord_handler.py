@@ -1,7 +1,7 @@
-from logging import Handler, LogRecord, NOTSET
-from discord.abc import GuildChannel
-
 import asyncio
+from logging import NOTSET, Handler, LogRecord
+
+from discord.abc import GuildChannel
 
 
 class DiscordHandler(Handler):
@@ -9,7 +9,7 @@ class DiscordHandler(Handler):
 
     def __init__(self, log_channel: GuildChannel | None = None):
         super().__init__(level=NOTSET)
-        print(f'Initializing DiscordHandler for channel {log_channel}')
+        print(f"Initializing DiscordHandler for channel {log_channel}")
         self.log_channel = log_channel
 
     def emit(self, record: LogRecord) -> None:
@@ -17,4 +17,4 @@ class DiscordHandler(Handler):
 
     async def async_emit(self, record: LogRecord):
         log = self.format(record)
-        await self.log_channel.send(f'```{log}```')
+        await self.log_channel.send(f"```{log}```")

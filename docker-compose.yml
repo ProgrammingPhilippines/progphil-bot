@@ -1,0 +1,20 @@
+services:
+  progphilbot-db:
+    image: postgres:18
+    container_name: progphilbot-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: progphilbot-db
+    ports:
+      - "5434:5432"
+    volumes:
+      - progphilbot-volume:/var/lib/postgresql
+    networks:
+      - progphilbot-network
+
+volumes:
+  progphilbot-volume:
+
+networks:
+  progphilbot-network:
