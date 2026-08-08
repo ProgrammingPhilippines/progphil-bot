@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "progphilbot"
-version = "1.4.0"
+version = "1.5.0"
 description = ""
 authors = ["Jedddy <jedbalita25@gmail.com>"]
 readme = "README.md"

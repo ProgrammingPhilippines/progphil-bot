@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.4.0...v1.5.0) (2026-08-05)
+
+
+### Features
+
+* [FEATURE] Bot edit self post ([#285](https://github.com/ProgrammingPhilippines/progphil-bot/issues/285)) ([8af4f14](https://github.com/ProgrammingPhilippines/progphil-bot/commit/8af4f14c5772de27a1e043baa0dbe3bd8805acb8))
+* [FIX] Extra whitespace between the title and content of an announcement ([#282](https://github.com/ProgrammingPhilippines/progphil-bot/issues/282)) ([ae8373c](https://github.com/ProgrammingPhilippines/progphil-bot/commit/ae8373c9df95de4d0b2d8b300d11939dd2a4fea0))
+
 ## [1.4.0](https://github.com/ProgrammingPhilippines/progphil-bot/compare/v1.3.1...v1.4.0) (2026-02-20)
 
 
