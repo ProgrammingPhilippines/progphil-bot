@@ -1,39 +1,32 @@
 FROM python:3.10-slim
 
-ARG token
+# Build-time dependencies for C extensions (e.g. psycopg2, Levenshtein)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# necessary env vars for poetry to work properly
-ENV token=$token \
-    PYTHONUNBUFFERED=1 \
-    PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.3.2
-
-# Install Poetry 1.3.2 via pip
-RUN pip install -U pip \
-    && apt-get update \
-    && apt-get install gcc -y \
-    && apt install -y libpq-dev python3-dev \
-    && pip install "poetry==1.3.2" \
-    && pip install setuptools>=65.5.1
-ENV PATH="${PATH}:/root/.poetry/bin"
+# Install modern Pip and Poetry into an isolated CLI location
+RUN pip install --no-cache-dir -U pip setuptools \
+    && pip install --no-cache-dir "poetry>=1.8.0"
 
 WORKDIR /progphil-bot
 
+# Leverage Docker layer caching: copy lockfiles first
 COPY pyproject.toml poetry.lock ./
+
+# Install project dependencies into Poetry's virtual environment
+RUN poetry install --no-root --without dev
+
+# Copy project source code after dependencies are installed
+COPY README.md ./
 COPY src ./src
 COPY migrations ./migrations
 COPY config ./config
-COPY README.md ./
 
-# Install Poetry dependencies
-RUN poetry config virtualenvs.create false \
-     && poetry install --no-dev
+# Install the root project package itself
+RUN poetry install --without dev
 
-COPY . .
-
-# Run the bot
+# Run application using Poetry's virtual environment executable directly
 CMD ["poetry", "run", "progphil"]
