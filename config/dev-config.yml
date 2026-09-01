@@ -10,6 +10,11 @@ database:
   password: !ENV "db_pass"
   port: !ENV "db_port"
 
+ai:
+  token: !ENV "llm_token"
+  base_url: !ENV "llm_base_url"
+  model: !ENV "llm_model"
+
 api:
   api_ninja: !ENV "api_ninja_key"
 

@@ -30,6 +30,12 @@ class API(BaseModel):
     """Holds the api third-party configurations, like secret keys."""
     api_ninja: str
 
+class AIConfig(BaseModel):
+    """Holds the configuration for the LLM"""
+    token: str
+    base_url: str
+    model: str
+
 
 class LoggerConfig(BaseModel):
     log_channel: int
@@ -42,6 +48,7 @@ class Config(BaseModel):
     database: Database
     logger: LoggerConfig
     api: API
+    ai: AIConfig
     guild: GuildInfo
 
 
