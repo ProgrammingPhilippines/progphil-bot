@@ -5,6 +5,7 @@ from yoyo.backends.base import DatabaseBackend
 from src.utils.logging.logger import BotLogger
 from src.bot.config import Database, Config, get_config
 from src.utils.logging.discord_handler import DiscordHandler
+from src.ai.agent import AI
 
 from logging import Logger, StreamHandler
 from discord.ext.commands import Bot
@@ -24,11 +25,13 @@ class ProgPhil(Bot):
     logger: Logger
     bot_logger: BotLogger
     pool: Pool
+    ai: AI
 
     def __init__(
         self,
         pool: Pool,
         cfg: Config,
+        ai: AI,
         bot_logger: BotLogger,
         **kwargs,
     ):
@@ -40,6 +43,7 @@ class ProgPhil(Bot):
         )
         self.bot_logger = bot_logger
         self.logger = self.bot_logger.get_logger()
+        self.ai = ai
         self.config = cfg
         self.pool = pool
 
@@ -60,6 +64,16 @@ class ProgPhil(Bot):
         logger.info(f"{self.user.display_name} running.")  # type: ignore
 
         self.logger = logger
+
+    async def on_message(self, message):
+        if message.author == self.user or message.author.bot:
+            return
+
+        if self.user.mentioned_in(message):
+            response = await self.ai.call(message.content, [])
+            await message.channel.send(response)
+
+        await self.process_commands(message)
 
     async def setup_hook(self) -> None:
         """This method only gets called ONCE, load stuff here."""
@@ -129,7 +143,7 @@ def migrate_db(db: Database, logger: Logger) -> None:
 
 
 async def main():
-    config = get_config("config/config.yml")
+    config = get_config("config/dev-config.yml")
     logger_config = config.logger
     logger = BotLogger(logger_config)
     logger.add_handler(StreamHandler())
@@ -146,7 +160,10 @@ async def main():
 
     migrate_db(db_config, logger.get_logger())
 
-    bot = ProgPhil(pool, config, logger)  # type: ignore
+    ai_config = config.ai
+    ai = AI(config=ai_config, system_prompt="You are a discordbot assistant.")
+
+    bot = ProgPhil(pool, config, ai, logger)  # type: ignore
     await bot.launch()
 
 

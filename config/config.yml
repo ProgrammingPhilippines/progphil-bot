@@ -12,6 +12,11 @@ database:
 api:
   api_ninja: !ENV "api_ninja_key"
 
+ai:
+  token: !ENV "llm_token"
+  base_url: !ENV "llm_base_url"
+  model: !ENV "llm_model"
+
 guild:
   staff_roles: [748554755265134635]
   dev_help_forum: 1020260384638259210

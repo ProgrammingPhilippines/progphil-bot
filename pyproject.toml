@@ -28,6 +28,7 @@ setuptools = "^78.1.1"
 pydantic = "^2.8.0"
 python-dateutil = "^2.9.0"
 discord-py = "^2.5.2"
+pydantic-ai-slim = {extras = ["openai"], version = "^2.37.0"}
 
 [tool.poetry.group.dev.dependencies]  # <-- MOVE DEV TOOLS HERE
 flake8 = "^7.1.0"
