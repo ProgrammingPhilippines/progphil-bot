@@ -1,6 +1,6 @@
 services:
   progphilbot-db:
-    image: postgres:18
+    image: pgvector/pgvector:pg18-trixie
     container_name: progphilbot-db
     environment:
       POSTGRES_USER: postgres
